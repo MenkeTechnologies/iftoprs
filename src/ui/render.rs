@@ -31,7 +31,6 @@ fn bar_length(bps: f64, cols: u16) -> u16 {
 
 pub fn draw(frame: &mut Frame, state: &mut AppState) {
     let size = frame.area();
-    if state.show_help { draw_help(frame, size, state); return; }
 
     // Alert flash — override border color when flashing
     let is_flashing = state.alert_state.is_flashing();
@@ -132,6 +131,8 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
     {
         draw_header_hover_tooltip(frame, size, state);
     }
+
+    if state.show_help { draw_help(frame, size, state); }
 
     if let Some(ref msg) = state.status_msg
         && !msg.expired() { draw_status(frame, size, state, &msg.text); }
