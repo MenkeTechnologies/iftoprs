@@ -487,7 +487,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let t = &state.theme;
     let buf = frame.buffer_mut();
     let bw = 90u16.min(area.width.saturating_sub(4));
-    let bh = 30u16.min(area.height.saturating_sub(4));
+    let bh = 31u16.min(area.height.saturating_sub(4));
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
     let bgs = Style::default().fg(Color::White).bg(bg);
@@ -501,8 +501,11 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let title = format!("⌨ IFTOPRS v{} — KEYBOARD SHORTCUTS", ver);
     let title_cw = title.chars().count() as u16;
     set_str(buf, x0 + (bw.saturating_sub(title_cw)) / 2, y0 + 1, &title, ts, bw - 2);
+    let byline = "by MenkeTechnologies";
+    let byline_s = Style::default().fg(Color::Indexed(240)).bg(bg);
+    set_str(buf, x0 + (bw.saturating_sub(byline.len() as u16)) / 2, y0 + 2, byline, byline_s, bw - 2);
     let bl = "[ jacking into your packet stream ]";
-    set_str(buf, x0 + (bw.saturating_sub(bl.len() as u16)) / 2, y0 + 2, bl, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 2);
+    set_str(buf, x0 + (bw.saturating_sub(bl.len() as u16)) / 2, y0 + 3, bl, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 2);
 
     let entries: [(&str, &[(&str, &str)]); 7] = [
         ("CAPTURE", &[("n","DNS toggle"),("N","Port names"),("p","Ports"),("Z","Processes"),("B","Bytes/bits"),("b","Bar style"),("T","Cumulative"),("P","Pause")]),
@@ -521,11 +524,11 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
         if section.is_empty() { continue; }
         if row + keys.len() + 2 > (bh as usize - 6) { col += 1; row = 0; if col >= 3 { break; } }
         let cx = x0 + 2 + (col as u16) * cw as u16;
-        let sy = y0 + 4 + row as u16;
+        let sy = y0 + 5 + row as u16;
         set_str(buf, cx, sy, section, ss, cw as u16);
         row += 1;
         for &(k, d) in *keys {
-            let ey = y0 + 4 + row as u16;
+            let ey = y0 + 5 + row as u16;
             if ey >= y0 + bh - 2 { break; }
             set_str(buf, cx, ey, k, ks, 8);
             set_str(buf, cx + 9, ey, d, bgs, 18);
