@@ -18,7 +18,7 @@ use tokio::sync::mpsc;
 
 use config::cli::Args;
 use data::tracker::FlowTracker;
-use ui::app::{AppState, CliOverrides, SortColumn};
+use ui::app::{AppState, CliOverrides, SortColumn, ViewTab};
 use util::resolver::Resolver;
 
 fn main() -> Result<()> {
@@ -401,14 +401,32 @@ fn run_app(
                 // Ctrl+key combos
                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                     match key.code {
-                        KeyCode::Char('d') => app.page_down(),
-                        KeyCode::Char('u') => app.page_up(),
+                        KeyCode::Char('d') => match app.view_tab {
+                            ViewTab::Flows => app.page_down(),
+                            ViewTab::Processes => app.process_page_down(),
+                        },
+                        KeyCode::Char('u') => match app.view_tab {
+                            ViewTab::Flows => app.page_up(),
+                            ViewTab::Processes => app.process_page_up(),
+                        },
                         _ => {}
                     }
                     continue;
                 }
 
                 match key.code {
+                    // ── Tab: switch view ──
+                    KeyCode::Tab | KeyCode::BackTab => {
+                        app.view_tab = match app.view_tab {
+                            ViewTab::Flows => ViewTab::Processes,
+                            ViewTab::Processes => ViewTab::Flows,
+                        };
+                        app.set_status(match app.view_tab {
+                            ViewTab::Flows => "View: Flows",
+                            ViewTab::Processes => "View: Processes",
+                        });
+                    }
+
                     // ── Quit ──
                     KeyCode::Char('q') => { app.save_prefs(); return Ok(()); }
 
@@ -491,11 +509,40 @@ fn run_app(
                     KeyCode::Char('o') => app.frozen_order = !app.frozen_order,
 
                     // ── Navigation ──
-                    KeyCode::Char('j') | KeyCode::Down => app.select_next(),
-                    KeyCode::Char('k') | KeyCode::Up => app.select_prev(),
-                    KeyCode::Char('G') | KeyCode::End => app.jump_bottom(),
-                    KeyCode::Home => app.jump_top(),
-                    KeyCode::Esc => { app.selected = None; app.show_help = false; }
+                    KeyCode::Char('j') | KeyCode::Down => {
+                        match app.view_tab {
+                            ViewTab::Flows => app.select_next(),
+                            ViewTab::Processes => app.process_select_next(),
+                        }
+                    }
+                    KeyCode::Char('k') | KeyCode::Up => {
+                        match app.view_tab {
+                            ViewTab::Flows => app.select_prev(),
+                            ViewTab::Processes => app.process_select_prev(),
+                        }
+                    }
+                    KeyCode::Char('G') | KeyCode::End => {
+                        match app.view_tab {
+                            ViewTab::Flows => app.jump_bottom(),
+                            ViewTab::Processes => {
+                                let last = app.process_snapshots.len().saturating_sub(1);
+                                app.process_selected = Some(last);
+                                app.process_scroll = last.saturating_sub(19);
+                            }
+                        }
+                    }
+                    KeyCode::Home => {
+                        match app.view_tab {
+                            ViewTab::Flows => app.jump_top(),
+                            ViewTab::Processes => { app.process_selected = Some(0); app.process_scroll = 0; }
+                        }
+                    }
+                    KeyCode::Esc => {
+                        match app.view_tab {
+                            ViewTab::Flows => { app.selected = None; app.show_help = false; }
+                            ViewTab::Processes => { app.process_selected = None; app.show_help = false; }
+                        }
+                    }
 
                     // ── Mouse scroll ──
                     _ => {}

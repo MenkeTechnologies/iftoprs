@@ -4,7 +4,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::Frame;
 
 use crate::config::theme::{Theme, ThemeName};
-use crate::ui::app::{AppState, BarStyle};
+use crate::ui::app::{AppState, BarStyle, ViewTab};
 use crate::util::format::{readable_size, readable_total};
 
 const RATE_COL_W: usize = 9;
@@ -104,7 +104,10 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
 
     draw_scale_labels(frame, c[0], state);
     draw_scale_ticks(frame, c[1], state);
-    draw_flows(frame, c[2], state, is_flashing);
+    match state.view_tab {
+        ViewTab::Flows => draw_flows(frame, c[2], state, is_flashing),
+        ViewTab::Processes => draw_processes(frame, c[2], state),
+    }
     draw_separator(frame, c[3], state);
     draw_totals(frame, c[4], state);
     if state.show_header { draw_header(frame, c[5], state); }
@@ -323,12 +326,112 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
     }
 }
 
+// ─── Process aggregation view ─────────────────────────────────────────────────
+
+fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
+    if area.height < 2 || area.width < 30 || state.process_snapshots.is_empty() { return; }
+    let t = &state.theme;
+    let w = area.width;
+    let buf = frame.buffer_mut();
+
+    // Header row
+    let proc_name_w = 24usize;
+    let flows_w = 8usize;
+    let header = format!(
+        " {:<pw$} {:>fw$} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9}",
+        "PROCESS", "FLOWS", "TX 2s", "RX 2s", "TX 10s", "RX 10s", "TOTAL TX", "TOTAL RX",
+        pw = proc_name_w, fw = flows_w,
+    );
+    let header_s = Style::default().fg(t.scale_label).add_modifier(Modifier::BOLD);
+    let header_display: String = header.chars().take(w as usize).collect();
+    set_str(buf, area.x, area.y, &header_display, header_s, w);
+
+    let start = state.process_scroll.min(state.process_snapshots.len().saturating_sub(1));
+    let vis = &state.process_snapshots[start..];
+    let rows_available = (area.height - 1) as usize; // -1 for header
+    let vis = &vis[..vis.len().min(rows_available)];
+
+    let bs = state.bar_style;
+
+    for (i, p) in vis.iter().enumerate() {
+        let y = area.y + 1 + i as u16;
+        if y >= area.y + area.height { break; }
+        let proc_idx = start + i;
+        let is_selected = state.process_selected == Some(proc_idx);
+
+        let rate = p.sent_2s + p.recv_2s;
+        let bl = bar_length(rate, w);
+
+        // Bar background
+        paint_bar_styled(buf, area.x, y, bl, w, t.bar_color, bs);
+
+        // Process name (with PID)
+        let name_display = match p.pid {
+            Some(pid) => format!(" [{}] {}", pid, p.name),
+            None => format!(" {}", p.name),
+        };
+        let name_trunc = format!("{:<w$}", trunc(&name_display, proc_name_w + 2), w = proc_name_w + 2);
+        write_bar_styled(buf, area.x, y, &name_trunc, t.host_src, area.x, bl, t.bar_color, t.bar_text, bs);
+
+        // Flow count
+        let flows_str = format!("{:>fw$}", p.flow_count, fw = flows_w);
+        let fx = area.x + proc_name_w as u16 + 2;
+        write_bar_styled(buf, fx, y, &flows_str, t.proc_name, area.x, bl, t.bar_color, t.bar_text, bs);
+
+        // Rate columns
+        let cols_x = fx + flows_w as u16 + 1;
+        let tx_2s = format!("{:>9}", readable_size(p.sent_2s, state.use_bytes));
+        let rx_2s = format!("{:>9}", readable_size(p.recv_2s, state.use_bytes));
+        let tx_10s = format!("{:>9}", readable_size(p.sent_10s, state.use_bytes));
+        let rx_10s = format!("{:>9}", readable_size(p.recv_10s, state.use_bytes));
+        let tot_tx = format!("{:>9}", readable_total(p.total_sent, state.use_bytes));
+        let tot_rx = format!("{:>9}", readable_total(p.total_recv, state.use_bytes));
+
+        write_bar_styled(buf, cols_x, y, &tx_2s, t.rate_2s, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + 10, y, &rx_2s, t.rate_2s, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + 20, y, &tx_10s, t.rate_10s, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + 30, y, &rx_10s, t.rate_10s, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + 40, y, &tot_tx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + 50, y, &tot_rx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
+
+        // Selection highlight
+        if is_selected {
+            let buf_w = buf.area().width;
+            let buf_x = buf.area().x;
+            let buf_h = buf.area().height;
+            let buf_y = buf.area().y;
+            for x in area.x..area.x + w {
+                if x < buf_x + buf_w && y < buf_y + buf_h {
+                    let c = &mut buf[(x, y)];
+                    c.set_style(c.style().add_modifier(Modifier::UNDERLINED));
+                }
+            }
+            if area.x < buf_x + buf_w && y < buf_y + buf_h {
+                let c = &mut buf[(area.x, y)];
+                c.set_char('▶');
+                c.set_fg(t.rate_2s);
+                c.set_style(c.style().add_modifier(Modifier::BOLD).remove_modifier(Modifier::UNDERLINED));
+            }
+        }
+    }
+}
+
 // ─── Bottom totals with bars ──────────────────────────────────────────────────
 
 fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let s = Style::default().fg(state.theme.scale_line);
     for x in area.x..area.x + area.width { buf.set_string(x, area.y, "─", s); }
+
+    // Tab indicator on the left
+    let tab_indicator = match state.view_tab {
+        ViewTab::Flows => " [Flows] Processes ",
+        ViewTab::Processes => " Flows [Processes] ",
+    };
+    let tab_s = Style::default().fg(state.theme.host_src).add_modifier(Modifier::BOLD);
+    set_str(buf, area.x + 1, area.y, tab_indicator, tab_s, tab_indicator.len() as u16);
+    let tab_hint_s = Style::default().fg(Color::Indexed(240));
+    set_str(buf, area.x + 1 + tab_indicator.len() as u16, area.y, "Tab", tab_hint_s, 3);
 
     // Show interface name, flow count, refresh rate, and theme in separator
     let mut parts: Vec<String> = Vec::new();
@@ -514,7 +617,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
         ("NAV", &[("j/↓","Select next"),("k/↑","Select prev"),("^D","Half-page dn"),("^U","Half-page up"),("G/End","Jump last"),("Home","Jump first"),("Esc","Deselect")]),
         ("FILTER", &[("/","Search flows"),("0","Clear filter")]),
         ("ACTIONS", &[("e","Export flows"),("y","Copy selected"),("F","Pin/unpin ★")]),
-        ("DISPLAY", &[("c","Theme chooser"),("C","Theme editor"),("i","Interface"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
+        ("DISPLAY", &[("Tab","Switch view"),("c","Theme chooser"),("C","Theme editor"),("i","Interface"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
         ("", &[]),
     ];
 

@@ -342,11 +342,20 @@ pub struct AppState {
     /// Which fields were overridden by CLI flags
     pub cli_overrides: CliOverrides,
 
+    /// Active view tab (Flows or Processes)
+    pub view_tab: ViewTab,
+
     /// Total flow count before filtering (for header display)
     pub total_flow_count: usize,
 
     /// Cached data from last snapshot
     pub flows: Vec<FlowSnapshot>,
+    /// Aggregated per-process bandwidth snapshots
+    pub process_snapshots: Vec<ProcessSnapshot>,
+    /// Selected index in process view
+    pub process_selected: Option<usize>,
+    /// Scroll offset in process view
+    pub process_scroll: usize,
     pub totals: TotalStats,
     pub resolver: Resolver,
 }
@@ -403,8 +412,12 @@ impl AppState {
             active_custom_theme: prefs.active_custom_theme.clone(),
             orig_prefs: prefs.clone(),
             cli_overrides,
+            view_tab: ViewTab::Flows,
             total_flow_count: 0,
             flows: Vec::new(),
+            process_snapshots: Vec::new(),
+            process_selected: None,
+            process_scroll: 0,
             totals: TotalStats {
                 sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
                 recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
@@ -756,6 +769,56 @@ impl AppState {
         self.scroll_offset = last.saturating_sub(19);
     }
 
+    // ── Process view navigation ──
+
+    pub fn process_select_next(&mut self) {
+        let max = self.process_snapshots.len().saturating_sub(1);
+        self.process_selected = Some(match self.process_selected {
+            Some(i) => (i + 1).min(max),
+            None => 0,
+        });
+        if let Some(sel) = self.process_selected
+            && sel >= self.process_scroll + 20 {
+                self.process_scroll = sel.saturating_sub(19);
+            }
+    }
+
+    pub fn process_select_prev(&mut self) {
+        self.process_selected = Some(match self.process_selected {
+            Some(i) => i.saturating_sub(1),
+            None => 0,
+        });
+        if let Some(sel) = self.process_selected
+            && sel < self.process_scroll {
+                self.process_scroll = sel;
+            }
+    }
+
+    pub fn process_page_down(&mut self) {
+        let half = 10;
+        let max = self.process_snapshots.len().saturating_sub(1);
+        self.process_selected = Some(match self.process_selected {
+            Some(i) => (i + half).min(max),
+            None => half.min(max),
+        });
+        if let Some(sel) = self.process_selected
+            && sel >= self.process_scroll + 20 {
+                self.process_scroll = sel.saturating_sub(19);
+            }
+    }
+
+    pub fn process_page_up(&mut self) {
+        let half = 10;
+        self.process_selected = Some(match self.process_selected {
+            Some(i) => i.saturating_sub(half),
+            None => 0,
+        });
+        if let Some(sel) = self.process_selected
+            && sel < self.process_scroll {
+                self.process_scroll = sel;
+            }
+    }
+
     pub fn export(&mut self) {
         let path = dirs::home_dir()
             .map(|h| h.join(".iftoprs.export.txt"))
@@ -830,6 +893,9 @@ impl AppState {
         self.flows = flows;
         self.totals = totals;
 
+        // Aggregate per-process bandwidth
+        self.aggregate_processes();
+
         // Check bandwidth alerts
         self.check_alerts();
 
@@ -863,6 +929,49 @@ impl AppState {
                 let ord = self.resolver.resolve(a.key.dst).cmp(&self.resolver.resolve(b.key.dst));
                 if rev { ord.reverse() } else { ord }
             }),
+        }
+    }
+
+    fn aggregate_processes(&mut self) {
+        use std::collections::HashMap;
+        let mut map: HashMap<String, ProcessSnapshot> = HashMap::new();
+        for f in &self.flows {
+            let name = f.process_name.clone().unwrap_or_else(|| "(unknown)".to_string());
+            let entry = map.entry(name.clone()).or_insert_with(|| ProcessSnapshot {
+                name,
+                pid: f.pid,
+                flow_count: 0,
+                sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
+                recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+                total_sent: 0, total_recv: 0,
+            });
+            entry.flow_count += 1;
+            entry.sent_2s += f.sent_2s;
+            entry.sent_10s += f.sent_10s;
+            entry.sent_40s += f.sent_40s;
+            entry.recv_2s += f.recv_2s;
+            entry.recv_10s += f.recv_10s;
+            entry.recv_40s += f.recv_40s;
+            entry.total_sent += f.total_sent;
+            entry.total_recv += f.total_recv;
+            // Keep the most recent PID
+            if f.pid.is_some() {
+                entry.pid = f.pid;
+            }
+        }
+        let mut procs: Vec<ProcessSnapshot> = map.into_values().collect();
+        procs.sort_by(|a, b| {
+            let ra = a.sent_2s + a.recv_2s;
+            let rb = b.sent_2s + b.recv_2s;
+            rb.partial_cmp(&ra).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        self.process_snapshots = procs;
+
+        // Clamp process selection
+        if let Some(sel) = self.process_selected {
+            if sel >= self.process_snapshots.len() && !self.process_snapshots.is_empty() {
+                self.process_selected = Some(self.process_snapshots.len() - 1);
+            }
         }
     }
 

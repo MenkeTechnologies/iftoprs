@@ -115,6 +115,10 @@ pub struct Args {
     #[arg(short = 'l', long = "list-interfaces")]
     pub list_interfaces: bool,
 
+    /// Stream flow data as newline-delimited JSON (no TUI)
+    #[arg(long = "json")]
+    pub json: bool,
+
     /// Preview all color themes and exit
     #[arg(long = "list-colors")]
     pub list_colors: bool,
