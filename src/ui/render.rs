@@ -309,21 +309,13 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
             let buf_x = buf.area().x;
             let buf_h = buf.area().height;
             let buf_y = buf.area().y;
-            // Add underline to entire row + bright cursor at start
+            // Background overlay on entire row
             for x in area.x..area.x + w {
                 if x < buf_x + buf_w && y < buf_y + buf_h {
                     let c = &mut buf[(x, y)];
-                    c.set_style(c.style().add_modifier(Modifier::UNDERLINED));
+                    c.set_bg(t.select_bg);
                 }
             }
-            // Bright arrow indicator at column 0
-            if area.x < buf_x + buf_w && y < buf_y + buf_h {
-                let c = &mut buf[(area.x, y)];
-                c.set_char('▶');
-                c.set_fg(t.rate_2s);
-                c.set_style(c.style().add_modifier(Modifier::BOLD).remove_modifier(Modifier::UNDERLINED));
-            }
-
             // Sparkline on the next row for the selected flow
             let spark_y = y + 1;
             if spark_y < area.y + area.height && !f.history.is_empty() {
@@ -406,7 +398,7 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
         write_bar_styled(buf, cols_x + col_w * 4, y, &tot_tx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
         write_bar_styled(buf, cols_x + col_w * 5, y, &tot_rx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
 
-        // Selection highlight
+        // Selection highlight — background overlay
         if is_selected {
             let buf_w = buf.area().width;
             let buf_x = buf.area().x;
@@ -415,14 +407,8 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
             for x in area.x..area.x + w {
                 if x < buf_x + buf_w && y < buf_y + buf_h {
                     let c = &mut buf[(x, y)];
-                    c.set_style(c.style().add_modifier(Modifier::UNDERLINED));
+                    c.set_bg(t.select_bg);
                 }
-            }
-            if area.x < buf_x + buf_w && y < buf_y + buf_h {
-                let c = &mut buf[(area.x, y)];
-                c.set_char('▶');
-                c.set_fg(t.rate_2s);
-                c.set_style(c.style().add_modifier(Modifier::BOLD).remove_modifier(Modifier::UNDERLINED));
             }
         }
     }

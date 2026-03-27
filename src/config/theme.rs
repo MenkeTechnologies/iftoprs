@@ -151,6 +151,7 @@ pub struct Theme {
     pub help_section: Color,
     pub help_key: Color,
     pub help_val: Color,
+    pub select_bg: Color,
 }
 
 /// Custom theme colors stored in config.
@@ -192,6 +193,7 @@ impl Theme {
             help_section: Color::Indexed(c6),
             help_key: Color::Indexed(c2),
             help_val: Color::Indexed(c4),
+            select_bg: Color::Indexed(236),
         }
     }
 
