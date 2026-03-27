@@ -121,3 +121,83 @@ impl FlowHistory {
         Self::window_total(&self.recv, 40)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_history_is_empty() {
+        let h = FlowHistory::new();
+        assert_eq!(h.total_sent, 0);
+        assert_eq!(h.total_recv, 0);
+        assert_eq!(h.peak_sent, 0.0);
+        assert_eq!(h.peak_recv, 0.0);
+        assert_eq!(h.sent.len(), 1);
+        assert_eq!(h.recv.len(), 1);
+    }
+
+    #[test]
+    fn add_sent_accumulates() {
+        let mut h = FlowHistory::new();
+        h.add_sent(100);
+        h.add_sent(200);
+        assert_eq!(h.total_sent, 300);
+        assert_eq!(*h.sent.back().unwrap(), 300);
+    }
+
+    #[test]
+    fn add_recv_accumulates() {
+        let mut h = FlowHistory::new();
+        h.add_recv(500);
+        assert_eq!(h.total_recv, 500);
+        assert_eq!(*h.recv.back().unwrap(), 500);
+    }
+
+    #[test]
+    fn rotate_pushes_new_slot() {
+        let mut h = FlowHistory::new();
+        h.add_sent(1000);
+        h.rotate();
+        assert_eq!(h.sent.len(), 2);
+        assert_eq!(*h.sent.back().unwrap(), 0); // new slot is zero
+        assert_eq!(h.peak_sent, 1000.0);
+    }
+
+    #[test]
+    fn rotate_evicts_after_40_slots() {
+        let mut h = FlowHistory::new();
+        for _ in 0..50 {
+            h.add_sent(1);
+            h.rotate();
+        }
+        assert!(h.sent.len() <= 40);
+    }
+
+    #[test]
+    fn window_averages() {
+        let mut h = FlowHistory::new();
+        // Slot 0: 100 bytes sent
+        h.add_sent(100);
+        h.rotate();
+        // Slot 1: 200 bytes sent
+        h.add_sent(200);
+
+        // 2s window = last 2 slots = 200 (current) + 100 (prev) = 300
+        assert_eq!(h.avg_sent_2s(), 300.0);
+        // 10s window with only 2 slots = same 300
+        assert_eq!(h.avg_sent_10s(), 300.0);
+    }
+
+    #[test]
+    fn peak_tracking() {
+        let mut h = FlowHistory::new();
+        h.add_sent(500);
+        h.rotate();
+        h.add_sent(1000);
+        h.rotate();
+        h.add_sent(200);
+        h.rotate();
+        assert_eq!(h.peak_sent, 1000.0);
+    }
+}

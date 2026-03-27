@@ -172,3 +172,78 @@ impl FlowTracker {
         inner.flows.keys().cloned().collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::flow::Protocol;
+
+    fn test_key(port: u16) -> FlowKey {
+        FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: port,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        }
+    }
+
+    #[test]
+    fn new_tracker_empty_snapshot() {
+        let t = FlowTracker::new();
+        let (flows, totals) = t.snapshot();
+        assert!(flows.is_empty());
+        assert_eq!(totals.cumulative_sent, 0);
+        assert_eq!(totals.cumulative_recv, 0);
+    }
+
+    #[test]
+    fn record_sent_packet() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key, Direction::Sent, 1500);
+        let (flows, totals) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+        assert_eq!(totals.cumulative_sent, 1500);
+        assert_eq!(totals.cumulative_recv, 0);
+    }
+
+    #[test]
+    fn record_recv_packet() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key, Direction::Received, 500);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_recv, 500);
+    }
+
+    #[test]
+    fn multiple_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(5000), Direction::Sent, 100);
+        t.record(test_key(5001), Direction::Sent, 200);
+        t.record(test_key(5002), Direction::Sent, 300);
+        let (flows, totals) = t.snapshot();
+        assert_eq!(flows.len(), 3);
+        assert_eq!(totals.cumulative_sent, 600);
+    }
+
+    #[test]
+    fn flow_keys_returns_all() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 10);
+        t.record(test_key(2), Direction::Sent, 20);
+        assert_eq!(t.flow_keys().len(), 2);
+    }
+
+    #[test]
+    fn set_process_info() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key.clone(), Direction::Sent, 100);
+        t.set_process_info(&key, 1234, "curl".to_string());
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows[0].pid, Some(1234));
+        assert_eq!(flows[0].process_name.as_deref(), Some("curl"));
+    }
+}

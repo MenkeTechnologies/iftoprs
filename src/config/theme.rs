@@ -189,3 +189,39 @@ impl Theme {
         ]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn all_themes_count() {
+        assert_eq!(ThemeName::ALL.len(), 30);
+    }
+
+    #[test]
+    fn default_theme_is_neon_sprawl() {
+        assert_eq!(ThemeName::default(), ThemeName::NeonSprawl);
+    }
+
+    #[test]
+    fn all_themes_have_display_names() {
+        for &name in ThemeName::ALL {
+            assert!(!name.display_name().is_empty());
+        }
+    }
+
+    #[test]
+    fn all_themes_produce_valid_theme() {
+        for &name in ThemeName::ALL {
+            let _theme = Theme::from_name(name);
+        }
+    }
+
+    #[test]
+    fn swatch_has_six_colors() {
+        for &name in ThemeName::ALL {
+            assert_eq!(Theme::swatch(name).len(), 6);
+        }
+    }
+}

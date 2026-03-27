@@ -140,3 +140,88 @@ impl Args {
         Some((addr, prefix))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args_with_net_filter(filter: &str) -> Args {
+        Args {
+            interface: None,
+            filter: None,
+            net_filter: Some(filter.to_string()),
+            no_dns: false,
+            no_port_names: false,
+            promiscuous: false,
+            no_bars: false,
+            bytes: false,
+            hide_ports: false,
+            show_processes: false,
+            list_interfaces: false,
+            completions: None,
+            help: false,
+            version: false,
+        }
+    }
+
+    #[test]
+    fn parse_valid_cidr_v4() {
+        let args = args_with_net_filter("192.168.1.0/24");
+        let (addr, prefix) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "192.168.1.0".parse::<IpAddr>().unwrap());
+        assert_eq!(prefix, 24);
+    }
+
+    #[test]
+    fn parse_valid_cidr_v4_slash8() {
+        let args = args_with_net_filter("10.0.0.0/8");
+        let (addr, prefix) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "10.0.0.0".parse::<IpAddr>().unwrap());
+        assert_eq!(prefix, 8);
+    }
+
+    #[test]
+    fn parse_invalid_cidr_no_slash() {
+        let args = args_with_net_filter("192.168.1.0");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_invalid_cidr_bad_ip() {
+        let args = args_with_net_filter("not.an.ip/24");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_invalid_cidr_bad_prefix() {
+        let args = args_with_net_filter("10.0.0.0/abc");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_no_net_filter() {
+        let args = Args {
+            interface: None,
+            filter: None,
+            net_filter: None,
+            no_dns: false,
+            no_port_names: false,
+            promiscuous: false,
+            no_bars: false,
+            bytes: false,
+            hide_ports: false,
+            show_processes: false,
+            list_interfaces: false,
+            completions: None,
+            help: false,
+            version: false,
+        };
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn clap_command_builds() {
+        let cmd = Args::command();
+        assert_eq!(cmd.get_name(), "iftoprs");
+    }
+}

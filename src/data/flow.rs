@@ -47,3 +47,54 @@ pub enum Direction {
     Sent,     // src -> dst (matches key order)
     Received, // dst -> src (reversed)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn protocol_from_tcp() {
+        assert_eq!(Protocol::from_ip_next_header(6), Protocol::Tcp);
+    }
+
+    #[test]
+    fn protocol_from_udp() {
+        assert_eq!(Protocol::from_ip_next_header(17), Protocol::Udp);
+    }
+
+    #[test]
+    fn protocol_from_icmp_v4() {
+        assert_eq!(Protocol::from_ip_next_header(1), Protocol::Icmp);
+    }
+
+    #[test]
+    fn protocol_from_icmp_v6() {
+        assert_eq!(Protocol::from_ip_next_header(58), Protocol::Icmp);
+    }
+
+    #[test]
+    fn protocol_from_other() {
+        assert_eq!(Protocol::from_ip_next_header(47), Protocol::Other(47));
+    }
+
+    #[test]
+    fn protocol_display() {
+        assert_eq!(format!("{}", Protocol::Tcp), "TCP");
+        assert_eq!(format!("{}", Protocol::Udp), "UDP");
+        assert_eq!(format!("{}", Protocol::Icmp), "ICMP");
+        assert_eq!(format!("{}", Protocol::Other(99)), "Proto(99)");
+    }
+
+    #[test]
+    fn flow_key_equality() {
+        let k1 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 12345,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let k2 = k1.clone();
+        assert_eq!(k1, k2);
+    }
+}

@@ -10,6 +10,7 @@ use crate::util::format::{readable_size, readable_total};
 const RATE_COL_W: usize = 9;
 const TOTAL_COL_W: usize = 8;
 const RIGHT_AREA_W: usize = TOTAL_COL_W + RATE_COL_W * 3;
+const PROC_COL_W: usize = 20;
 const LOG10_MAX_BITS: f64 = 9.0;
 
 const SCALE_TICKS: [(f64, f64); 5] = [
@@ -89,7 +90,10 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
     let start = state.scroll_offset.min(state.flows.len().saturating_sub(1));
     let vis = &state.flows[start..];
     let vis = &vis[..vis.len().min(area.height as usize)];
-    let ha = (w as usize).saturating_sub(RIGHT_AREA_W + 5);
+
+    // Layout: [src hl] [ <=> 5] [dst hl] [proc PROC_COL_W] [RIGHT_AREA_W]
+    let proc_w: usize = if state.show_processes { PROC_COL_W } else { 0 };
+    let ha = (w as usize).saturating_sub(RIGHT_AREA_W + proc_w + 5);
     let hl = (ha / 2).max(8).min(60);
     let buf = frame.buffer_mut();
 
@@ -99,38 +103,39 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
 
         let src = state.format_host(f.key.src, f.key.src_port, &f.key.protocol);
         let dst = state.format_host(f.key.dst, f.key.dst_port, &f.key.protocol);
-        let proc_s = if state.show_processes {
-            match (&f.process_name, f.pid) {
-                (Some(n), Some(p)) => format!(" [{}:{}]", p, n),
-                (Some(n), None) => format!(" [{}]", n),
-                (None, Some(p)) => format!(" [{}]", p),
-                _ => String::new(),
-            }
-        } else { String::new() };
 
         let rate = f.sent_2s + f.recv_2s;
         let bl = bar_length(rate, w);
         let bs = state.bar_style;
         paint_bar_styled(buf, area.x, y, bl, w, t.bar_color, bs);
 
-        // src
+        // src hostname
         let sd = format!("{:<w$}", trunc(&src, hl), w = hl);
         write_bar_styled(buf, area.x, y, &sd, t.host_src, area.x, bl, t.bar_color, t.bar_text, bs);
+
         // <=>
         let ax = area.x + hl as u16;
         write_bar_styled(buf, ax, y, " <=> ", t.arrow, area.x, bl, t.bar_color, t.bar_text, bs);
-        // dst + proc
+
+        // dst hostname
         let dx = ax + 5;
-        if proc_s.is_empty() {
-            write_bar_styled(buf, dx, y, &trunc(&dst, hl), t.host_dst, area.x, bl, t.bar_color, t.bar_text, bs);
-        } else {
-            let md = hl.saturating_sub(proc_s.len());
-            let dd = trunc(&dst, md);
-            write_bar_styled(buf, dx, y, &dd, t.host_dst, area.x, bl, t.bar_color, t.bar_text, bs);
-            let px = dx + dd.len() as u16;
-            write_bar_styled(buf, px, y, &trunc(&proc_s, hl.saturating_sub(dd.len())), t.proc_name, area.x, bl, t.bar_color, t.bar_text, bs);
+        let dd = format!("{:<w$}", trunc(&dst, hl), w = hl);
+        write_bar_styled(buf, dx, y, &dd, t.host_dst, area.x, bl, t.bar_color, t.bar_text, bs);
+
+        // process column (separate, right-aligned before rate cols)
+        if state.show_processes && proc_w > 0 {
+            let proc_x = dx + hl as u16;
+            let proc_s = match (&f.process_name, f.pid) {
+                (Some(n), Some(p)) => format!("[{}:{}]", p, n),
+                (Some(n), None) => format!("[{}]", n),
+                (None, Some(p)) => format!("[{}]", p),
+                _ => String::new(),
+            };
+            let pt = format!("{:>w$}", trunc(&proc_s, proc_w), w = proc_w);
+            write_bar_styled(buf, proc_x, y, &pt, t.proc_name, area.x, bl, t.bar_color, t.bar_text, bs);
         }
-        // right cols
+
+        // right cols (total + rates)
         let rx = area.x + w - RIGHT_AREA_W as u16;
         write_right_styled(buf, rx, y, f.total_sent + f.total_recv,
             f.sent_2s + f.recv_2s, f.sent_10s + f.recv_10s, f.sent_40s + f.recv_40s,
@@ -163,66 +168,42 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
             tot.sent_2s + tot.recv_2s, tot.sent_10s + tot.recv_10s, tot.sent_40s + tot.recv_40s),
     ];
 
+    let bs = state.bar_style;
     for &(y, label, cum, peak, r2, r10, r40) in &rows {
-        // Paint a bar for the 2s rate
         let bl = bar_length(r2, w);
-        paint_bar(buf, area.x, y, bl, w, th.bar_color);
+        paint_bar_styled(buf, area.x, y, bl, w, th.bar_color, bs);
 
-        write_bar(buf, area.x, y, label, th.total_label, area.x, bl, th.bar_color, th.bar_text);
+        write_bar_styled(buf, area.x, y, label, th.total_label, area.x, bl, th.bar_color, th.bar_text, bs);
         let cum_text = format!("  cum:{:>8}", readable_total(cum, state.use_bytes));
-        write_bar(buf, area.x + 8, y, &cum_text, th.cum_label, area.x, bl, th.bar_color, th.bar_text);
+        write_bar_styled(buf, area.x + 8, y, &cum_text, th.cum_label, area.x, bl, th.bar_color, th.bar_text, bs);
         let peak_text = format!("  peak:{:>8}", readable_size(peak, state.use_bytes));
-        write_bar(buf, area.x + 24, y, &peak_text, th.peak_label, area.x, bl, th.bar_color, th.bar_text);
+        write_bar_styled(buf, area.x + 24, y, &peak_text, th.peak_label, area.x, bl, th.bar_color, th.bar_text, bs);
 
         let rl_x = rrx.saturating_sub(8);
-        write_bar(buf, rl_x, y, "rates:", th.total_label, area.x, bl, th.bar_color, th.bar_text);
-        write_bar(buf, rrx, y, &format!("{:>8} ", readable_size(r2, state.use_bytes)), th.rate_2s, area.x, bl, th.bar_color, th.bar_text);
-        write_bar(buf, rrx + RATE_COL_W as u16, y, &format!("{:>8} ", readable_size(r10, state.use_bytes)), th.rate_10s, area.x, bl, th.bar_color, th.bar_text);
-        write_bar(buf, rrx + (RATE_COL_W * 2) as u16, y, &format!("{:>8} ", readable_size(r40, state.use_bytes)), th.rate_40s, area.x, bl, th.bar_color, th.bar_text);
+        write_bar_styled(buf, rl_x, y, "rates:", th.total_label, area.x, bl, th.bar_color, th.bar_text, bs);
+        write_bar_styled(buf, rrx, y, &format!("{:>8} ", readable_size(r2, state.use_bytes)), th.rate_2s, area.x, bl, th.bar_color, th.bar_text, bs);
+        write_bar_styled(buf, rrx + RATE_COL_W as u16, y, &format!("{:>8} ", readable_size(r10, state.use_bytes)), th.rate_10s, area.x, bl, th.bar_color, th.bar_text, bs);
+        write_bar_styled(buf, rrx + (RATE_COL_W * 2) as u16, y, &format!("{:>8} ", readable_size(r40, state.use_bytes)), th.rate_40s, area.x, bl, th.bar_color, th.bar_text, bs);
     }
 }
 
 // ─── Buffer helpers ───────────────────────────────────────────────────────────
 
-fn paint_bar(buf: &mut Buffer, x0: u16, y: u16, len: u16, max_w: u16, color: Color) {
-    paint_bar_styled(buf, x0, y, len, max_w, color, BarStyle::Solid);
-}
-
-fn paint_bar_styled(buf: &mut Buffer, x0: u16, y: u16, len: u16, max_w: u16, color: Color, style: BarStyle) {
+/// Paint the bar background across the full screen width.
+/// For Solid: colored bg in bar region, nothing outside.
+/// For others: colored bg in bar region (dimmer shade), nothing outside.
+/// Text is overlaid on top by write_bar_styled.
+fn paint_bar_styled(buf: &mut Buffer, x0: u16, y: u16, len: u16, max_w: u16, color: Color, _style: BarStyle) {
+    // All styles use background color for the bar region — the style
+    // only affects how write_bar_styled renders text on top.
     let bw = buf.area().width; let bx = buf.area().x; let bh = buf.area().height; let by = buf.area().y;
-    let bar_len = len.min(max_w) as usize;
-    for i in 0..bar_len {
-        let x = x0 + i as u16;
+    let bar_len = len.min(max_w);
+    for x in x0..x0 + bar_len {
         if x >= bx + bw || y >= by + bh { break; }
         let c = &mut buf[(x, y)];
-        match style {
-            BarStyle::Gradient => {
-                let frac = if bar_len > 1 { i as f64 / (bar_len - 1) as f64 } else { 1.0 };
-                let ch = if frac < 0.25 { '░' } else if frac < 0.5 { '▒' } else if frac < 0.75 { '▓' } else { '█' };
-                c.set_char(ch);
-                c.set_fg(color);
-                c.set_bg(Color::Reset);
-            }
-            BarStyle::Solid => {
-                c.set_char(' ');
-                c.set_bg(color);
-            }
-            BarStyle::Thin => {
-                c.set_char('▬');
-                c.set_fg(color);
-                c.set_bg(Color::Reset);
-            }
-            BarStyle::Ascii => {
-                c.set_char('#');
-                c.set_fg(color);
-                c.set_bg(Color::Reset);
-            }
-        }
+        c.set_char(' ');
+        c.set_bg(color);
     }
-}
-
-fn write_bar(buf: &mut Buffer, x: u16, y: u16, text: &str, fg: Color, x0: u16, bl: u16, bar_bg: Color, bar_fg: Color) {
-    write_bar_styled(buf, x, y, text, fg, x0, bl, bar_bg, bar_fg, BarStyle::Solid);
 }
 
 fn write_bar_styled(buf: &mut Buffer, x: u16, y: u16, text: &str, fg: Color,
@@ -230,32 +211,48 @@ fn write_bar_styled(buf: &mut Buffer, x: u16, y: u16, text: &str, fg: Color,
 {
     let mx = buf.area().x + buf.area().width;
     let my = buf.area().y + buf.area().height;
-    let solid = matches!(bs, BarStyle::Solid);
     for (i, ch) in text.chars().enumerate() {
         let cx = x + i as u16;
         if cx >= mx || y >= my { break; }
         let c = &mut buf[(cx, y)];
         c.set_char(ch);
-        if cx < x0 + bl && solid {
-            // Solid: contrasting text on colored bg
-            c.set_fg(bar_fg); c.set_bg(bar_bg);
+        if cx < x0 + bl {
+            // Inside bar region
+            match bs {
+                BarStyle::Solid => {
+                    c.set_fg(bar_fg); c.set_bg(bar_bg);
+                }
+                BarStyle::Gradient => {
+                    // Bright text on dark bar bg
+                    c.set_fg(fg); c.set_bg(bar_bg);
+                    c.set_style(c.style().add_modifier(Modifier::BOLD));
+                }
+                BarStyle::Thin => {
+                    c.set_fg(fg); c.set_bg(bar_bg);
+                    c.set_style(c.style().add_modifier(Modifier::BOLD | Modifier::UNDERLINED));
+                }
+                BarStyle::Ascii => {
+                    c.set_fg(fg); c.set_bg(bar_bg);
+                    c.set_style(c.style().add_modifier(Modifier::BOLD));
+                }
+            }
         } else {
-            // Non-solid or outside bar: normal colored text
+            // Outside bar
             c.set_fg(fg); c.set_bg(Color::Reset);
             c.set_style(c.style().add_modifier(Modifier::BOLD));
         }
     }
 }
 
-fn write_right(buf: &mut Buffer, x: u16, y: u16, tot: u64, r2: f64, r10: f64, r40: f64,
-    ub: bool, x0: u16, bl: u16, t: &Theme)
+fn write_right_styled(buf: &mut Buffer, x: u16, y: u16, tot: u64, r2: f64, r10: f64, r40: f64,
+    ub: bool, x0: u16, bl: u16, t: &Theme, bs: BarStyle)
 {
     let tt = format!("{:>7} ", readable_total(tot, ub));
-    write_bar(buf, x, y, &tt, t.cum_label, x0, bl, t.bar_color, t.bar_text);
+    write_bar_styled(buf, x, y, &tt, t.cum_label, x0, bl, t.bar_color, t.bar_text, bs);
     let rx = x + TOTAL_COL_W as u16;
-    write_bar(buf, rx, y, &format!("{:>8} ", readable_size(r2, ub)), t.rate_2s, x0, bl, t.bar_color, t.bar_text);
-    write_bar(buf, rx + RATE_COL_W as u16, y, &format!("{:>8} ", readable_size(r10, ub)), t.rate_10s, x0, bl, t.bar_color, t.bar_text);
-    write_bar(buf, rx + (RATE_COL_W * 2) as u16, y, &format!("{:>8} ", readable_size(r40, ub)), t.rate_40s, x0, bl, t.bar_color, t.bar_text);
+    write_bar_styled(buf, rx, y, &format!("{:>8} ", readable_size(r2, ub)), t.rate_2s, x0, bl, t.bar_color, t.bar_text, bs);
+    write_bar_styled(buf, rx + RATE_COL_W as u16, y, &format!("{:>8} ", readable_size(r10, ub)), t.rate_10s, x0, bl, t.bar_color, t.bar_text, bs);
+    write_bar_styled(buf, rx + (RATE_COL_W * 2) as u16, y, &format!("{:>8} ", readable_size(r40, ub)), t.rate_40s, x0, bl, t.bar_color, t.bar_text, bs);
 }
 
 fn set_cell(buf: &mut Buffer, x: u16, y: u16, ch: &str, s: Style) {
@@ -385,4 +382,62 @@ fn draw_theme_chooser(frame: &mut Frame, area: Rect, state: &AppState) {
     let ft = "j/k:nav  Enter:select  Esc:cancel";
     set_str(buf, x0 + (bw.saturating_sub(ft.len() as u16)) / 2, y0 + bh - 2,
         ft, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 4);
+}
+
+// ─── Filter popup ─────────────────────────────────────────────────────────────
+
+fn draw_filter_popup(frame: &mut Frame, area: Rect, state: &AppState) {
+    let t = &state.theme;
+    let fs = &state.filter_state;
+    let buf = frame.buffer_mut();
+    let bw = 50u16.min(area.width.saturating_sub(4));
+    let bh = 5u16;
+    let x0 = (area.width.saturating_sub(bw)) / 2;
+    let y0 = (area.height.saturating_sub(bh)) / 2;
+    let bg = t.help_bg;
+    let bs = Style::default().fg(t.help_border);
+
+    // Fill + border
+    for y in y0..y0 + bh { for x in x0..x0 + bw { set_cell(buf, x, y, " ", Style::default().bg(bg)); } }
+    set_cell(buf, x0, y0, "╭", bs); set_cell(buf, x0 + bw - 1, y0, "╮", bs);
+    set_cell(buf, x0, y0 + bh - 1, "╰", bs); set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╯", bs);
+    for x in x0 + 1..x0 + bw - 1 { set_cell(buf, x, y0, "─", bs); set_cell(buf, x, y0 + bh - 1, "─", bs); }
+    for y in y0 + 1..y0 + bh - 1 { set_cell(buf, x0, y, "│", bs); set_cell(buf, x0 + bw - 1, y, "│", bs); }
+
+    let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
+    set_str(buf, x0 + 2, y0 + 1, "Search:", ts, 8);
+
+    // Input buffer with cursor
+    let input_x = x0 + 10;
+    let input_w = (bw - 12) as usize;
+    let display = if fs.buf.len() > input_w { &fs.buf[fs.buf.len() - input_w..] } else { &fs.buf };
+    let is = Style::default().fg(Color::White).bg(bg);
+    set_str(buf, input_x, y0 + 1, display, is, input_w as u16);
+
+    // Cursor
+    let cursor_x = input_x + display.len().min(input_w) as u16;
+    if cursor_x < x0 + bw - 1 {
+        set_cell(buf, cursor_x, y0 + 1, "▏", Style::default().fg(t.help_key).bg(bg));
+    }
+
+    // Matched count
+    let matched = state.flows.len();
+    let info = format!("{} flows matched", matched);
+    let info_s = Style::default().fg(Color::Indexed(240)).bg(bg);
+    set_str(buf, x0 + 2, y0 + 2, &info, info_s, bw - 4);
+
+    let hint = "Enter=apply  Esc=cancel  ^W=del word";
+    set_str(buf, x0 + 2, y0 + 3, hint, info_s, bw - 4);
+}
+
+// ─── Status message ───────────────────────────────────────────────────────────
+
+fn draw_status(frame: &mut Frame, area: Rect, state: &AppState, text: &str) {
+    let t = &state.theme;
+    let buf = frame.buffer_mut();
+    let msg_len = text.len() as u16 + 4;
+    let x0 = (area.width.saturating_sub(msg_len)) / 2;
+    let y0 = area.height.saturating_sub(6); // just above totals
+    let s = Style::default().fg(Color::Black).bg(t.help_key);
+    set_str(buf, x0, y0, &format!(" {} ", text), s, msg_len);
 }

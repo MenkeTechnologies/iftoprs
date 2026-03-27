@@ -194,7 +194,7 @@ fn determine_direction(
     Direction::Sent
 }
 
-fn ip_in_network(addr: IpAddr, network: IpAddr, prefix_len: u8) -> bool {
+pub(crate) fn ip_in_network(addr: IpAddr, network: IpAddr, prefix_len: u8) -> bool {
     match (addr, network) {
         (IpAddr::V4(a), IpAddr::V4(n)) => {
             if prefix_len >= 32 {
@@ -211,5 +211,130 @@ fn ip_in_network(addr: IpAddr, network: IpAddr, prefix_len: u8) -> bool {
             (u128::from(a) & mask) == (u128::from(n) & mask)
         }
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_ipv4_tcp_packet(src: [u8; 4], dst: [u8; 4], src_port: u16, dst_port: u16) -> Vec<u8> {
+        let mut pkt = vec![0u8; 44]; // 14 eth + 20 ip + 8 tcp/udp + 2 pad
+        // Ethernet header
+        pkt[12] = 0x08; pkt[13] = 0x00; // IPv4
+        // IPv4 header at offset 14
+        pkt[14] = 0x45; // version 4, IHL 5
+        pkt[16] = 0x00; pkt[17] = 30; // total_len = 30
+        pkt[23] = 6; // TCP
+        pkt[26..30].copy_from_slice(&src);
+        pkt[30..34].copy_from_slice(&dst);
+        // TCP ports at offset 34 (14 eth + 20 ip)
+        pkt[34] = (src_port >> 8) as u8; pkt[35] = src_port as u8;
+        pkt[36] = (dst_port >> 8) as u8; pkt[37] = dst_port as u8;
+        pkt
+    }
+
+    #[test]
+    fn parse_ethernet_ipv4_tcp() {
+        let pkt = make_ipv4_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80);
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+        assert_eq!(result.key.src_port, 12345);
+        assert_eq!(result.key.dst_port, 80);
+        assert_eq!(result.len, 30);
+    }
+
+    #[test]
+    fn parse_ethernet_too_short() {
+        assert!(parse_ethernet(&[0; 10], None).is_none());
+    }
+
+    #[test]
+    fn parse_ethernet_unknown_ethertype() {
+        let mut pkt = vec![0u8; 60];
+        pkt[12] = 0xFF; pkt[13] = 0xFF;
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_raw_ipv4() {
+        let mut raw = vec![0u8; 30];
+        raw[0] = 0x45; // version 4, IHL 5
+        raw[2] = 0; raw[3] = 30;
+        raw[9] = 17; // UDP
+        raw[12..16].copy_from_slice(&[192, 168, 1, 1]);
+        raw[16..20].copy_from_slice(&[8, 8, 8, 8]);
+        raw[20] = 0x1F; raw[21] = 0x90; // src port 8080
+        raw[22] = 0x00; raw[23] = 0x35; // dst port 53
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+        assert_eq!(result.key.src_port, 8080);
+        assert_eq!(result.key.dst_port, 53);
+    }
+
+    #[test]
+    fn parse_raw_empty() {
+        assert!(parse_raw(&[], None).is_none());
+    }
+
+    #[test]
+    fn parse_loopback_too_short() {
+        assert!(parse_loopback(&[0, 0], None).is_none());
+    }
+
+    #[test]
+    fn parse_sll_too_short() {
+        assert!(parse_sll(&[0; 10], None).is_none());
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_match() {
+        let addr: IpAddr = "192.168.1.100".parse().unwrap();
+        let net: IpAddr = "192.168.1.0".parse().unwrap();
+        assert!(ip_in_network(addr, net, 24));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_no_match() {
+        let addr: IpAddr = "192.168.2.100".parse().unwrap();
+        let net: IpAddr = "192.168.1.0".parse().unwrap();
+        assert!(!ip_in_network(addr, net, 24));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_wide_mask() {
+        let addr: IpAddr = "10.255.255.255".parse().unwrap();
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network(addr, net, 8));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_host_mask() {
+        let addr: IpAddr = "10.0.0.1".parse().unwrap();
+        let net: IpAddr = "10.0.0.1".parse().unwrap();
+        assert!(ip_in_network(addr, net, 32));
+    }
+
+    #[test]
+    fn ip_in_network_mixed_families() {
+        let v4: IpAddr = "10.0.0.1".parse().unwrap();
+        let v6: IpAddr = "::1".parse().unwrap();
+        assert!(!ip_in_network(v4, v6, 8));
+    }
+
+    #[test]
+    fn direction_with_local_net() {
+        let local: IpAddr = "192.168.1.0".parse().unwrap();
+        let pkt = make_ipv4_tcp_packet([192, 168, 1, 5], [8, 8, 8, 8], 5000, 443);
+        let result = parse_ethernet(&pkt, Some((local, 24))).unwrap();
+        assert_eq!(result.direction, Direction::Sent);
+    }
+
+    #[test]
+    fn direction_received() {
+        let local: IpAddr = "192.168.1.0".parse().unwrap();
+        let pkt = make_ipv4_tcp_packet([8, 8, 8, 8], [192, 168, 1, 5], 443, 5000);
+        let result = parse_ethernet(&pkt, Some((local, 24))).unwrap();
+        assert_eq!(result.direction, Direction::Received);
     }
 }

@@ -166,13 +166,51 @@ fn run_app(
                     return Ok(());
                 }
 
+                // Filter input mode
+                if app.filter_state.active {
+                    match key.code {
+                        KeyCode::Enter => {
+                            app.filter_state.active = false;
+                            let f = app.filter_state.buf.clone();
+                            app.screen_filter = if f.is_empty() { None } else { Some(f) };
+                        }
+                        KeyCode::Esc => {
+                            app.filter_state.active = false;
+                            app.screen_filter = app.filter_state.prev.clone();
+                        }
+                        KeyCode::Backspace => app.filter_state.backspace(),
+                        KeyCode::Left => app.filter_state.left(),
+                        KeyCode::Right => app.filter_state.right(),
+                        KeyCode::Home => app.filter_state.home(),
+                        KeyCode::End => app.filter_state.end(),
+                        KeyCode::Char(ch) => {
+                            if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                match ch {
+                                    'w' => app.filter_state.delete_word(),
+                                    'a' => app.filter_state.home(),
+                                    'e' => app.filter_state.end(),
+                                    'k' => app.filter_state.kill_to_end(),
+                                    'u' => { app.filter_state.buf.clear(); app.filter_state.cursor = 0; }
+                                    _ => {}
+                                }
+                            } else {
+                                app.filter_state.insert(ch);
+                            }
+                            // Live filter preview
+                            let f = app.filter_state.buf.clone();
+                            app.screen_filter = if f.is_empty() { None } else { Some(f) };
+                        }
+                        _ => {}
+                    }
+                    continue;
+                }
+
                 // Theme chooser mode
                 if app.theme_chooser.active {
                     match key.code {
                         KeyCode::Char('j') | KeyCode::Down => {
                             let len = config::theme::ThemeName::ALL.len();
                             app.theme_chooser.selected = (app.theme_chooser.selected + 1) % len;
-                            // Live preview
                             let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
                             app.set_theme(name);
                         }
@@ -199,18 +237,30 @@ fn run_app(
                         app.save_prefs();
                         return Ok(());
                     }
-                    KeyCode::Char('h') => app.show_help = !app.show_help,
+                    KeyCode::Char('h') | KeyCode::Char('?') => app.show_help = !app.show_help,
                     KeyCode::Char('c') => {
                         app.show_help = false;
                         app.theme_chooser.open(app.theme_name);
                     }
+                    KeyCode::Char('/') => {
+                        app.show_help = false;
+                        app.filter_state.open(&app.screen_filter);
+                    }
+                    KeyCode::Char('0') => {
+                        app.screen_filter = None;
+                        app.set_status("Filter cleared");
+                    }
+                    KeyCode::Char('e') => app.export(),
                     KeyCode::Char('n') => {
                         app.resolver.toggle();
                         app.show_dns = app.resolver.is_enabled();
                     }
                     KeyCode::Char('N') => app.show_port_names = !app.show_port_names,
                     KeyCode::Char('p') => app.show_ports = !app.show_ports,
-                    KeyCode::Char('b') => app.show_bars = !app.show_bars,
+                    KeyCode::Char('b') => {
+                        app.bar_style = app.bar_style.next();
+                        app.set_status(format!("Bar style: {}", app.bar_style.name()));
+                    }
                     KeyCode::Char('B') => app.use_bytes = !app.use_bytes,
                     KeyCode::Char('t') => app.line_display = app.line_display.next(),
                     KeyCode::Char('T') => app.show_cumulative = !app.show_cumulative,
