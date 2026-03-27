@@ -34,7 +34,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
   -b, --no-bars                  \x1b[32m//\x1b[0m Flatline the bar graph display
   -B, --bytes                    \x1b[32m//\x1b[0m Display bandwidth in bytes instead of bits
   -P, --hide-ports               \x1b[32m//\x1b[0m Ghost the port numbers from host display
-  -Z, --show-processes           \x1b[32m//\x1b[0m Expose owning process for each flow
+  -Z, --no-processes             \x1b[32m//\x1b[0m Hide owning process column (shown by default)
   -l, --list-interfaces          \x1b[32m//\x1b[0m Enumerate available interfaces and disconnect
   -h, --help                     Print help
   -V, --version                  Print version
@@ -99,9 +99,9 @@ pub struct Args {
     #[arg(short = 'P', long = "hide-ports")]
     pub hide_ports: bool,
 
-    /// Show owning process for each flow
-    #[arg(short = 'Z', long = "show-processes")]
-    pub show_processes: bool,
+    /// Hide owning process column
+    #[arg(short = 'Z', long = "no-processes")]
+    pub no_processes: bool,
 
     /// List available interfaces and exit
     #[arg(short = 'l', long = "list-interfaces")]
@@ -156,7 +156,7 @@ mod tests {
             no_bars: false,
             bytes: false,
             hide_ports: false,
-            show_processes: false,
+            no_processes: false,
             list_interfaces: false,
             completions: None,
             help: false,
@@ -210,7 +210,7 @@ mod tests {
             no_bars: false,
             bytes: false,
             hide_ports: false,
-            show_processes: false,
+            no_processes: false,
             list_interfaces: false,
             completions: None,
             help: false,

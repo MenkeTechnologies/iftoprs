@@ -27,6 +27,12 @@ pub struct FlowHistory {
     pub pid: Option<u32>,
 }
 
+impl Default for FlowHistory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FlowHistory {
     pub fn new() -> Self {
         let now = Instant::now();

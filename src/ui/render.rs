@@ -47,9 +47,8 @@ pub fn draw(frame: &mut Frame, state: &AppState) {
     // Overlays
     if state.theme_chooser.active { draw_theme_chooser(frame, size, state); }
     if state.filter_state.active { draw_filter_popup(frame, size, state); }
-    if let Some(ref msg) = state.status_msg {
-        if !msg.expired() { draw_status(frame, size, state, &msg.text); }
-    }
+    if let Some(ref msg) = state.status_msg
+        && !msg.expired() { draw_status(frame, size, state, &msg.text); }
 }
 
 // ─── Scale ────────────────────────────────────────────────────────────────────
@@ -94,12 +93,15 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
     // Layout: [src hl] [ <=> 5] [dst hl] [proc PROC_COL_W] [RIGHT_AREA_W]
     let proc_w: usize = if state.show_processes { PROC_COL_W } else { 0 };
     let ha = (w as usize).saturating_sub(RIGHT_AREA_W + proc_w + 5);
-    let hl = (ha / 2).max(8).min(60);
+    let hl = (ha / 2).clamp(8, 60);
     let buf = frame.buffer_mut();
 
     for (i, f) in vis.iter().enumerate() {
         let y = area.y + i as u16;
         if y >= area.y + area.height { break; }
+        let flow_idx = start + i;
+        let is_selected = state.selected == Some(flow_idx);
+        let is_pinned = state.is_pinned(&f.key);
 
         let src = state.format_host(f.key.src, f.key.src_port, &f.key.protocol);
         let dst = state.format_host(f.key.dst, f.key.dst_port, &f.key.protocol);
@@ -107,10 +109,28 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
         let rate = f.sent_2s + f.recv_2s;
         let bl = bar_length(rate, w);
         let bs = state.bar_style;
+
+        // Selection highlight: paint entire row with dim highlight bg
+        if is_selected {
+            let sel_bg = Color::Indexed(238); // subtle dark gray highlight
+            let bw = buf.area().width; let bx = buf.area().x; let bh = buf.area().height; let by = buf.area().y;
+            for x in area.x..area.x + w {
+                if x < bx + bw && y < by + bh {
+                    let c = &mut buf[(x, y)];
+                    c.set_bg(sel_bg);
+                }
+            }
+        }
+
+        // Bar
         paint_bar_styled(buf, area.x, y, bl, w, t.bar_color, bs);
 
+        // Pin indicator
+        let pin_prefix = if is_pinned { "★ " } else { "" };
+        let src_with_pin = format!("{}{}", pin_prefix, src);
+
         // src hostname
-        let sd = format!("{:<w$}", trunc(&src, hl), w = hl);
+        let sd = format!("{:<w$}", trunc(&src_with_pin, hl), w = hl);
         write_bar_styled(buf, area.x, y, &sd, t.host_src, area.x, bl, t.bar_color, t.bar_text, bs);
 
         // <=>
@@ -122,7 +142,7 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
         let dd = format!("{:<w$}", trunc(&dst, hl), w = hl);
         write_bar_styled(buf, dx, y, &dd, t.host_dst, area.x, bl, t.bar_color, t.bar_text, bs);
 
-        // process column (separate, right-aligned before rate cols)
+        // process column
         if state.show_processes && proc_w > 0 {
             let proc_x = dx + hl as u16;
             let proc_s = match (&f.process_name, f.pid) {
@@ -135,7 +155,7 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
             write_bar_styled(buf, proc_x, y, &pt, t.proc_name, area.x, bl, t.bar_color, t.bar_text, bs);
         }
 
-        // right cols (total + rates)
+        // right cols
         let rx = area.x + w - RIGHT_AREA_W as u16;
         write_right_styled(buf, rx, y, f.total_sent + f.total_recv,
             f.sent_2s + f.recv_2s, f.sent_10s + f.recv_10s, f.sent_40s + f.recv_40s,
@@ -206,6 +226,7 @@ fn paint_bar_styled(buf: &mut Buffer, x0: u16, y: u16, len: u16, max_w: u16, col
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn write_bar_styled(buf: &mut Buffer, x: u16, y: u16, text: &str, fg: Color,
     x0: u16, bl: u16, bar_bg: Color, bar_fg: Color, bs: BarStyle)
 {
@@ -244,6 +265,7 @@ fn write_bar_styled(buf: &mut Buffer, x: u16, y: u16, text: &str, fg: Color,
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn write_right_styled(buf: &mut Buffer, x: u16, y: u16, tot: u64, r2: f64, r10: f64, r40: f64,
     ub: bool, x0: u16, bl: u16, t: &Theme, bs: BarStyle)
 {
@@ -304,12 +326,13 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let bl = "[ jacking into your packet stream ]";
     set_str(buf, x0 + (bw.saturating_sub(bl.len() as u16)) / 2, y0 + 2, bl, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 2);
 
-    let entries: [(&str, &[(&str, &str)]); 6] = [
-        ("CAPTURE", &[("n","DNS toggle"),("N","Port names"),("p","Ports"),("Z","Processes"),("B","Bytes/bits"),("b","Bars"),("T","Cumulative"),("P","Pause")]),
-        ("SORT", &[("1","By 2s"),("2","By 10s"),("3","By 40s"),("<","By source"),(">","By dest"),("o","Freeze")]),
-        ("NAV", &[("j/↓","Down"),("k/↑","Up")]),
-        ("DISPLAY", &[("c","Themes"),("t","Line mode"),("h","Help"),("q","Quit")]),
-        ("", &[]),
+    let entries: [(&str, &[(&str, &str)]); 7] = [
+        ("CAPTURE", &[("n","DNS toggle"),("N","Port names"),("p","Ports"),("Z","Processes"),("B","Bytes/bits"),("b","Bar style"),("T","Cumulative"),("P","Pause")]),
+        ("SORT", &[("1","By 2s"),("2","By 10s"),("3","By 40s"),("<","By source"),(">","By dest"),("r","Reverse"),("o","Freeze order")]),
+        ("NAV", &[("j/↓","Select next"),("k/↑","Select prev"),("^D","Half-page dn"),("^U","Half-page up"),("G/End","Jump last"),("Home","Jump first"),("Esc","Deselect")]),
+        ("FILTER", &[("/","Search flows"),("0","Clear filter")]),
+        ("ACTIONS", &[("e","Export flows"),("y","Copy selected"),("F","Pin/unpin ★")]),
+        ("DISPLAY", &[("c","Theme chooser"),("t","Line mode"),("h/?","Toggle help"),("q","Quit")]),
         ("", &[]),
     ];
 

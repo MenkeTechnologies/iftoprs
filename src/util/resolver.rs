@@ -79,7 +79,7 @@ type ServicesMap = HashMap<(u16, &'static str), &'static str>;
 /// Lazily parsed, globally cached /etc/services.
 fn services_map() -> &'static ServicesMap {
     static MAP: OnceLock<ServicesMap> = OnceLock::new();
-    MAP.get_or_init(|| parse_etc_services())
+    MAP.get_or_init(parse_etc_services)
 }
 
 fn parse_etc_services() -> ServicesMap {

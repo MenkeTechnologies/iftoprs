@@ -80,6 +80,16 @@ cargo install iftoprs
   ├── macOS ── SUPPORTED
   ├── Linux ── SUPPORTED
   └── requires libpcap (root/sudo for raw capture)
+  │
+[THEME_ENGINE]
+  ├── 30 builtin cyberpunk color themes
+  │   ├── live theme chooser (c key)
+  │   ├── swatch preview per theme
+  │   └── persistent selection via ~/.iftoprs.conf
+  │
+[SHELL_COMPLETION]
+  ├── Zsh completions ── completions/_iftoprs
+  └── --completions flag ── zsh / bash / fish / elvish / powershell
 ```
 
 ---
@@ -113,6 +123,10 @@ LIBPCAP       == installed (system dependency)
 | `regex` 1.12 | Pattern matching for filters |
 | `chrono` 0.4 | Time operations |
 | `anyhow` 1.0 | Error handling |
+| `clap_complete` 4 | Shell completion generation |
+| `serde` 1.0 | Config serialization |
+| `toml` 1.1 | Config file format |
+| `dirs` 6.0 | Home directory detection |
 
 ---
 
@@ -166,6 +180,7 @@ sudo ./target/release/iftoprs
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-l, --list-interfaces` | List available interfaces and exit |
+| `--completions SHELL` | Generate shell completions (zsh, bash, fish, elvish, powershell) |
 | `-h, --help` | Display help transmission |
 | `-V, --version` | Display version information |
 
@@ -178,6 +193,7 @@ sudo iftoprs -F 10.0.0.0/8 -B         # filter private net, show bytes
 sudo iftoprs -n -N -b                  # raw IPs, no bars, minimal
 sudo iftoprs -Z                        # show process names per flow
 sudo iftoprs -p                        # promiscuous mode
+iftoprs --completions zsh              # generate zsh completions
 ```
 
 ---
@@ -222,12 +238,31 @@ sudo iftoprs -p                        # promiscuous mode
 | `j` `Down` | Scroll down |
 | `k` `Up` | Scroll up |
 
+#### `// FILTER_OPS`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `/` | Enter filter mode |
+| `0` | Clear filter |
+| `Enter` | Confirm filter |
+| `Esc` | Cancel filter |
+
+#### `// THEME_OPS`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `c` | Open theme chooser |
+| `j/k` | Navigate themes |
+| `Enter` | Select theme |
+| `Esc` | Cancel |
+
 #### `// GENERAL_OPS`
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `h` | Toggle help HUD |
-| `q` | Disconnect |
+| `h` `?` | Toggle help HUD |
+| `e` | Export flow data |
+| `q` | Disconnect (saves prefs) |
 | `Ctrl+C` | Force disconnect |
 
 ---

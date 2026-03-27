@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::theme::ThemeName;
-use crate::ui::app::BarStyle;
+use crate::ui::app::{BarStyle, PinnedFlow};
 
 /// Persistent preferences saved to ~/.iftoprs.conf
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,6 +24,8 @@ pub struct Prefs {
     pub show_cumulative: bool,
     #[serde(default)]
     pub bar_style: BarStyle,
+    #[serde(default)]
+    pub pinned: Vec<PinnedFlow>,
 }
 
 fn default_true() -> bool {
@@ -39,9 +41,10 @@ impl Default for Prefs {
             show_ports: true,
             show_bars: true,
             use_bytes: false,
-            show_processes: false,
+            show_processes: true,
             show_cumulative: false,
             bar_style: BarStyle::default(),
+            pinned: Vec::new(),
         }
     }
 }
@@ -62,9 +65,8 @@ pub fn load_prefs() -> Prefs {
 }
 
 pub fn save_prefs(prefs: &Prefs) {
-    if let Some(path) = prefs_path() {
-        if let Ok(s) = toml::to_string_pretty(prefs) {
+    if let Some(path) = prefs_path()
+        && let Ok(s) = toml::to_string_pretty(prefs) {
             let _ = std::fs::write(path, s);
         }
-    }
 }

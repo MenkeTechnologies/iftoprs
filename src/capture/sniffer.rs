@@ -75,11 +75,10 @@ pub fn start_capture(
                             }
                         };
 
-                        if let Some(p) = parsed {
-                            if tx.send(PacketEvent { parsed: p }).is_err() {
+                        if let Some(p) = parsed
+                            && tx.send(PacketEvent { parsed: p }).is_err() {
                                 break; // receiver dropped
                             }
-                        }
                     }
                     Err(pcap::Error::TimeoutExpired) => continue,
                     Err(_) => break,

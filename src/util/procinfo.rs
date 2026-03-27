@@ -1,9 +1,162 @@
+use std::collections::HashMap;
 use std::net::IpAddr;
+use std::sync::{Arc, Mutex, OnceLock};
+
 use crate::data::flow::Protocol;
 
-/// Look up the owning process for a network flow.
-/// Uses lsof on macOS for reliable socket-to-PID mapping.
+/// Cached socket→process table. Refreshed periodically by the proc-lookup thread.
+/// Uses `lsof -i -n -P -F pcn` to get ALL socket→pid mappings at once,
+/// rather than per-flow lookups.
+static PROC_CACHE: OnceLock<Arc<Mutex<ProcTable>>> = OnceLock::new();
+
+struct ProcTable {
+    /// Maps (local_port, protocol) → (pid, name)
+    by_port: HashMap<(u16, u8), (u32, String)>,
+}
+
+fn get_cache() -> &'static Arc<Mutex<ProcTable>> {
+    PROC_CACHE.get_or_init(|| Arc::new(Mutex::new(ProcTable { by_port: HashMap::new() })))
+}
+
+/// Refresh the entire process→socket table. Call this periodically from the
+/// proc-lookup thread (e.g. every 2s). Much more efficient than per-flow lsof.
+pub fn refresh_proc_table() {
+    #[cfg(target_os = "macos")]
+    {
+        refresh_proc_table_lsof();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        refresh_proc_table_linux();
+    }
+}
+
 #[cfg(target_os = "macos")]
+fn refresh_proc_table_lsof() {
+    use std::process::Command;
+
+    // lsof -i -n -P -F pcn  — list ALL network sockets with pid, command, name
+    let output = match Command::new("lsof")
+        .args(["-i", "-n", "-P", "-F", "pcn"])
+        .output()
+    {
+        Ok(o) if o.status.success() => o,
+        _ => return,
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut new_table: HashMap<(u16, u8), (u32, String)> = HashMap::new();
+    let mut current_pid: Option<u32> = None;
+    let mut current_name: Option<String> = None;
+
+    for line in stdout.lines() {
+        if let Some(p) = line.strip_prefix('p') {
+            current_pid = p.parse().ok();
+            current_name = None;
+        } else if let Some(n) = line.strip_prefix('c') {
+            current_name = Some(n.to_string());
+        } else if let Some(n) = line.strip_prefix('n') {
+            // n field: "host:port->remote:port" or "*:port" etc
+            if let (Some(pid), Some(name)) = (current_pid, &current_name) {
+                // Extract local port from patterns like:
+                //   *:443 or 127.0.0.1:8080 or [::1]:443 or host:port->remote:port
+                if let Some(local_port) = extract_local_port(n) {
+                    // Determine protocol from the lsof line (TCP vs UDP)
+                    // lsof -F doesn't give protocol directly in 'n' field,
+                    // so we insert for both TCP and UDP
+                    new_table.entry((local_port, 6)).or_insert((pid, name.clone()));
+                    new_table.entry((local_port, 17)).or_insert((pid, name.clone()));
+                }
+            }
+        }
+    }
+
+    let cache = get_cache();
+    let mut table = cache.lock().unwrap();
+    table.by_port = new_table;
+}
+
+fn extract_local_port(n_field: &str) -> Option<u16> {
+    // Strip the connection part (->remote) if present
+    let local = n_field.split("->").next()?;
+    // Find the last colon — port is after it
+    let colon_pos = local.rfind(':')?;
+    let port_str = &local[colon_pos + 1..];
+    port_str.parse().ok()
+}
+
+#[cfg(target_os = "linux")]
+fn refresh_proc_table_linux() {
+    // Parse /proc/net/tcp and /proc/net/tcp6 for inode→port mapping,
+    // then walk /proc/[pid]/fd/ to map inode→pid
+    use std::fs;
+
+    let mut inode_to_port: HashMap<u64, (u16, u8)> = HashMap::new();
+
+    for (path, proto) in [("/proc/net/tcp", 6u8), ("/proc/net/tcp6", 6),
+                          ("/proc/net/udp", 17), ("/proc/net/udp6", 17)] {
+        if let Ok(content) = fs::read_to_string(path) {
+            for line in content.lines().skip(1) {
+                let fields: Vec<&str> = line.split_whitespace().collect();
+                if fields.len() < 10 { continue; }
+                // fields[1] = local_address:port (hex)
+                if let Some(port) = parse_proc_net_port(fields[1]) {
+                    if let Ok(inode) = fields[9].parse::<u64>() {
+                        if inode > 0 {
+                            inode_to_port.insert(inode, (port, proto));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let mut new_table: HashMap<(u16, u8), (u32, String)> = HashMap::new();
+
+    if let Ok(proc_entries) = fs::read_dir("/proc") {
+        for entry in proc_entries.flatten() {
+            let pid_str = entry.file_name();
+            let pid_str = pid_str.to_string_lossy();
+            let pid: u32 = match pid_str.parse() {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
+
+            let fd_path = format!("/proc/{}/fd", pid);
+            let comm_path = format!("/proc/{}/comm", pid);
+            let name = fs::read_to_string(&comm_path)
+                .unwrap_or_else(|_| format!("pid:{}", pid))
+                .trim().to_string();
+
+            if let Ok(fds) = fs::read_dir(&fd_path) {
+                for fd in fds.flatten() {
+                    if let Ok(link) = fs::read_link(fd.path()) {
+                        let link_str = link.to_string_lossy();
+                        if let Some(inode_str) = link_str.strip_prefix("socket:[").and_then(|s| s.strip_suffix(']')) {
+                            if let Ok(inode) = inode_str.parse::<u64>() {
+                                if let Some(&(port, proto)) = inode_to_port.get(&inode) {
+                                    new_table.entry((port, proto)).or_insert((pid, name.clone()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let cache = get_cache();
+    let mut table = cache.lock().unwrap();
+    table.by_port = new_table;
+}
+
+#[cfg(target_os = "linux")]
+fn parse_proc_net_port(addr_port: &str) -> Option<u16> {
+    let colon = addr_port.rfind(':')?;
+    u16::from_str_radix(&addr_port[colon + 1..], 16).ok()
+}
+
+/// Look up the owning process for a network flow.
 pub fn lookup_process(
     _src: IpAddr,
     src_port: u16,
@@ -11,60 +164,21 @@ pub fn lookup_process(
     dst_port: u16,
     protocol: &Protocol,
 ) -> Option<(u32, String)> {
-    // Only TCP/UDP
-    let proto_flag = match protocol {
-        Protocol::Tcp => "TCP",
-        Protocol::Udp => "UDP",
+    let proto_num: u8 = match protocol {
+        Protocol::Tcp => 6,
+        Protocol::Udp => 17,
         _ => return None,
     };
 
-    // Try both ports — one will be local
-    for port in [src_port, dst_port] {
-        if port == 0 { continue; }
-        if let Some(result) = lsof_lookup(port, proto_flag) {
-            return Some(result);
-        }
+    let cache = get_cache();
+    let table = cache.lock().unwrap();
+
+    // Try local port (src_port first, then dst_port)
+    if let Some(entry) = table.by_port.get(&(src_port, proto_num)) {
+        return Some(entry.clone());
     }
-    None
-}
-
-#[cfg(target_os = "macos")]
-fn lsof_lookup(port: u16, proto: &str) -> Option<(u32, String)> {
-    use std::process::Command;
-
-    let output = Command::new("lsof")
-        .args(["-i", &format!("{}:{}", proto, port), "-n", "-P", "-F", "pc"])
-        .output()
-        .ok()?;
-
-    if !output.status.success() {
-        return None;
+    if let Some(entry) = table.by_port.get(&(dst_port, proto_num)) {
+        return Some(entry.clone());
     }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut pid: Option<u32> = None;
-    let mut name: Option<String> = None;
-
-    for line in stdout.lines() {
-        if let Some(p) = line.strip_prefix('p') {
-            pid = p.parse().ok();
-        } else if let Some(n) = line.strip_prefix('c') {
-            name = Some(n.to_string());
-        }
-        if pid.is_some() && name.is_some() {
-            return Some((pid.unwrap(), name.unwrap()));
-        }
-    }
-    None
-}
-
-#[cfg(not(target_os = "macos"))]
-pub fn lookup_process(
-    _src: IpAddr,
-    _src_port: u16,
-    _dst: IpAddr,
-    _dst_port: u16,
-    _protocol: &Protocol,
-) -> Option<(u32, String)> {
     None
 }

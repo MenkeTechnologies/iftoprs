@@ -23,11 +23,10 @@ pub fn readable_size(bytes_per_sec: f64, use_bytes: bool) -> String {
 
 /// Format cumulative byte count.
 pub fn readable_total(bytes: u64, use_bytes: bool) -> String {
-    let (value, units) = if use_bytes {
-        (bytes as f64, ["B", "KB", "MB", "GB", "TB"])
-    } else {
-        (bytes as f64, ["B", "KB", "MB", "GB", "TB"]) // cumulative always in bytes
-    };
+    // Cumulative totals always display in bytes regardless of mode
+    let value = bytes as f64;
+    let units = ["B", "KB", "MB", "GB", "TB"];
+    let _ = use_bytes;
 
     if value < 1_000.0 {
         format!("{:.0}{}", value, units[0])

@@ -54,6 +54,12 @@ pub struct TotalStats {
     pub peak_recv: f64,
 }
 
+impl Default for FlowTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FlowTracker {
     pub fn new() -> Self {
         FlowTracker {
@@ -73,7 +79,7 @@ impl FlowTracker {
     /// Record a packet into the flow table.
     pub fn record(&self, key: FlowKey, direction: Direction, bytes: u64) {
         let mut inner = self.inner.lock().unwrap();
-        let history = inner.flows.entry(key).or_insert_with(FlowHistory::new);
+        let history = inner.flows.entry(key).or_default();
         match direction {
             Direction::Sent => {
                 history.add_sent(bytes);

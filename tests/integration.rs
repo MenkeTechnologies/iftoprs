@@ -50,7 +50,7 @@ fn help_contains_all_flags() {
     let flags = [
         "--interface", "--filter", "--net-filter", "--no-dns",
         "--no-port-names", "--promiscuous", "--no-bars", "--bytes",
-        "--hide-ports", "--show-processes", "--list-interfaces",
+        "--hide-ports", "--no-processes", "--list-interfaces",
     ];
     for flag in &flags {
         assert!(stdout.contains(flag), "help missing flag: {}", flag);

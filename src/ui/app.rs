@@ -4,66 +4,41 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::prefs::{self, Prefs};
 use crate::config::theme::{Theme, ThemeName};
-use crate::data::flow::Protocol;
+use crate::data::flow::{FlowKey, Protocol};
 use crate::data::tracker::{FlowSnapshot, TotalStats};
 use crate::util::resolver::Resolver;
 
-/// Which bandwidth column to sort by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortColumn {
-    Avg2s,
-    Avg10s,
-    Avg40s,
-    SrcName,
-    DstName,
+    Avg2s, Avg10s, Avg40s, SrcName, DstName,
 }
 
-/// Line display mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LineDisplay {
-    TwoLine,
-    OneLine,
-    SentOnly,
-    RecvOnly,
-}
+pub enum LineDisplay { TwoLine, OneLine, SentOnly, RecvOnly }
 
 impl LineDisplay {
     pub fn next(self) -> Self {
         match self {
-            LineDisplay::TwoLine => LineDisplay::OneLine,
-            LineDisplay::OneLine => LineDisplay::SentOnly,
-            LineDisplay::SentOnly => LineDisplay::RecvOnly,
-            LineDisplay::RecvOnly => LineDisplay::TwoLine,
+            Self::TwoLine => Self::OneLine, Self::OneLine => Self::SentOnly,
+            Self::SentOnly => Self::RecvOnly, Self::RecvOnly => Self::TwoLine,
         }
     }
 }
 
-/// Bar rendering style (ported from storageshower).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum BarStyle {
-    #[default]
-    Gradient,
-    Solid,
-    Thin,
-    Ascii,
-}
+pub enum BarStyle { #[default] Gradient, Solid, Thin, Ascii }
 
 impl BarStyle {
     pub fn next(self) -> Self {
         match self {
-            BarStyle::Gradient => BarStyle::Solid,
-            BarStyle::Solid => BarStyle::Thin,
-            BarStyle::Thin => BarStyle::Ascii,
-            BarStyle::Ascii => BarStyle::Gradient,
+            Self::Gradient => Self::Solid, Self::Solid => Self::Thin,
+            Self::Thin => Self::Ascii, Self::Ascii => Self::Gradient,
         }
     }
-
     pub fn name(self) -> &'static str {
         match self {
-            BarStyle::Gradient => "gradient",
-            BarStyle::Solid => "solid",
-            BarStyle::Thin => "thin",
-            BarStyle::Ascii => "ascii",
+            Self::Gradient => "gradient", Self::Solid => "solid",
+            Self::Thin => "thin", Self::Ascii => "ascii",
         }
     }
 }
@@ -74,11 +49,14 @@ pub struct ThemeChooser {
     pub selected: usize,
 }
 
-impl ThemeChooser {
-    pub fn new() -> Self {
-        ThemeChooser { active: false, selected: 0 }
+impl Default for ThemeChooser {
+    fn default() -> Self {
+        Self::new()
     }
+}
 
+impl ThemeChooser {
+    pub fn new() -> Self { Self { active: false, selected: 0 } }
     pub fn open(&mut self, current: ThemeName) {
         self.active = true;
         self.selected = ThemeName::ALL.iter().position(|&t| t == current).unwrap_or(0);
@@ -93,23 +71,24 @@ pub struct FilterState {
     pub prev: Option<String>,
 }
 
-impl FilterState {
-    pub fn new() -> Self {
-        FilterState { active: false, buf: String::new(), cursor: 0, prev: None }
+impl Default for FilterState {
+    fn default() -> Self {
+        Self::new()
     }
+}
 
+impl FilterState {
+    pub fn new() -> Self { Self { active: false, buf: String::new(), cursor: 0, prev: None } }
     pub fn open(&mut self, current: &Option<String>) {
         self.active = true;
         self.buf = current.clone().unwrap_or_default();
         self.cursor = self.buf.len();
         self.prev = current.clone();
     }
-
     pub fn insert(&mut self, ch: char) {
         self.buf.insert(self.cursor, ch);
         self.cursor += ch.len_utf8();
     }
-
     pub fn backspace(&mut self) {
         if self.cursor > 0 {
             let prev = self.buf[..self.cursor].char_indices().next_back().map(|(i, _)| i).unwrap_or(0);
@@ -117,14 +96,11 @@ impl FilterState {
             self.cursor = prev;
         }
     }
-
     pub fn delete_word(&mut self) {
-        let new_end = self.buf[..self.cursor].trim_end_matches(|c: char| !c.is_whitespace())
-            .trim_end().len();
+        let new_end = self.buf[..self.cursor].trim_end_matches(|c: char| !c.is_whitespace()).trim_end().len();
         self.buf.drain(new_end..self.cursor);
         self.cursor = new_end;
     }
-
     pub fn home(&mut self) { self.cursor = 0; }
     pub fn end(&mut self) { self.cursor = self.buf.len(); }
     pub fn left(&mut self) {
@@ -141,19 +117,18 @@ impl FilterState {
 }
 
 /// Status message with auto-dismiss.
-pub struct StatusMsg {
-    pub text: String,
-    pub since: Instant,
-}
+pub struct StatusMsg { pub text: String, pub since: Instant }
 
 impl StatusMsg {
-    pub fn new(text: String) -> Self {
-        StatusMsg { text, since: Instant::now() }
-    }
+    pub fn new(text: String) -> Self { Self { text, since: Instant::now() } }
+    pub fn expired(&self) -> bool { self.since.elapsed().as_secs() >= 3 }
+}
 
-    pub fn expired(&self) -> bool {
-        self.since.elapsed().as_secs() >= 3
-    }
+/// A flow identity for pinning (favorites).
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
+pub struct PinnedFlow {
+    pub src: String,
+    pub dst: String,
 }
 
 /// Application state for the TUI.
@@ -166,10 +141,12 @@ pub struct AppState {
     pub show_processes: bool,
     pub use_bytes: bool,
     pub sort_column: SortColumn,
+    pub sort_reverse: bool,
     pub line_display: LineDisplay,
     pub bar_style: BarStyle,
     pub paused: bool,
     pub scroll_offset: usize,
+    pub selected: Option<usize>,
     pub show_help: bool,
     pub screen_filter: Option<String>,
     pub frozen_order: bool,
@@ -178,6 +155,7 @@ pub struct AppState {
     pub theme_chooser: ThemeChooser,
     pub filter_state: FilterState,
     pub status_msg: Option<StatusMsg>,
+    pub pinned: Vec<PinnedFlow>,
 
     /// Cached data from last snapshot
     pub flows: Vec<FlowSnapshot>,
@@ -187,27 +165,23 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(
-        resolver: Resolver,
-        show_ports: bool,
-        show_bars: bool,
-        use_bytes: bool,
-        show_processes: bool,
-        prefs: &Prefs,
+        resolver: Resolver, show_ports: bool, show_bars: bool,
+        use_bytes: bool, show_processes: bool, prefs: &Prefs,
     ) -> Self {
         let theme_name = prefs.theme;
         AppState {
             show_dns: resolver.is_enabled(),
             show_port_names: true,
-            show_ports,
-            show_bars,
+            show_ports, show_bars,
             show_cumulative: prefs.show_cumulative,
-            show_processes,
-            use_bytes,
+            show_processes, use_bytes,
             sort_column: SortColumn::Avg2s,
+            sort_reverse: false,
             line_display: LineDisplay::TwoLine,
             bar_style: prefs.bar_style,
             paused: false,
             scroll_offset: 0,
+            selected: None,
             show_help: false,
             screen_filter: None,
             frozen_order: false,
@@ -216,6 +190,7 @@ impl AppState {
             theme_chooser: ThemeChooser::new(),
             filter_state: FilterState::new(),
             status_msg: None,
+            pinned: prefs.pinned.clone(),
             flows: Vec::new(),
             totals: TotalStats {
                 sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
@@ -247,11 +222,148 @@ impl AppState {
             show_processes: self.show_processes,
             show_cumulative: self.show_cumulative,
             bar_style: self.bar_style,
+            pinned: self.pinned.clone(),
         };
         prefs::save_prefs(&p);
     }
 
-    /// Export current flows to a file.
+    /// Toggle pin for the currently selected flow.
+    pub fn toggle_pin(&mut self) {
+        let idx = match self.selected {
+            Some(i) if i < self.flows.len() => i,
+            _ => { self.set_status("Select a flow first (j/k)"); return; }
+        };
+        let f = &self.flows[idx];
+        let pin = PinnedFlow {
+            src: f.key.src.to_string(),
+            dst: f.key.dst.to_string(),
+        };
+        if let Some(pos) = self.pinned.iter().position(|p| *p == pin) {
+            let label = format!("{} <=> {}", pin.src, pin.dst);
+            self.pinned.remove(pos);
+            self.set_status(format!("Unpinned {}", label));
+        } else {
+            let label = format!("{} <=> {}", pin.src, pin.dst);
+            self.pinned.push(pin);
+            self.set_status(format!("Pinned ★ {}", label));
+        }
+        self.save_prefs();
+    }
+
+    /// Check if a flow is pinned.
+    pub fn is_pinned(&self, key: &FlowKey) -> bool {
+        let pin = PinnedFlow { src: key.src.to_string(), dst: key.dst.to_string() };
+        self.pinned.contains(&pin)
+    }
+
+    /// Copy selected flow info to clipboard.
+    pub fn copy_selected(&mut self) {
+        let idx = match self.selected {
+            Some(i) if i < self.flows.len() => i,
+            _ => { self.set_status("Select a flow first (j/k)"); return; }
+        };
+        let f = &self.flows[idx];
+        let src = self.format_host(f.key.src, f.key.src_port, &f.key.protocol);
+        let dst = self.format_host(f.key.dst, f.key.dst_port, &f.key.protocol);
+        let text = format!("{} <=> {} [{}]", src, dst, f.key.protocol);
+
+        let result = if cfg!(target_os = "macos") {
+            std::process::Command::new("pbcopy")
+                .stdin(std::process::Stdio::piped())
+                .spawn()
+                .and_then(|mut child| {
+                    use std::io::Write;
+                    if let Some(ref mut stdin) = child.stdin {
+                        stdin.write_all(text.as_bytes())?;
+                    }
+                    child.wait()
+                })
+        } else {
+            std::process::Command::new("xclip")
+                .args(["-selection", "clipboard"])
+                .stdin(std::process::Stdio::piped())
+                .spawn()
+                .and_then(|mut child| {
+                    use std::io::Write;
+                    if let Some(ref mut stdin) = child.stdin {
+                        stdin.write_all(text.as_bytes())?;
+                    }
+                    child.wait()
+                })
+        };
+
+        match result {
+            Ok(_) => self.set_status(format!("Copied: {}", text)),
+            Err(e) => self.set_status(format!("Copy failed: {}", e)),
+        }
+    }
+
+    /// Navigate selection down.
+    pub fn select_next(&mut self) {
+        let max = self.flows.len().saturating_sub(1);
+        self.selected = Some(match self.selected {
+            Some(i) => (i + 1).min(max),
+            None => 0,
+        });
+        // Auto-scroll to keep selection visible
+        if let Some(sel) = self.selected
+            && sel >= self.scroll_offset + 20 { // rough visible count
+                self.scroll_offset = sel.saturating_sub(19);
+            }
+    }
+
+    /// Navigate selection up.
+    pub fn select_prev(&mut self) {
+        self.selected = Some(match self.selected {
+            Some(i) => i.saturating_sub(1),
+            None => 0,
+        });
+        if let Some(sel) = self.selected
+            && sel < self.scroll_offset {
+                self.scroll_offset = sel;
+            }
+    }
+
+    /// Half-page down.
+    pub fn page_down(&mut self) {
+        let half = 10;
+        let max = self.flows.len().saturating_sub(1);
+        self.selected = Some(match self.selected {
+            Some(i) => (i + half).min(max),
+            None => half.min(max),
+        });
+        if let Some(sel) = self.selected
+            && sel >= self.scroll_offset + 20 {
+                self.scroll_offset = sel.saturating_sub(19);
+            }
+    }
+
+    /// Half-page up.
+    pub fn page_up(&mut self) {
+        let half = 10;
+        self.selected = Some(match self.selected {
+            Some(i) => i.saturating_sub(half),
+            None => 0,
+        });
+        if let Some(sel) = self.selected
+            && sel < self.scroll_offset {
+                self.scroll_offset = sel;
+            }
+    }
+
+    /// Jump to first flow.
+    pub fn jump_top(&mut self) {
+        self.selected = Some(0);
+        self.scroll_offset = 0;
+    }
+
+    /// Jump to last flow.
+    pub fn jump_bottom(&mut self) {
+        let last = self.flows.len().saturating_sub(1);
+        self.selected = Some(last);
+        self.scroll_offset = last.saturating_sub(19);
+    }
+
     pub fn export(&mut self) {
         let path = dirs::home_dir()
             .map(|h| h.join(".iftoprs.export.txt"))
@@ -300,11 +412,8 @@ impl AppState {
 
     pub fn update_snapshot(&mut self, mut flows: Vec<FlowSnapshot>, totals: TotalStats) {
         if self.paused { return; }
-
-        // Expire status messages
-        if let Some(ref msg) = self.status_msg {
-            if msg.expired() { self.status_msg = None; }
-        }
+        if let Some(ref msg) = self.status_msg
+            && msg.expired() { self.status_msg = None; }
 
         if let Some(ref filter) = self.screen_filter {
             let re = regex::Regex::new(&format!("(?i){}", regex::escape(filter)));
@@ -318,26 +427,44 @@ impl AppState {
         }
 
         if !self.frozen_order { self.sort_flows(&mut flows); }
+
+        // Float pinned flows to top
+        if !self.pinned.is_empty() {
+            flows.sort_by_key(|f| if self.is_pinned(&f.key) { 0 } else { 1 });
+        }
+
         self.flows = flows;
         self.totals = totals;
+
+        // Clamp selection
+        if let Some(sel) = self.selected
+            && sel >= self.flows.len() && !self.flows.is_empty() {
+                self.selected = Some(self.flows.len() - 1);
+            }
     }
 
-    fn sort_flows(&self, flows: &mut Vec<FlowSnapshot>) {
+    fn sort_flows(&self, flows: &mut [FlowSnapshot]) {
+        let rev = self.sort_reverse;
         match self.sort_column {
             SortColumn::Avg2s => flows.sort_by(|a, b| {
-                (b.sent_2s + b.recv_2s).partial_cmp(&(a.sent_2s + a.recv_2s)).unwrap_or(std::cmp::Ordering::Equal)
+                let ord = (b.sent_2s + b.recv_2s).partial_cmp(&(a.sent_2s + a.recv_2s)).unwrap_or(std::cmp::Ordering::Equal);
+                if rev { ord.reverse() } else { ord }
             }),
             SortColumn::Avg10s => flows.sort_by(|a, b| {
-                (b.sent_10s + b.recv_10s).partial_cmp(&(a.sent_10s + a.recv_10s)).unwrap_or(std::cmp::Ordering::Equal)
+                let ord = (b.sent_10s + b.recv_10s).partial_cmp(&(a.sent_10s + a.recv_10s)).unwrap_or(std::cmp::Ordering::Equal);
+                if rev { ord.reverse() } else { ord }
             }),
             SortColumn::Avg40s => flows.sort_by(|a, b| {
-                (b.sent_40s + b.recv_40s).partial_cmp(&(a.sent_40s + a.recv_40s)).unwrap_or(std::cmp::Ordering::Equal)
+                let ord = (b.sent_40s + b.recv_40s).partial_cmp(&(a.sent_40s + a.recv_40s)).unwrap_or(std::cmp::Ordering::Equal);
+                if rev { ord.reverse() } else { ord }
             }),
             SortColumn::SrcName => flows.sort_by(|a, b| {
-                self.resolver.resolve(a.key.src).cmp(&self.resolver.resolve(b.key.src))
+                let ord = self.resolver.resolve(a.key.src).cmp(&self.resolver.resolve(b.key.src));
+                if rev { ord.reverse() } else { ord }
             }),
             SortColumn::DstName => flows.sort_by(|a, b| {
-                self.resolver.resolve(a.key.dst).cmp(&self.resolver.resolve(b.key.dst))
+                let ord = self.resolver.resolve(a.key.dst).cmp(&self.resolver.resolve(b.key.dst));
+                if rev { ord.reverse() } else { ord }
             }),
         }
     }

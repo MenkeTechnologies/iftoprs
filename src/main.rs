@@ -66,20 +66,20 @@ fn main() -> Result<()> {
         tx,
     )?;
 
-    // Process attribution thread — always running so Z toggle works at runtime.
-    // Uses lsof which is expensive, so only look up flows that don't have info yet.
+    // Process attribution thread — refreshes the socket→pid table periodically,
+    // then applies lookups to all flows that don't have process info yet.
     let tracker_proc = tracker.clone();
     std::thread::Builder::new()
         .name("proc-lookup".into())
         .spawn(move || {
-            let mut known = std::collections::HashSet::new();
             loop {
+                // Refresh the entire socket→pid table (one lsof call for ALL sockets)
+                util::procinfo::refresh_proc_table();
                 std::thread::sleep(Duration::from_secs(2));
+
+                // Apply lookups to flows
                 let keys = tracker_proc.flow_keys();
                 for key in keys {
-                    if known.contains(&(key.src, key.src_port, key.dst, key.dst_port)) {
-                        continue;
-                    }
                     if let Some((pid, name)) = util::lookup_process(
                         key.src,
                         key.src_port,
@@ -88,7 +88,6 @@ fn main() -> Result<()> {
                         &key.protocol,
                     ) {
                         tracker_proc.set_process_info(&key, pid, name);
-                        known.insert((key.src, key.src_port, key.dst, key.dst_port));
                     }
                 }
             }
@@ -108,7 +107,7 @@ fn main() -> Result<()> {
         !args.hide_ports,
         !args.no_bars,
         args.bytes,
-        args.show_processes,
+        !args.no_processes,
         &prefs,
     );
 
@@ -158,8 +157,8 @@ fn run_app(
             .checked_sub(last_tick.elapsed())
             .unwrap_or(Duration::ZERO);
 
-        if event::poll(timeout).context("Failed to poll events")? {
-            if let Event::Key(key) = event::read().context("Failed to read event")? {
+        if event::poll(timeout).context("Failed to poll events")?
+            && let Event::Key(key) = event::read().context("Failed to read event")? {
                 // Ctrl+C always quits
                 if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c')
                 {
@@ -232,16 +231,28 @@ fn run_app(
                     continue;
                 }
 
-                match key.code {
-                    KeyCode::Char('q') => {
-                        app.save_prefs();
-                        return Ok(());
+                // Ctrl+key combos
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    match key.code {
+                        KeyCode::Char('d') => app.page_down(),
+                        KeyCode::Char('u') => app.page_up(),
+                        _ => {}
                     }
+                    continue;
+                }
+
+                match key.code {
+                    // ── Quit ──
+                    KeyCode::Char('q') => { app.save_prefs(); return Ok(()); }
+
+                    // ── Help / overlays ──
                     KeyCode::Char('h') | KeyCode::Char('?') => app.show_help = !app.show_help,
                     KeyCode::Char('c') => {
                         app.show_help = false;
                         app.theme_chooser.open(app.theme_name);
                     }
+
+                    // ── Filter ──
                     KeyCode::Char('/') => {
                         app.show_help = false;
                         app.filter_state.open(&app.screen_filter);
@@ -250,7 +261,13 @@ fn run_app(
                         app.screen_filter = None;
                         app.set_status("Filter cleared");
                     }
+
+                    // ── Actions ──
                     KeyCode::Char('e') => app.export(),
+                    KeyCode::Char('y') => app.copy_selected(),
+                    KeyCode::Char('F') => app.toggle_pin(),
+
+                    // ── Display toggles ──
                     KeyCode::Char('n') => {
                         app.resolver.toggle();
                         app.show_dns = app.resolver.is_enabled();
@@ -266,24 +283,30 @@ fn run_app(
                     KeyCode::Char('T') => app.show_cumulative = !app.show_cumulative,
                     KeyCode::Char('Z') => app.show_processes = !app.show_processes,
                     KeyCode::Char('P') => app.paused = !app.paused,
+
+                    // ── Sort ──
                     KeyCode::Char('1') => { app.sort_column = SortColumn::Avg2s; app.frozen_order = false; }
                     KeyCode::Char('2') => { app.sort_column = SortColumn::Avg10s; app.frozen_order = false; }
                     KeyCode::Char('3') => { app.sort_column = SortColumn::Avg40s; app.frozen_order = false; }
                     KeyCode::Char('<') => { app.sort_column = SortColumn::SrcName; app.frozen_order = false; }
                     KeyCode::Char('>') => { app.sort_column = SortColumn::DstName; app.frozen_order = false; }
+                    KeyCode::Char('r') => {
+                        app.sort_reverse = !app.sort_reverse;
+                        app.set_status(if app.sort_reverse { "Sort: reversed" } else { "Sort: normal" });
+                    }
                     KeyCode::Char('o') => app.frozen_order = !app.frozen_order,
-                    KeyCode::Char('j') | KeyCode::Down => {
-                        if app.scroll_offset < app.flows.len().saturating_sub(1) {
-                            app.scroll_offset += 1;
-                        }
-                    }
-                    KeyCode::Char('k') | KeyCode::Up => {
-                        app.scroll_offset = app.scroll_offset.saturating_sub(1);
-                    }
+
+                    // ── Navigation ──
+                    KeyCode::Char('j') | KeyCode::Down => app.select_next(),
+                    KeyCode::Char('k') | KeyCode::Up => app.select_prev(),
+                    KeyCode::Char('G') | KeyCode::End => app.jump_bottom(),
+                    KeyCode::Home => app.jump_top(),
+                    KeyCode::Esc => { app.selected = None; app.show_help = false; }
+
+                    // ── Mouse scroll ──
                     _ => {}
                 }
             }
-        }
 
         if last_tick.elapsed() >= tick_rate {
             last_tick = Instant::now();
