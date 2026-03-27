@@ -36,6 +36,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
   -P, --hide-ports               \x1b[32m//\x1b[0m Ghost the port numbers from host display
   -Z, --no-processes             \x1b[32m//\x1b[0m Hide owning process column (shown by default)
   -l, --list-interfaces          \x1b[32m//\x1b[0m Enumerate available interfaces and disconnect
+      --list-colors              \x1b[32m//\x1b[0m Preview all 31 color themes
   -h, --help                     Print help
   -V, --version                  Print version
 \x1b[36m  ── KEYBINDS ───────────────────────────────────────────\x1b[0m
@@ -43,6 +44,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
 \x1b[33m  B\x1b[0m ── bytes/bits     \x1b[33mp\x1b[0m ── ports           \x1b[33mZ\x1b[0m ── processes
 \x1b[33m  t\x1b[0m ── line mode      \x1b[33mT\x1b[0m ── cumulative      \x1b[33mP\x1b[0m ── pause
 \x1b[33m  x\x1b[0m ── border          \x1b[33mc\x1b[0m ── themes           \x1b[33m/\x1b[0m ── filter
+\x1b[33m  g\x1b[0m ── header bar     \x1b[33mf\x1b[0m ── refresh rate
 \x1b[33m  1/2/3\x1b[0m ── sort by 2s/10s/40s average
 \x1b[33m  < / >\x1b[0m ── sort by src/dst    \x1b[33mo\x1b[0m ── freeze order
 \x1b[33m  j/k\x1b[0m ── scroll                \x1b[33mq\x1b[0m ── disconnect
@@ -108,6 +110,10 @@ pub struct Args {
     #[arg(short = 'l', long = "list-interfaces")]
     pub list_interfaces: bool,
 
+    /// Preview all color themes and exit
+    #[arg(long = "list-colors")]
+    pub list_colors: bool,
+
     /// Generate shell completions (bash, zsh, fish, elvish, powershell)
     #[arg(long = "completions", value_name = "SHELL")]
     pub completions: Option<Shell>,
@@ -122,6 +128,37 @@ pub struct Args {
 }
 
 impl Args {
+    /// Print all theme previews with color swatches.
+    pub fn print_colors() {
+        use crate::config::theme::ThemeName;
+        const RST: &str = "\x1b[0m";
+        const B_CYAN: &str = "\x1b[1;36m";
+        const B_GREEN: &str = "\x1b[1;32m";
+        const B_MAGENTA: &str = "\x1b[1;35m";
+        const B_YELLOW: &str = "\x1b[1;33m";
+
+        println!("\n{B_CYAN}  ── BUILTIN COLOR SCHEMES ────────────────────────{RST}\n");
+        for &name in ThemeName::ALL {
+            let swatch: String = crate::config::theme::Theme::swatch(name)
+                .iter()
+                .map(|(color, _)| {
+                    let idx = match color {
+                        ratatui::style::Color::Indexed(n) => *n,
+                        _ => 0,
+                    };
+                    format!("\x1b[48;5;{idx}m   {RST}")
+                })
+                .collect();
+            let flag: String = format!("{:?}", name).to_lowercase();
+            println!(
+                "  {B_GREEN}{flag:<16}{RST} {B_MAGENTA}{name:<16}{RST} {swatch}",
+                name = name.display_name(),
+            );
+        }
+        println!("\n  {B_YELLOW}Usage:{RST} iftoprs then press {B_GREEN}c{RST} for theme chooser");
+        println!("  {B_YELLOW}Cycle:{RST} press {B_GREEN}c{RST} in the TUI\n");
+    }
+
     /// Generate shell completions and write to stdout.
     pub fn generate_completions(shell: Shell) {
         let mut cmd = Args::command();
@@ -159,6 +196,7 @@ mod tests {
             hide_ports: false,
             no_processes: false,
             list_interfaces: false,
+            list_colors: false,
             completions: None,
             help: false,
             version: false,
@@ -213,6 +251,7 @@ mod tests {
             hide_ports: false,
             no_processes: false,
             list_interfaces: false,
+            list_colors: false,
             completions: None,
             help: false,
             version: false,

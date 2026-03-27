@@ -39,6 +39,12 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
+    // List colors mode
+    if args.list_colors {
+        Args::print_colors();
+        return Ok(());
+    }
+
     // List interfaces mode
     if args.list_interfaces {
         let interfaces = capture::sniffer::list_interfaces()?;
@@ -110,6 +116,7 @@ fn main() -> Result<()> {
         !args.no_processes,
         &prefs,
     );
+    app.interface_name = args.interface.clone().unwrap_or_default();
 
     let result = run_app(&mut terminal, &mut app, &tracker, &mut rx);
 
@@ -277,26 +284,35 @@ fn run_app(
                     KeyCode::Char('y') => app.copy_selected(),
                     KeyCode::Char('F') => app.toggle_pin(),
 
-                    // ── Display toggles ──
+                    // ── Display toggles (all auto-saved) ──
                     KeyCode::Char('n') => {
                         app.resolver.toggle();
                         app.show_dns = app.resolver.is_enabled();
+                        app.save_prefs();
                     }
-                    KeyCode::Char('N') => app.show_port_names = !app.show_port_names,
-                    KeyCode::Char('p') => app.show_ports = !app.show_ports,
+                    KeyCode::Char('N') => { app.show_port_names = !app.show_port_names; app.save_prefs(); }
+                    KeyCode::Char('p') => { app.show_ports = !app.show_ports; app.save_prefs(); }
                     KeyCode::Char('b') => {
                         app.bar_style = app.bar_style.next();
                         app.set_status(format!("Bar style: {}", app.bar_style.name()));
+                        app.save_prefs();
                     }
-                    KeyCode::Char('B') => app.use_bytes = !app.use_bytes,
-                    KeyCode::Char('t') => app.line_display = app.line_display.next(),
-                    KeyCode::Char('T') => app.show_cumulative = !app.show_cumulative,
-                    KeyCode::Char('Z') => app.show_processes = !app.show_processes,
+                    KeyCode::Char('B') => { app.use_bytes = !app.use_bytes; app.save_prefs(); }
+                    KeyCode::Char('t') => { app.line_display = app.line_display.next(); app.save_prefs(); }
+                    KeyCode::Char('T') => { app.show_cumulative = !app.show_cumulative; app.save_prefs(); }
+                    KeyCode::Char('Z') => { app.show_processes = !app.show_processes; app.save_prefs(); }
                     KeyCode::Char('P') => app.paused = !app.paused,
                     KeyCode::Char('x') => {
                         app.show_border = !app.show_border;
                         app.set_status(if app.show_border { "Border: on" } else { "Border: off" });
+                        app.save_prefs();
                     }
+                    KeyCode::Char('g') => {
+                        app.show_header = !app.show_header;
+                        app.set_status(if app.show_header { "Header: on" } else { "Header: off" });
+                        app.save_prefs();
+                    }
+                    KeyCode::Char('f') => app.cycle_refresh_rate(),
 
                     // ── Sort ──
                     KeyCode::Char('1') => { app.sort_column = SortColumn::Avg2s; app.frozen_order = false; }

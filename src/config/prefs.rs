@@ -28,10 +28,20 @@ pub struct Prefs {
     pub pinned: Vec<PinnedFlow>,
     #[serde(default = "default_true")]
     pub show_border: bool,
+    #[serde(default = "default_true")]
+    pub show_header: bool,
+    #[serde(default = "default_refresh")]
+    pub refresh_rate: u64,
+    #[serde(default)]
+    pub alert_threshold: f64,
 }
 
 fn default_true() -> bool {
     true
+}
+
+fn default_refresh() -> u64 {
+    1
 }
 
 impl Default for Prefs {
@@ -48,6 +58,9 @@ impl Default for Prefs {
             bar_style: BarStyle::default(),
             pinned: Vec::new(),
             show_border: true,
+            show_header: true,
+            refresh_rate: 1,
+            alert_threshold: 0.0,
         }
     }
 }
@@ -63,7 +76,12 @@ pub fn load_prefs() -> Prefs {
     };
     match std::fs::read_to_string(&path) {
         Ok(contents) => toml::from_str(&contents).unwrap_or_default(),
-        Err(_) => Prefs::default(),
+        Err(_) => {
+            // Config doesn't exist — write the default
+            let prefs = Prefs::default();
+            save_prefs(&prefs);
+            prefs
+        }
     }
 }
 

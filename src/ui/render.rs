@@ -33,9 +33,18 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
     let size = frame.area();
     if state.show_help { draw_help(frame, size, state); return; }
 
+    // Alert flash — override border color when flashing
+    let is_flashing = state.alert_state.is_flashing();
+
     // Border support
     let border = state.show_border;
-    let border_color = if state.paused { DIM_BORDER } else { state.theme.scale_line };
+    let border_color = if is_flashing {
+        Color::Indexed(196) // red flash
+    } else if state.paused {
+        DIM_BORDER
+    } else {
+        state.theme.scale_line
+    };
     let margin: u16 = if border { 1 } else { 0 };
 
     if border {
@@ -43,7 +52,6 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
         let bs = Style::default().fg(border_color);
         let x1 = size.width.saturating_sub(1);
         let y1 = size.height.saturating_sub(1);
-        // Corners first, then edges skip corner positions
         set_cell(buf, 0, 0, "┌", bs);
         set_cell(buf, x1, 0, "┐", bs);
         set_cell(buf, 0, y1, "└", bs);
@@ -81,19 +89,23 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
         height: size.height.saturating_sub(margin * 2),
     };
 
+    // Layout: optional header + scale + flows + separator + totals
+    let header_h = if state.show_header { 1 } else { 0 };
     let c = Layout::default().direction(Direction::Vertical).constraints([
+        Constraint::Length(header_h),
         Constraint::Length(1), Constraint::Length(1), Constraint::Min(4),
         Constraint::Length(1), Constraint::Length(3),
     ]).split(inner);
 
     // Store flow area Y for mouse hit-testing
-    state.flow_area_y = c[2].y;
+    state.flow_area_y = c[3].y;
 
-    draw_scale_labels(frame, c[0], state);
-    draw_scale_ticks(frame, c[1], state);
-    draw_flows(frame, c[2], state);
-    draw_separator(frame, c[3], state);
-    draw_totals(frame, c[4], state);
+    if state.show_header { draw_header(frame, c[0], state); }
+    draw_scale_labels(frame, c[1], state);
+    draw_scale_ticks(frame, c[2], state);
+    draw_flows(frame, c[3], state, is_flashing);
+    draw_separator(frame, c[4], state);
+    draw_totals(frame, c[5], state);
 
     // Pause overlay
     if state.paused {
@@ -106,6 +118,65 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
     if state.tooltip.active { draw_tooltip(frame, size, state); }
     if let Some(ref msg) = state.status_msg
         && !msg.expired() { draw_status(frame, size, state, &msg.text); }
+}
+
+// ─── Header bar ──────────────────────────────────────────────────────────────
+
+fn draw_header(frame: &mut Frame, area: Rect, state: &AppState) {
+    if area.height < 1 { return; }
+    let buf = frame.buffer_mut();
+    let t = &state.theme;
+    let banner_s = Style::default().fg(t.scale_label).bg(Color::Indexed(236));
+    let accent_s = Style::default().fg(t.host_src).bg(Color::Indexed(236)).add_modifier(Modifier::BOLD);
+    let inner_w = area.width;
+
+    // Fill background
+    for x in area.x..area.x + inner_w {
+        set_cell(buf, x, area.y, " ", Style::default().bg(Color::Indexed(236)));
+    }
+
+    let s = " │ ";
+    let now = chrono::Local::now();
+    let iface = if state.interface_name.is_empty() { "auto" } else { &state.interface_name };
+    let sort_name = match state.sort_column {
+        crate::ui::app::SortColumn::Avg2s => "2s",
+        crate::ui::app::SortColumn::Avg10s => "10s",
+        crate::ui::app::SortColumn::Avg40s => "40s",
+        crate::ui::app::SortColumn::SrcName => "src",
+        crate::ui::app::SortColumn::DstName => "dst",
+    };
+    let mut title = format!(
+        " ▶▶▶ IFTOPRS ◀◀◀{s}iface:{}{s}flows:{}{s}clock:{}{s}sort:{}{s}rate:{}s{s}theme:{}",
+        iface,
+        state.total_flow_count,
+        now.format("%H:%M:%S"),
+        sort_name,
+        state.refresh_rate,
+        state.theme_name.display_name(),
+    );
+    if state.paused {
+        title.push_str(&format!("{s}⏸ PAUSED"));
+    }
+    if state.screen_filter.is_some() {
+        title.push_str(&format!("{s}filter:{}", state.screen_filter.as_deref().unwrap_or("")));
+    }
+
+    let help_hint = " │ h=help ";
+    let avail = inner_w as usize;
+    if title.chars().count() + help_hint.len() < avail {
+        let pad = avail - title.chars().count() - help_hint.len();
+        title.push_str(&" ".repeat(pad));
+        title.push_str(help_hint);
+    }
+
+    let title_display: String = title.chars().take(inner_w as usize).collect();
+    set_str(buf, area.x, area.y, &title_display, banner_s, inner_w);
+
+    // Highlight "IFTOPRS" in accent color
+    if let Some(idx) = title_display.find("IFTOPRS") {
+        let char_offset = title_display[..idx].chars().count() as u16;
+        set_str(buf, area.x + char_offset, area.y, "IFTOPRS", accent_s, 7);
+    }
 }
 
 // ─── Scale ────────────────────────────────────────────────────────────────────
@@ -139,7 +210,7 @@ fn draw_scale_ticks(frame: &mut Frame, area: Rect, state: &AppState) {
 
 // ─── Flows ────────────────────────────────────────────────────────────────────
 
-fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
+fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool) {
     if area.height < 1 || area.width < 30 { return; }
     let t = &state.theme;
     let w = area.width;
@@ -166,6 +237,12 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
         let rate = f.sent_2s + f.recv_2s;
         let bl = bar_length(rate, w);
         let bs = state.bar_style;
+
+        // Alert flash background for flows above threshold
+        if is_flashing && state.alert_threshold > 0.0 && rate >= state.alert_threshold {
+            let flash_bg = Style::default().bg(Color::Indexed(52));
+            for x in area.x..area.x + w { set_cell(buf, x, y, " ", flash_bg); }
+        }
 
         // Bar first
         paint_bar_styled(buf, area.x, y, bl, w, t.bar_color, bs);
@@ -418,7 +495,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
         ("NAV", &[("j/↓","Select next"),("k/↑","Select prev"),("^D","Half-page dn"),("^U","Half-page up"),("G/End","Jump last"),("Home","Jump first"),("Esc","Deselect")]),
         ("FILTER", &[("/","Search flows"),("0","Clear filter")]),
         ("ACTIONS", &[("e","Export flows"),("y","Copy selected"),("F","Pin/unpin ★")]),
-        ("DISPLAY", &[("c","Theme chooser"),("t","Line mode"),("x","Toggle border"),("h/?","Toggle help"),("q","Quit")]),
+        ("DISPLAY", &[("c","Theme chooser"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
         ("", &[]),
     ];
 

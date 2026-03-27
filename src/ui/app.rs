@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
@@ -143,6 +144,26 @@ impl Tooltip {
     pub fn new() -> Self { Self { active: false, x: 0, y: 0, lines: Vec::new() } }
 }
 
+/// Alert state for bandwidth threshold crossing.
+pub struct AlertState {
+    /// Flow keys currently above threshold.
+    pub alert_flows: HashSet<String>,
+    /// When the last alert was triggered (for flash animation).
+    pub flash: Option<Instant>,
+}
+
+impl Default for AlertState {
+    fn default() -> Self { Self { alert_flows: HashSet::new(), flash: None } }
+}
+
+impl AlertState {
+    pub fn is_flashing(&self) -> bool {
+        self.flash
+            .map(|t| t.elapsed().as_millis() < 2000 && (t.elapsed().as_millis() / 300) % 2 == 0)
+            .unwrap_or(false)
+    }
+}
+
 /// A flow identity for pinning (favorites).
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PinnedFlow {
@@ -177,8 +198,22 @@ pub struct AppState {
     pub pinned: Vec<PinnedFlow>,
     pub tooltip: Tooltip,
     pub show_border: bool,
+    pub show_header: bool,
     /// Y offset where the flow area starts (set by renderer).
     pub flow_area_y: u16,
+
+    /// Alert system
+    pub alert_state: AlertState,
+    pub alert_threshold: f64,
+
+    /// Refresh rate in seconds (1/2/5/10)
+    pub refresh_rate: u64,
+
+    /// Interface name for header display
+    pub interface_name: String,
+
+    /// Total flow count before filtering (for header display)
+    pub total_flow_count: usize,
 
     /// Cached data from last snapshot
     pub flows: Vec<FlowSnapshot>,
@@ -216,7 +251,13 @@ impl AppState {
             pinned: prefs.pinned.clone(),
             tooltip: Tooltip::new(),
             show_border: prefs.show_border,
+            show_header: prefs.show_header,
             flow_area_y: 2,
+            alert_state: AlertState::default(),
+            alert_threshold: prefs.alert_threshold,
+            refresh_rate: prefs.refresh_rate,
+            interface_name: String::new(),
+            total_flow_count: 0,
             flows: Vec::new(),
             totals: TotalStats {
                 sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
@@ -250,8 +291,46 @@ impl AppState {
             bar_style: self.bar_style,
             pinned: self.pinned.clone(),
             show_border: self.show_border,
+            show_header: self.show_header,
+            refresh_rate: self.refresh_rate,
+            alert_threshold: self.alert_threshold,
         };
         prefs::save_prefs(&p);
+    }
+
+    /// Cycle refresh rate: 1 → 2 → 5 → 10 → 1
+    pub fn cycle_refresh_rate(&mut self) {
+        self.refresh_rate = match self.refresh_rate {
+            1 => 2, 2 => 5, 5 => 10, _ => 1,
+        };
+        self.set_status(format!("Refresh rate: {}s", self.refresh_rate));
+        self.save_prefs();
+    }
+
+    /// Check flows against alert threshold and trigger flash if new alerts found.
+    pub fn check_alerts(&mut self) {
+        if self.alert_threshold <= 0.0 { return; }
+        let thresh = self.alert_threshold;
+        let mut current = HashSet::new();
+        let mut new_alerts = Vec::new();
+        for f in &self.flows {
+            let rate = f.sent_2s + f.recv_2s;
+            if rate >= thresh {
+                let key = format!("{}:{}<=>{}:{}", f.key.src, f.key.src_port, f.key.dst, f.key.dst_port);
+                if !self.alert_state.alert_flows.contains(&key) {
+                    let src = self.resolver.resolve(f.key.src);
+                    new_alerts.push(format!("{} {}/s", src,
+                        crate::util::format::readable_size(rate, self.use_bytes)));
+                }
+                current.insert(key);
+            }
+        }
+        if !new_alerts.is_empty() {
+            self.alert_state.flash = Some(Instant::now());
+            self.set_status(format!("⚠ ALERT: {}", new_alerts.join(", ")));
+            print!("\x07"); // terminal bell
+        }
+        self.alert_state.alert_flows = current;
     }
 
     /// Toggle pin for the currently selected flow.
@@ -473,6 +552,8 @@ impl AppState {
         if let Some(ref msg) = self.status_msg
             && msg.expired() { self.status_msg = None; }
 
+        self.total_flow_count = flows.len();
+
         if let Some(ref filter) = self.screen_filter {
             let re = regex::Regex::new(&format!("(?i){}", regex::escape(filter)));
             if let Ok(re) = re {
@@ -493,6 +574,9 @@ impl AppState {
 
         self.flows = flows;
         self.totals = totals;
+
+        // Check bandwidth alerts
+        self.check_alerts();
 
         // Clamp selection
         if let Some(sel) = self.selected
@@ -1028,8 +1112,116 @@ mod tests {
         let s = toml::to_string_pretty(&p).unwrap();
         assert!(s.contains("show_border"));
         assert!(s.contains("show_processes"));
+        assert!(s.contains("show_header"));
+        assert!(s.contains("refresh_rate"));
+        assert!(s.contains("alert_threshold"));
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert_eq!(p2.show_border, p.show_border);
         assert_eq!(p2.show_processes, p.show_processes);
+        assert_eq!(p2.show_header, p.show_header);
+        assert_eq!(p2.refresh_rate, p.refresh_rate);
+    }
+
+    // ── Header ──
+
+    #[test]
+    fn show_header_default_true() {
+        let app = make_app();
+        assert!(app.show_header);
+    }
+
+    #[test]
+    fn show_header_toggles() {
+        let mut app = make_app();
+        assert!(app.show_header);
+        app.show_header = false;
+        assert!(!app.show_header);
+    }
+
+    // ── Refresh rate ──
+
+    #[test]
+    fn refresh_rate_default_1() {
+        let app = make_app();
+        assert_eq!(app.refresh_rate, 1);
+    }
+
+    #[test]
+    fn refresh_rate_cycles() {
+        let mut app = make_app();
+        app.cycle_refresh_rate();
+        assert_eq!(app.refresh_rate, 2);
+        app.cycle_refresh_rate();
+        assert_eq!(app.refresh_rate, 5);
+        app.cycle_refresh_rate();
+        assert_eq!(app.refresh_rate, 10);
+        app.cycle_refresh_rate();
+        assert_eq!(app.refresh_rate, 1);
+    }
+
+    // ── Alert system ──
+
+    #[test]
+    fn alert_state_default_not_flashing() {
+        let alert = AlertState::default();
+        assert!(!alert.is_flashing());
+        assert!(alert.alert_flows.is_empty());
+    }
+
+    #[test]
+    fn alert_threshold_default_disabled() {
+        let app = make_app();
+        assert_eq!(app.alert_threshold, 0.0);
+    }
+
+    #[test]
+    fn alert_no_trigger_when_disabled() {
+        let mut app = make_app();
+        app.alert_threshold = 0.0;
+        app.update_snapshot(vec![make_flow(100)], zero_totals());
+        assert!(app.alert_state.flash.is_none());
+    }
+
+    #[test]
+    fn alert_triggers_when_exceeded() {
+        let mut app = make_app();
+        // make_flow(100) => sent_2s = 100 * 100.0 = 10000.0
+        app.alert_threshold = 5000.0;
+        app.update_snapshot(vec![make_flow(100)], zero_totals());
+        assert!(app.alert_state.flash.is_some());
+        assert!(!app.alert_state.alert_flows.is_empty());
+    }
+
+    #[test]
+    fn alert_no_trigger_when_below_threshold() {
+        let mut app = make_app();
+        // make_flow(1) => sent_2s = 100.0
+        app.alert_threshold = 5000.0;
+        app.update_snapshot(vec![make_flow(1)], zero_totals());
+        assert!(app.alert_state.flash.is_none());
+        assert!(app.alert_state.alert_flows.is_empty());
+    }
+
+    #[test]
+    fn total_flow_count_tracked() {
+        let mut app = make_app();
+        app.update_snapshot(vec![make_flow(1), make_flow(2), make_flow(3)], zero_totals());
+        assert_eq!(app.total_flow_count, 3);
+    }
+
+    #[test]
+    fn interface_name_default_empty() {
+        let app = make_app();
+        assert!(app.interface_name.is_empty());
+    }
+
+    // ── Prefs new fields ──
+
+    #[test]
+    fn prefs_default_has_new_fields() {
+        let p = Prefs::default();
+        assert!(p.show_header);
+        assert_eq!(p.refresh_rate, 1);
+        assert_eq!(p.alert_threshold, 0.0);
     }
 }
