@@ -68,7 +68,19 @@ impl Default for Prefs {
     }
 }
 
+use std::sync::OnceLock;
+
+static CUSTOM_CONFIG_PATH: OnceLock<std::path::PathBuf> = OnceLock::new();
+
+/// Set a custom config file path (call once at startup).
+pub fn set_config_path(path: std::path::PathBuf) {
+    let _ = CUSTOM_CONFIG_PATH.set(path);
+}
+
 fn prefs_path() -> Option<std::path::PathBuf> {
+    if let Some(p) = CUSTOM_CONFIG_PATH.get() {
+        return Some(p.clone());
+    }
     dirs::home_dir().map(|h| h.join(".iftoprs.conf"))
 }
 

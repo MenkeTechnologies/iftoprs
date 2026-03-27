@@ -55,6 +55,9 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
+    if let Some(ref path) = args.config {
+        config::prefs::set_config_path(std::path::PathBuf::from(path));
+    }
     let prefs = config::prefs::load_prefs();
 
     // CLI -i overrides config interface

@@ -25,6 +25,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
 \x1b[33m  USAGE:\x1b[0m iftoprs [OPTIONS]
 
 \x1b[36m  ── CAPTURE ────────────────────────────────────────────\x1b[0m
+  -c, --config <FILE>            \x1b[32m//\x1b[0m Path to config file (default: ~/.iftoprs.conf)
   -i, --interface <INTERFACE>    \x1b[32m//\x1b[0m Network interface to jack into
   -f, --filter <FILTER>          \x1b[32m//\x1b[0m BPF filter expression (e.g., \"tcp port 80\")
   -F, --net-filter <NET_FILTER>  \x1b[32m//\x1b[0m IPv4 network filter in CIDR (e.g., \"192.168.1.0/24\")
@@ -66,6 +67,10 @@ Real-time bandwidth monitor (iftop clone in Rust)
     disable_version_flag = true,
 )]
 pub struct Args {
+    /// Path to config file (default: ~/.iftoprs.conf)
+    #[arg(short = 'c', long = "config")]
+    pub config: Option<String>,
+
     /// Network interface to monitor
     #[arg(short = 'i', long)]
     pub interface: Option<String>,
@@ -185,6 +190,7 @@ mod tests {
 
     fn args_with_net_filter(filter: &str) -> Args {
         Args {
+            config: None,
             interface: None,
             filter: None,
             net_filter: Some(filter.to_string()),
@@ -240,6 +246,7 @@ mod tests {
     #[test]
     fn parse_no_net_filter() {
         let args = Args {
+            config: None,
             interface: None,
             filter: None,
             net_filter: None,
