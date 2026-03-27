@@ -2204,4 +2204,219 @@ mod tests_extended {
         app.update_snapshot(vec![f3], zero_totals());
         assert_eq!(app.process_selected, Some(0));
     }
+
+    // ── Process aggregation extended ──
+
+    #[test]
+    fn process_aggregation_sums_totals() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1);
+        f1.process_name = Some("curl".into());
+        f1.total_sent = 1000;
+        f1.total_recv = 500;
+        let mut f2 = make_flow(2);
+        f2.process_name = Some("curl".into());
+        f2.total_sent = 2000;
+        f2.total_recv = 750;
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        let proc = &app.process_snapshots[0];
+        assert_eq!(proc.total_sent, 3000);
+        assert_eq!(proc.total_recv, 1250);
+    }
+
+    #[test]
+    fn process_aggregation_sums_all_windows() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1);
+        f1.process_name = Some("x".into());
+        f1.sent_10s = 10.0;
+        f1.sent_40s = 40.0;
+        f1.recv_10s = 5.0;
+        f1.recv_40s = 20.0;
+        let mut f2 = make_flow(2);
+        f2.process_name = Some("x".into());
+        f2.sent_10s = 30.0;
+        f2.sent_40s = 60.0;
+        f2.recv_10s = 15.0;
+        f2.recv_40s = 30.0;
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        let proc = &app.process_snapshots[0];
+        assert_eq!(proc.sent_10s, 40.0);
+        assert_eq!(proc.sent_40s, 100.0);
+        assert_eq!(proc.recv_10s, 20.0);
+        assert_eq!(proc.recv_40s, 50.0);
+    }
+
+    #[test]
+    fn process_aggregation_preserves_pid() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1);
+        f1.process_name = Some("curl".into());
+        f1.pid = Some(42);
+        let mut f2 = make_flow(2);
+        f2.process_name = Some("curl".into());
+        f2.pid = Some(99);
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        let proc = &app.process_snapshots[0];
+        assert!(proc.pid.is_some());
+    }
+
+    #[test]
+    fn process_aggregation_mixed_known_unknown() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1);
+        f1.process_name = Some("curl".into());
+        let f2 = make_flow(2); // unknown
+        let mut f3 = make_flow(3);
+        f3.process_name = Some("curl".into());
+        app.update_snapshot(vec![f1, f2, f3], zero_totals());
+        assert_eq!(app.process_snapshots.len(), 2);
+        let names: Vec<&str> = app.process_snapshots.iter().map(|p| p.name.as_str()).collect();
+        assert!(names.contains(&"curl"));
+        assert!(names.contains(&"(unknown)"));
+    }
+
+    #[test]
+    fn process_aggregation_many_processes() {
+        let mut app = make_app();
+        let flows: Vec<_> = (0..20).map(|i| {
+            let mut f = make_flow(i);
+            f.process_name = Some(format!("proc{}", i));
+            f.sent_2s = (20 - i) as f64 * 10.0;
+            f
+        }).collect();
+        app.update_snapshot(flows, zero_totals());
+        assert_eq!(app.process_snapshots.len(), 20);
+        // Should be sorted by rate descending
+        assert_eq!(app.process_snapshots[0].name, "proc0");
+        assert_eq!(app.process_snapshots[19].name, "proc19");
+    }
+
+    // ── Process navigation extended ──
+
+    #[test]
+    fn process_select_next_empty_list() {
+        let mut app = make_app();
+        app.process_select_next();
+        assert_eq!(app.process_selected, Some(0));
+    }
+
+    #[test]
+    fn process_select_prev_at_zero() {
+        let mut app = make_app();
+        let mut f = make_flow(1); f.process_name = Some("a".into());
+        app.update_snapshot(vec![f], zero_totals());
+        app.process_selected = Some(0);
+        app.process_select_prev();
+        assert_eq!(app.process_selected, Some(0));
+    }
+
+    #[test]
+    fn process_page_down_clamps_at_end() {
+        let mut app = make_app();
+        let flows: Vec<_> = (0..5).map(|i| {
+            let mut f = make_flow(i); f.process_name = Some(format!("p{}", i)); f
+        }).collect();
+        app.update_snapshot(flows, zero_totals());
+        app.process_selected = Some(3);
+        app.process_page_down();
+        assert_eq!(app.process_selected, Some(4));
+    }
+
+    #[test]
+    fn process_page_up_clamps_at_zero() {
+        let mut app = make_app();
+        let flows: Vec<_> = (0..5).map(|i| {
+            let mut f = make_flow(i); f.process_name = Some(format!("p{}", i)); f
+        }).collect();
+        app.update_snapshot(flows, zero_totals());
+        app.process_selected = Some(3);
+        app.process_page_up();
+        assert_eq!(app.process_selected, Some(0));
+    }
+
+    #[test]
+    fn process_scroll_adjusts_on_select_next() {
+        let mut app = make_app();
+        let flows: Vec<_> = (0..50).map(|i| {
+            let mut f = make_flow(i); f.process_name = Some(format!("p{}", i)); f
+        }).collect();
+        app.update_snapshot(flows, zero_totals());
+        app.process_selected = Some(19);
+        app.process_select_next();
+        assert_eq!(app.process_selected, Some(20));
+        assert!(app.process_scroll > 0);
+    }
+
+    #[test]
+    fn process_scroll_adjusts_on_select_prev() {
+        let mut app = make_app();
+        let flows: Vec<_> = (0..50).map(|i| {
+            let mut f = make_flow(i); f.process_name = Some(format!("p{}", i)); f
+        }).collect();
+        app.update_snapshot(flows, zero_totals());
+        app.process_scroll = 10;
+        app.process_selected = Some(10);
+        app.process_select_prev();
+        assert_eq!(app.process_selected, Some(9));
+        assert!(app.process_scroll <= 9);
+    }
+
+    // ── ViewTab switching ──
+
+    #[test]
+    fn view_tab_switches() {
+        let mut app = make_app();
+        assert_eq!(app.view_tab, ViewTab::Flows);
+        app.view_tab = ViewTab::Processes;
+        assert_eq!(app.view_tab, ViewTab::Processes);
+        app.view_tab = ViewTab::Flows;
+        assert_eq!(app.view_tab, ViewTab::Flows);
+    }
+
+    #[test]
+    fn view_tab_independent_selections() {
+        let mut app = make_app();
+        let mut f = make_flow(1); f.process_name = Some("test".into());
+        app.update_snapshot(vec![f], zero_totals());
+        app.selected = Some(0);
+        app.process_selected = Some(0);
+        app.view_tab = ViewTab::Processes;
+        app.process_select_next();
+        assert_eq!(app.selected, Some(0)); // flow selection unchanged
+    }
+
+    // ── ProcessSnapshot fields ──
+
+    #[test]
+    fn process_snapshot_flow_count() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1); f1.process_name = Some("nginx".into());
+        let mut f2 = make_flow(2); f2.process_name = Some("nginx".into());
+        let mut f3 = make_flow(3); f3.process_name = Some("nginx".into());
+        app.update_snapshot(vec![f1, f2, f3], zero_totals());
+        assert_eq!(app.process_snapshots[0].flow_count, 3);
+    }
+
+    #[test]
+    fn process_snapshots_cleared_on_empty_update() {
+        let mut app = make_app();
+        let mut f = make_flow(1); f.process_name = Some("test".into());
+        app.update_snapshot(vec![f], zero_totals());
+        assert_eq!(app.process_snapshots.len(), 1);
+        app.update_snapshot(vec![], zero_totals());
+        assert!(app.process_snapshots.is_empty());
+    }
+
+    #[test]
+    fn process_snapshots_not_updated_when_paused() {
+        let mut app = make_app();
+        let mut f = make_flow(1); f.process_name = Some("test".into());
+        app.update_snapshot(vec![f], zero_totals());
+        assert_eq!(app.process_snapshots.len(), 1);
+        app.paused = true;
+        let mut f2 = make_flow(2); f2.process_name = Some("new".into());
+        app.update_snapshot(vec![f2], zero_totals());
+        assert_eq!(app.process_snapshots.len(), 1); // unchanged
+    }
 }

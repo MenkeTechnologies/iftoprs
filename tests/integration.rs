@@ -796,3 +796,74 @@ fn cargo_toml_has_version() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
     assert!(content.contains("version = "));
 }
+
+// ── JSON flag ──
+
+#[test]
+fn help_json_flag_description() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--json"), "help should list --json flag");
+    assert!(stdout.contains("NDJSON"), "help should describe NDJSON output");
+    assert!(stdout.contains("no TUI"), "help should mention no TUI");
+}
+
+#[test]
+fn completions_bash_includes_json() {
+    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("json"), "bash completions should include json");
+}
+
+#[test]
+fn completions_fish_includes_json() {
+    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("json"), "fish completions should include json");
+}
+
+#[test]
+fn zsh_completion_file_includes_json() {
+    let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
+    assert!(content.contains("--json"), "_iftoprs should include --json");
+}
+
+// ── Tab keybind ──
+
+#[test]
+fn help_tab_keybind_description() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Tab"), "help should document Tab keybind");
+    assert!(stdout.contains("switch view"), "help should describe Tab as switching views");
+}
+
+// ── Cargo.toml dependencies ──
+
+#[test]
+fn cargo_toml_has_serde_json() {
+    let content = std::fs::read_to_string("Cargo.toml").unwrap();
+    assert!(content.contains("serde_json"), "Cargo.toml should include serde_json dependency");
+}
+
+// ── README features ──
+
+#[test]
+fn readme_documents_json_streaming() {
+    let content = std::fs::read_to_string("README.md").unwrap();
+    assert!(content.contains("--json"), "README should document --json flag");
+    assert!(content.contains("NDJSON"), "README should mention NDJSON");
+}
+
+#[test]
+fn readme_documents_process_view() {
+    let content = std::fs::read_to_string("README.md").unwrap();
+    assert!(content.contains("Tab"), "README should document Tab key");
+    assert!(content.contains("process"), "README should mention process aggregation");
+}
+
+#[test]
+fn readme_documents_jq_example() {
+    let content = std::fs::read_to_string("README.md").unwrap();
+    assert!(content.contains("jq"), "README should show jq piping example");
+}

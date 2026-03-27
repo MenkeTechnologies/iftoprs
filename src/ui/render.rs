@@ -1380,4 +1380,145 @@ mod tests {
         let bl = bar_length(1_000_000.0, 1);
         assert!(bl <= 1);
     }
+
+    // ── Process view rendering ──
+
+    #[test]
+    fn draw_process_view_no_panic() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Processes;
+        let mut f = make_test_flow(1);
+        f.process_name = Some("curl".into());
+        f.pid = Some(42);
+        app.update_snapshot(vec![f], crate::data::tracker::TotalStats {
+            sent_2s: 100.0, sent_10s: 50.0, sent_40s: 25.0,
+            recv_2s: 50.0, recv_10s: 25.0, recv_40s: 10.0,
+            cumulative_sent: 1000, cumulative_recv: 500,
+            peak_sent: 200.0, peak_recv: 100.0,
+        });
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_process_view_empty_no_panic() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Processes;
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_process_view_many_processes() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Processes;
+        let flows: Vec<_> = (1..=20).map(|i| {
+            let mut f = make_test_flow(i);
+            f.process_name = Some(format!("process_{}", i));
+            f.pid = Some(i as u32 * 100);
+            f
+        }).collect();
+        app.update_snapshot(flows, crate::data::tracker::TotalStats {
+            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            cumulative_sent: 0, cumulative_recv: 0,
+            peak_sent: 0.0, peak_recv: 0.0,
+        });
+        let backend = ratatui::backend::TestBackend::new(120, 30);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_process_view_with_selection() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Processes;
+        let mut f1 = make_test_flow(1); f1.process_name = Some("a".into());
+        let mut f2 = make_test_flow(2); f2.process_name = Some("b".into());
+        app.update_snapshot(vec![f1, f2], crate::data::tracker::TotalStats {
+            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            cumulative_sent: 0, cumulative_recv: 0,
+            peak_sent: 0.0, peak_recv: 0.0,
+        });
+        app.process_selected = Some(1);
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_process_view_narrow_terminal() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Processes;
+        let mut f = make_test_flow(1); f.process_name = Some("test".into());
+        app.update_snapshot(vec![f], crate::data::tracker::TotalStats {
+            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            cumulative_sent: 0, cumulative_recv: 0,
+            peak_sent: 0.0, peak_recv: 0.0,
+        });
+        let backend = ratatui::backend::TestBackend::new(40, 10);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_process_view_unknown_processes() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Processes;
+        let f = make_test_flow(1); // no process_name → "(unknown)"
+        app.update_snapshot(vec![f], crate::data::tracker::TotalStats {
+            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            cumulative_sent: 0, cumulative_recv: 0,
+            peak_sent: 0.0, peak_recv: 0.0,
+        });
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_process_view_scrolled() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Processes;
+        let flows: Vec<_> = (1..=50).map(|i| {
+            let mut f = make_test_flow(i);
+            f.process_name = Some(format!("p{}", i));
+            f
+        }).collect();
+        app.update_snapshot(flows, crate::data::tracker::TotalStats {
+            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            cumulative_sent: 0, cumulative_recv: 0,
+            peak_sent: 0.0, peak_recv: 0.0,
+        });
+        app.process_scroll = 25;
+        app.process_selected = Some(30);
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_tab_indicator_flows() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Flows;
+        app.flows = vec![make_test_flow(1)];
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_tab_indicator_processes() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Processes;
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
 }
