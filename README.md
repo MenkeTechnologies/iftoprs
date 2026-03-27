@@ -249,12 +249,19 @@ iftoprs --completions zsh              # generate zsh completions
 | `>` | Sort by destination name |
 | `o` | Freeze current sort order |
 
+| `r` | Reverse sort order |
+
 #### `// NAVIGATION`
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `j` `Down` | Scroll down |
-| `k` `Up` | Scroll up |
+| `j` `↓` | Select next flow |
+| `k` `↑` | Select prev flow |
+| `Ctrl+D` | Half-page down |
+| `Ctrl+U` | Half-page up |
+| `G` `End` | Jump to last |
+| `Home` | Jump to first |
+| `Esc` | Deselect / close overlay |
 
 #### `// FILTER_OPS`
 
@@ -274,12 +281,29 @@ iftoprs --completions zsh              # generate zsh completions
 | `Enter` | Select theme |
 | `Esc` | Cancel |
 
+#### `// ACTIONS`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `y` | Copy selected flow to clipboard |
+| `F` | Pin/unpin selected flow ★ |
+| `e` | Export flows to ~/.iftoprs.export.txt |
+| `b` | Cycle bar style ── gradient / solid / thin / ascii |
+
+#### `// MOUSE`
+
+| `INPUT` | `ACTION` |
+|:---:|:---|
+| Left click | Select flow row |
+| Right click | Show TX/RX tooltip |
+| Middle click | Pin/unpin flow |
+| Scroll up/down | Navigate flows |
+
 #### `// GENERAL_OPS`
 
 | `KEY` | `ACTION` |
 |:---:|:---|
 | `h` `?` | Toggle help HUD |
-| `e` | Export flow data |
 | `q` | Disconnect (saves prefs) |
 | `Ctrl+C` | Force disconnect |
 
