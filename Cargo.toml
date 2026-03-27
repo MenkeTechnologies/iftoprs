@@ -16,3 +16,9 @@ regex = "1.12.3"
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.50.0", features = ["full"] }
 toml = "1.1.0"
+clap_complete = "4"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true

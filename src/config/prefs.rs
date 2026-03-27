@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::theme::ThemeName;
+use crate::ui::app::BarStyle;
 
 /// Persistent preferences saved to ~/.iftoprs.conf
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,6 +22,8 @@ pub struct Prefs {
     pub show_processes: bool,
     #[serde(default)]
     pub show_cumulative: bool,
+    #[serde(default)]
+    pub bar_style: BarStyle,
 }
 
 fn default_true() -> bool {
@@ -38,6 +41,7 @@ impl Default for Prefs {
             use_bytes: false,
             show_processes: false,
             show_cumulative: false,
+            bar_style: BarStyle::default(),
         }
     }
 }

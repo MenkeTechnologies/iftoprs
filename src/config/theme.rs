@@ -86,17 +86,6 @@ impl ThemeName {
         }
     }
 
-    pub fn next(self) -> Self {
-        let all = Self::ALL;
-        let idx = all.iter().position(|&t| t == self).unwrap_or(0);
-        all[(idx + 1) % all.len()]
-    }
-
-    pub fn prev(self) -> Self {
-        let all = Self::ALL;
-        let idx = all.iter().position(|&t| t == self).unwrap_or(0);
-        all[(idx + all.len() - 1) % all.len()]
-    }
 }
 
 /// 6-color palette from storageshower: (primary, accent, c3, c4, c5, c6)
@@ -152,7 +141,6 @@ pub struct Theme {
     pub cum_label: Color,
     pub peak_label: Color,
     pub proc_name: Color,
-    pub header: Color,
     pub help_bg: Color,
     pub help_border: Color,
     pub help_title: Color,
@@ -179,7 +167,6 @@ impl Theme {
             cum_label: Color::Indexed(c2),
             peak_label: Color::Indexed(c4),
             proc_name: Color::Indexed(c3),
-            header: Color::Indexed(c1),
             help_bg: Color::Indexed(236),
             help_border: Color::Indexed(c1),
             help_title: Color::Indexed(c1),

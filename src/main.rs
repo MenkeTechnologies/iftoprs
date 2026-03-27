@@ -24,6 +24,21 @@ use util::resolver::Resolver;
 fn main() -> Result<()> {
     let args = Args::parse();
 
+    if args.help {
+        config::cli::print_cyberpunk_help();
+        return Ok(());
+    }
+
+    if args.version {
+        println!("iftoprs {}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
+
+    if let Some(shell) = args.completions {
+        Args::generate_completions(shell);
+        return Ok(());
+    }
+
     // List interfaces mode
     if args.list_interfaces {
         let interfaces = capture::sniffer::list_interfaces()?;
@@ -51,15 +66,20 @@ fn main() -> Result<()> {
         tx,
     )?;
 
-    // Process attribution thread — always running so Z toggle works at runtime
+    // Process attribution thread — always running so Z toggle works at runtime.
+    // Uses lsof which is expensive, so only look up flows that don't have info yet.
     let tracker_proc = tracker.clone();
     std::thread::Builder::new()
         .name("proc-lookup".into())
         .spawn(move || {
+            let mut known = std::collections::HashSet::new();
             loop {
-                std::thread::sleep(Duration::from_millis(500));
+                std::thread::sleep(Duration::from_secs(2));
                 let keys = tracker_proc.flow_keys();
                 for key in keys {
+                    if known.contains(&(key.src, key.src_port, key.dst, key.dst_port)) {
+                        continue;
+                    }
                     if let Some((pid, name)) = util::lookup_process(
                         key.src,
                         key.src_port,
@@ -68,6 +88,7 @@ fn main() -> Result<()> {
                         &key.protocol,
                     ) {
                         tracker_proc.set_process_info(&key, pid, name);
+                        known.insert((key.src, key.src_port, key.dst, key.dst_port));
                     }
                 }
             }
@@ -145,16 +166,49 @@ fn run_app(
                     return Ok(());
                 }
 
+                // Theme chooser mode
+                if app.theme_chooser.active {
+                    match key.code {
+                        KeyCode::Char('j') | KeyCode::Down => {
+                            let len = config::theme::ThemeName::ALL.len();
+                            app.theme_chooser.selected = (app.theme_chooser.selected + 1) % len;
+                            // Live preview
+                            let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
+                            app.set_theme(name);
+                        }
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            let len = config::theme::ThemeName::ALL.len();
+                            app.theme_chooser.selected = (app.theme_chooser.selected + len - 1) % len;
+                            let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
+                            app.set_theme(name);
+                        }
+                        KeyCode::Enter => {
+                            app.theme_chooser.active = false;
+                            app.save_prefs();
+                        }
+                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('c') => {
+                            app.theme_chooser.active = false;
+                        }
+                        _ => {}
+                    }
+                    continue;
+                }
+
                 match key.code {
-                    KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('q') => {
+                        app.save_prefs();
+                        return Ok(());
+                    }
                     KeyCode::Char('h') => app.show_help = !app.show_help,
+                    KeyCode::Char('c') => {
+                        app.show_help = false;
+                        app.theme_chooser.open(app.theme_name);
+                    }
                     KeyCode::Char('n') => {
                         app.resolver.toggle();
                         app.show_dns = app.resolver.is_enabled();
                     }
-                    KeyCode::Char('N') => {
-                        app.show_port_names = !app.show_port_names;
-                    }
+                    KeyCode::Char('N') => app.show_port_names = !app.show_port_names,
                     KeyCode::Char('p') => app.show_ports = !app.show_ports,
                     KeyCode::Char('b') => app.show_bars = !app.show_bars,
                     KeyCode::Char('B') => app.use_bytes = !app.use_bytes,
@@ -162,26 +216,11 @@ fn run_app(
                     KeyCode::Char('T') => app.show_cumulative = !app.show_cumulative,
                     KeyCode::Char('Z') => app.show_processes = !app.show_processes,
                     KeyCode::Char('P') => app.paused = !app.paused,
-                    KeyCode::Char('1') => {
-                        app.sort_column = SortColumn::Avg2s;
-                        app.frozen_order = false;
-                    }
-                    KeyCode::Char('2') => {
-                        app.sort_column = SortColumn::Avg10s;
-                        app.frozen_order = false;
-                    }
-                    KeyCode::Char('3') => {
-                        app.sort_column = SortColumn::Avg40s;
-                        app.frozen_order = false;
-                    }
-                    KeyCode::Char('<') => {
-                        app.sort_column = SortColumn::SrcName;
-                        app.frozen_order = false;
-                    }
-                    KeyCode::Char('>') => {
-                        app.sort_column = SortColumn::DstName;
-                        app.frozen_order = false;
-                    }
+                    KeyCode::Char('1') => { app.sort_column = SortColumn::Avg2s; app.frozen_order = false; }
+                    KeyCode::Char('2') => { app.sort_column = SortColumn::Avg10s; app.frozen_order = false; }
+                    KeyCode::Char('3') => { app.sort_column = SortColumn::Avg40s; app.frozen_order = false; }
+                    KeyCode::Char('<') => { app.sort_column = SortColumn::SrcName; app.frozen_order = false; }
+                    KeyCode::Char('>') => { app.sort_column = SortColumn::DstName; app.frozen_order = false; }
                     KeyCode::Char('o') => app.frozen_order = !app.frozen_order,
                     KeyCode::Char('j') | KeyCode::Down => {
                         if app.scroll_offset < app.flows.len().saturating_sub(1) {
