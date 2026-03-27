@@ -61,7 +61,14 @@ cargo install iftoprs
   ├── Flow-to-process attribution
   │   ├── PID + process name per connection
   │   ├── background polling via Arc<Mutex<>>
-  │   └── lsof-based socket→process mapping
+  │   ├── lsof-based socket→process mapping
+  │   └── per-process aggregated bandwidth view (Tab key)
+  │
+[JSON_STREAM]
+  ├── --json flag ── headless NDJSON output (no TUI)
+  │   ├── streams flow snapshots to stdout
+  │   ├── includes rates, totals, process info
+  │   └── pipe to jq, log to file, feed dashboards
   │
 [INTERFACE_DECK]
   ├── Sort ─── 2s avg / 10s avg / 40s avg / src name / dst name
@@ -155,6 +162,7 @@ LIBPCAP       == installed (system dependency)
 | `anyhow` 1.0 | Error handling |
 | `clap_complete` 4 | Shell completion generation |
 | `serde` 1.0 | Config serialization |
+| `serde_json` 1.0 | JSON streaming output |
 | `toml` 1.1 | Config file format |
 | `dirs` 6.0 | Home directory detection |
 
@@ -205,6 +213,12 @@ sudo ./target/release/iftoprs
 | `-P, --hide-ports` | Hide ports alongside hosts |
 | `-Z, --no-processes` | Hide process column (shown by default) |
 
+#### `// OUTPUT`
+
+| `FLAG` | `DESCRIPTION` |
+|:---|:---|
+| `--json` | Stream NDJSON to stdout (no TUI) |
+
 #### `// SYSTEM`
 
 | `FLAG` | `DESCRIPTION` |
@@ -225,6 +239,8 @@ sudo iftoprs -n -N -b                  # raw IPs, no bars, minimal
 sudo iftoprs -Z                        # show process names per flow
 sudo iftoprs -p                        # promiscuous mode
 iftoprs --completions zsh              # generate zsh completions
+sudo iftoprs --json                    # stream NDJSON to stdout
+sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 ```
 
 ---
@@ -241,6 +257,7 @@ iftoprs --completions zsh              # generate zsh completions
 
 | `KEY` | `ACTION` |
 |:---:|:---|
+| `Tab` | Switch view ── Flows / Processes |
 | `n` | Toggle DNS resolution |
 | `N` | Toggle service name resolution |
 | `t` | Cycle line display ── two-line / one-line / sent / recv |

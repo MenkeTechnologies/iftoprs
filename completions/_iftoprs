@@ -40,6 +40,7 @@ _iftoprs() {
 '--no-processes[Hide owning process column]' \
 '-l[List available interfaces and exit]' \
 '--list-interfaces[List available interfaces and exit]' \
+'--json[Stream flow data as newline-delimited JSON (no TUI)]' \
 '--list-colors[Preview all color themes and exit]' \
 '-h[Print help]' \
 '--help[Print help]' \
@@ -59,4 +60,3 @@ if [ "$funcstack[1]" = "_iftoprs" ]; then
 else
     compdef _iftoprs iftoprs
 fi
-

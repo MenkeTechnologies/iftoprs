@@ -278,4 +278,151 @@ mod tests {
         let cmd = Args::command();
         assert_eq!(cmd.get_name(), "iftoprs");
     }
+
+    #[test]
+    fn parse_valid_cidr_v6() {
+        let args = args_with_net_filter("2001:db8::/32");
+        let (addr, prefix) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2001:db8::".parse::<IpAddr>().unwrap());
+        assert_eq!(prefix, 32);
+    }
+
+    #[test]
+    fn parse_valid_cidr_v6_host() {
+        let args = args_with_net_filter("::1/128");
+        let (addr, prefix) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "::1".parse::<IpAddr>().unwrap());
+        assert_eq!(prefix, 128);
+    }
+
+    #[test]
+    fn parse_cidr_with_double_slash_invalid() {
+        let args = args_with_net_filter("10.0.0.0/24/8");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_cidr_slash_zero() {
+        let args = args_with_net_filter("0.0.0.0/0");
+        let (_, prefix) = args.parse_net_filter().unwrap();
+        assert_eq!(prefix, 0);
+    }
+
+    #[test]
+    fn parse_cidr_slash_32() {
+        let args = args_with_net_filter("10.0.0.1/32");
+        let (addr, prefix) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "10.0.0.1".parse::<IpAddr>().unwrap());
+        assert_eq!(prefix, 32);
+    }
+
+    #[test]
+    fn parse_cidr_empty_string() {
+        let args = args_with_net_filter("");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_cidr_only_slash() {
+        let args = args_with_net_filter("/");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn default_args_all_false() {
+        let args = Args {
+            config: None, interface: None, filter: None, net_filter: None,
+            no_dns: false, no_port_names: false, promiscuous: false,
+            no_bars: false, bytes: false, hide_ports: false, no_processes: false,
+            json: false, list_interfaces: false, list_colors: false,
+            completions: None, help: false, version: false,
+        };
+        assert!(!args.no_dns);
+        assert!(!args.json);
+        assert!(!args.help);
+        assert!(!args.version);
+        assert!(args.config.is_none());
+        assert!(args.interface.is_none());
+        assert!(args.filter.is_none());
+    }
+
+    #[test]
+    fn clap_command_has_all_flags() {
+        let cmd = Args::command();
+        let args: Vec<String> = cmd.get_arguments().map(|a| a.get_id().to_string()).collect();
+        for flag in ["interface", "filter", "no_dns", "no_bars", "bytes", "hide_ports",
+                     "no_processes", "json", "list_interfaces", "list_colors", "completions",
+                     "help", "version", "config", "net_filter", "promiscuous", "no_port_names"] {
+            assert!(args.contains(&flag.to_string()), "missing flag: {}", flag);
+        }
+    }
+
+    #[test]
+    fn clap_parse_help_flag() {
+        let args = Args::try_parse_from(["iftoprs", "-h"]).unwrap();
+        assert!(args.help);
+    }
+
+    #[test]
+    fn clap_parse_version_flag() {
+        let args = Args::try_parse_from(["iftoprs", "-V"]).unwrap();
+        assert!(args.version);
+    }
+
+    #[test]
+    fn clap_parse_json_flag() {
+        let args = Args::try_parse_from(["iftoprs", "--json"]).unwrap();
+        assert!(args.json);
+    }
+
+    #[test]
+    fn clap_parse_interface_short() {
+        let args = Args::try_parse_from(["iftoprs", "-i", "en0"]).unwrap();
+        assert_eq!(args.interface, Some("en0".to_string()));
+    }
+
+    #[test]
+    fn clap_parse_config_short() {
+        let args = Args::try_parse_from(["iftoprs", "-c", "/tmp/test.conf"]).unwrap();
+        assert_eq!(args.config, Some("/tmp/test.conf".to_string()));
+    }
+
+    #[test]
+    fn clap_parse_multiple_flags() {
+        let args = Args::try_parse_from(["iftoprs", "-n", "-B", "-b", "--json"]).unwrap();
+        assert!(args.no_dns);
+        assert!(args.bytes);
+        assert!(args.no_bars);
+        assert!(args.json);
+    }
+
+    #[test]
+    fn clap_parse_filter() {
+        let args = Args::try_parse_from(["iftoprs", "-f", "tcp port 80"]).unwrap();
+        assert_eq!(args.filter, Some("tcp port 80".to_string()));
+    }
+
+    #[test]
+    fn clap_parse_net_filter() {
+        let args = Args::try_parse_from(["iftoprs", "-F", "10.0.0.0/8"]).unwrap();
+        assert_eq!(args.net_filter, Some("10.0.0.0/8".to_string()));
+    }
+
+    #[test]
+    fn clap_parse_completions() {
+        let args = Args::try_parse_from(["iftoprs", "--completions", "zsh"]).unwrap();
+        assert_eq!(args.completions, Some(Shell::Zsh));
+    }
+
+    #[test]
+    fn clap_parse_completions_bash() {
+        let args = Args::try_parse_from(["iftoprs", "--completions", "bash"]).unwrap();
+        assert_eq!(args.completions, Some(Shell::Bash));
+    }
+
+    #[test]
+    fn clap_parse_completions_fish() {
+        let args = Args::try_parse_from(["iftoprs", "--completions", "fish"]).unwrap();
+        assert_eq!(args.completions, Some(Shell::Fish));
+    }
 }

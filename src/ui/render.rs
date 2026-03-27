@@ -378,21 +378,22 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
         let fx = area.x + proc_name_w as u16 + 2;
         write_bar_styled(buf, fx, y, &flows_str, t.proc_name, area.x, bl, t.bar_color, t.bar_text, bs);
 
-        // Rate columns
-        let cols_x = fx + flows_w as u16 + 1;
-        let tx_2s = format!("{:>9}", readable_size(p.sent_2s, state.use_bytes));
-        let rx_2s = format!("{:>9}", readable_size(p.recv_2s, state.use_bytes));
-        let tx_10s = format!("{:>9}", readable_size(p.sent_10s, state.use_bytes));
-        let rx_10s = format!("{:>9}", readable_size(p.recv_10s, state.use_bytes));
-        let tot_tx = format!("{:>9}", readable_total(p.total_sent, state.use_bytes));
-        let tot_rx = format!("{:>9}", readable_total(p.total_recv, state.use_bytes));
+        // Rate columns (each 9 chars + 1 space = 10 wide)
+        let col_w: u16 = 10;
+        let cols_x = fx + flows_w as u16;
+        let tx_2s = format!("{:>9} ", readable_size(p.sent_2s, state.use_bytes));
+        let rx_2s = format!("{:>9} ", readable_size(p.recv_2s, state.use_bytes));
+        let tx_10s = format!("{:>9} ", readable_size(p.sent_10s, state.use_bytes));
+        let rx_10s = format!("{:>9} ", readable_size(p.recv_10s, state.use_bytes));
+        let tot_tx = format!("{:>9} ", readable_total(p.total_sent, state.use_bytes));
+        let tot_rx = format!("{:>9} ", readable_total(p.total_recv, state.use_bytes));
 
         write_bar_styled(buf, cols_x, y, &tx_2s, t.rate_2s, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + 10, y, &rx_2s, t.rate_2s, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + 20, y, &tx_10s, t.rate_10s, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + 30, y, &rx_10s, t.rate_10s, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + 40, y, &tot_tx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + 50, y, &tot_rx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + col_w, y, &rx_2s, t.rate_2s, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + col_w * 2, y, &tx_10s, t.rate_10s, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + col_w * 3, y, &rx_10s, t.rate_10s, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + col_w * 4, y, &tot_tx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(buf, cols_x + col_w * 5, y, &tot_rx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
 
         // Selection highlight
         if is_selected {
@@ -1162,5 +1163,221 @@ mod tests {
         terminal.draw(|frame| {
             draw(frame, &mut app);
         }).unwrap();
+    }
+
+    fn make_test_app() -> crate::ui::app::AppState {
+        use crate::ui::app::{AppState, CliOverrides};
+        use crate::util::resolver::Resolver;
+        use crate::config::prefs::Prefs;
+        AppState::new(Resolver::new(false), true, true, false, true,
+            &Prefs::default(), CliOverrides::default())
+    }
+
+    fn make_test_flow(port: u16) -> crate::data::tracker::FlowSnapshot {
+        use crate::data::tracker::FlowSnapshot;
+        use crate::data::flow::{FlowKey, Protocol};
+        FlowSnapshot {
+            key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(),
+                src_port: port, dst_port: 80, protocol: Protocol::Tcp },
+            sent_2s: port as f64 * 100.0, sent_10s: 50.0, sent_40s: 25.0,
+            recv_2s: port as f64 * 50.0, recv_10s: 25.0, recv_40s: 10.0,
+            total_sent: 1000, total_recv: 500, process_name: None, pid: None,
+        }
+    }
+
+    #[test]
+    fn draw_with_flows_no_panic() {
+        let mut app = make_test_app();
+        app.flows = (1..=10).map(make_test_flow).collect();
+        let backend = ratatui::backend::TestBackend::new(120, 40);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_border_off() {
+        let mut app = make_test_app();
+        app.show_border = false;
+        app.flows = vec![make_test_flow(1)];
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_paused() {
+        let mut app = make_test_app();
+        app.paused = true;
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_help() {
+        let mut app = make_test_app();
+        app.show_help = true;
+        let backend = ratatui::backend::TestBackend::new(80, 40);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_filter_popup() {
+        let mut app = make_test_app();
+        app.filter_state.active = true;
+        app.filter_state.buf = "test".to_string();
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_tooltip_active() {
+        let mut app = make_test_app();
+        app.tooltip.active = true;
+        app.tooltip.x = 10;
+        app.tooltip.y = 10;
+        app.tooltip.lines = vec![("Label".into(), "Value".into())];
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_header_off() {
+        let mut app = make_test_app();
+        app.show_header = false;
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_status_message() {
+        let mut app = make_test_app();
+        app.set_status("Test status");
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_alert_flashing() {
+        let mut app = make_test_app();
+        app.alert_state.flash = Some(std::time::Instant::now());
+        app.flows = vec![make_test_flow(1)];
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_tiny_terminal() {
+        let mut app = make_test_app();
+        let backend = ratatui::backend::TestBackend::new(20, 5);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_wide_terminal() {
+        let mut app = make_test_app();
+        app.flows = (1..=5).map(make_test_flow).collect();
+        let backend = ratatui::backend::TestBackend::new(300, 50);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_with_processes() {
+        let mut app = make_test_app();
+        let mut f = make_test_flow(1);
+        f.process_name = Some("curl".into());
+        f.pid = Some(1234);
+        app.flows = vec![f];
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_selected_flow() {
+        let mut app = make_test_app();
+        app.flows = (1..=5).map(make_test_flow).collect();
+        app.selected = Some(2);
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_cumulative_mode() {
+        let mut app = make_test_app();
+        app.show_cumulative = true;
+        app.flows = vec![make_test_flow(1)];
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_bytes_mode() {
+        let mut app = make_test_app();
+        app.use_bytes = true;
+        app.flows = vec![make_test_flow(1)];
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_all_bar_styles() {
+        use crate::ui::app::BarStyle;
+        for style in [BarStyle::Gradient, BarStyle::Solid, BarStyle::Thin, BarStyle::Ascii] {
+            let mut app = make_test_app();
+            app.bar_style = style;
+            app.flows = vec![make_test_flow(10)];
+            let backend = ratatui::backend::TestBackend::new(120, 24);
+            let mut terminal = ratatui::Terminal::new(backend).unwrap();
+            terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+        }
+    }
+
+    #[test]
+    fn draw_all_themes() {
+        use crate::config::theme::ThemeName;
+        for &name in ThemeName::ALL {
+            let mut app = make_test_app();
+            app.set_theme(name);
+            app.flows = vec![make_test_flow(1)];
+            let backend = ratatui::backend::TestBackend::new(80, 24);
+            let mut terminal = ratatui::Terminal::new(backend).unwrap();
+            terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+        }
+    }
+
+    #[test]
+    fn rate_to_frac_very_small_clamps_zero() {
+        // 0.001 bytes/s = 0.008 bits/s, log10 is negative → clamps to 0
+        let f = rate_to_frac(0.001);
+        assert_eq!(f, 0.0);
+    }
+
+    #[test]
+    fn bar_length_negative_rate() {
+        assert_eq!(bar_length(-100.0, 80), 0);
+    }
+
+    #[test]
+    fn bar_length_huge_rate_clamps() {
+        let bl = bar_length(1e30, 80);
+        assert_eq!(bl, 80);
+    }
+
+    #[test]
+    fn bar_length_one_col() {
+        let bl = bar_length(1_000_000.0, 1);
+        assert!(bl <= 1);
     }
 }

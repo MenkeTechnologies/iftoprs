@@ -103,4 +103,88 @@ mod tests {
     fn readable_total_terabytes() {
         assert_eq!(readable_total(2_000_000_000_000, false), "2.00TB");
     }
+
+    // ── Additional readable_size tests ──
+
+    #[test]
+    fn readable_size_bits_terabits() {
+        assert_eq!(readable_size(125_000_000_000.0, false), "1.00Tb");
+    }
+
+    #[test]
+    fn readable_size_bytes_gigabytes() {
+        assert_eq!(readable_size(1_500_000_000.0, true), "1.50GB");
+    }
+
+    #[test]
+    fn readable_size_bytes_terabytes() {
+        assert_eq!(readable_size(2_000_000_000_000.0, true), "2.00TB");
+    }
+
+    #[test]
+    fn readable_size_bytes_zero() {
+        assert_eq!(readable_size(0.0, true), "0B");
+    }
+
+    #[test]
+    fn readable_size_boundary_999() {
+        let r = readable_size(999.0, true);
+        assert!(r.contains("B") && !r.contains("K"));
+    }
+
+    #[test]
+    fn readable_size_boundary_1000() {
+        let r = readable_size(1000.0, true);
+        assert!(r.contains("KB"));
+    }
+
+    #[test]
+    fn readable_size_boundary_999999() {
+        let r = readable_size(999_999.0, true);
+        assert!(r.contains("KB"));
+    }
+
+    #[test]
+    fn readable_size_boundary_1000000() {
+        let r = readable_size(1_000_000.0, true);
+        assert!(r.contains("MB"));
+    }
+
+    #[test]
+    fn readable_size_fractional_bytes() {
+        let r = readable_size(0.5, true);
+        assert_eq!(r, "0B"); // rounds to 0
+    }
+
+    #[test]
+    fn readable_size_bits_exact_boundary() {
+        // 125 bytes/s = 1000 bits/s = 1.00kb
+        assert_eq!(readable_size(125.0, false), "1.00kb");
+    }
+
+    // ── Additional readable_total tests ──
+
+    #[test]
+    fn readable_total_exactly_1000() {
+        let r = readable_total(1000, false);
+        assert!(r.contains("KB"));
+    }
+
+    #[test]
+    fn readable_total_use_bytes_flag_ignored() {
+        // readable_total always uses bytes regardless of flag
+        assert_eq!(readable_total(500, true), readable_total(500, false));
+    }
+
+    #[test]
+    fn readable_total_large_value() {
+        let r = readable_total(10_000_000_000_000, false);
+        assert!(r.contains("TB"));
+    }
+
+    #[test]
+    fn readable_total_u64_max() {
+        let r = readable_total(u64::MAX, false);
+        assert!(!r.is_empty());
+    }
 }
