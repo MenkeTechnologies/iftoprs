@@ -968,11 +968,10 @@ impl AppState {
         self.process_snapshots = procs;
 
         // Clamp process selection
-        if let Some(sel) = self.process_selected {
-            if sel >= self.process_snapshots.len() && !self.process_snapshots.is_empty() {
+        if let Some(sel) = self.process_selected
+            && sel >= self.process_snapshots.len() && !self.process_snapshots.is_empty() {
                 self.process_selected = Some(self.process_snapshots.len() - 1);
             }
-        }
     }
 
     pub fn format_host(&self, addr: std::net::IpAddr, port: u16, protocol: &Protocol) -> String {

@@ -315,3 +315,484 @@ fn completions_zsh_includes_json_flag() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("--json"), "zsh completions should include --json");
 }
+
+// ── Exit codes ──
+
+#[test]
+fn completions_bash_exit_code_zero() {
+    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn completions_fish_exit_code_zero() {
+    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn completions_elvish_exit_code_zero() {
+    let output = cargo_bin().args(["--completions", "elvish"]).output().unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn completions_powershell_exit_code_zero() {
+    let output = cargo_bin().args(["--completions", "powershell"]).output().unwrap();
+    assert!(output.status.success());
+}
+
+// ── Completions content for all shells ──
+
+#[test]
+fn completions_elvish_generates_valid_output() {
+    let output = cargo_bin().args(["--completions", "elvish"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.is_empty(), "elvish completions should not be empty");
+    assert!(stdout.contains("iftoprs"), "elvish completions should reference iftoprs");
+}
+
+#[test]
+fn completions_powershell_generates_valid_output() {
+    let output = cargo_bin().args(["--completions", "powershell"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.is_empty(), "powershell completions should not be empty");
+    assert!(stdout.contains("iftoprs"), "powershell completions should reference iftoprs");
+}
+
+// ── Completions include all flags ──
+
+#[test]
+fn completions_zsh_includes_all_flags() {
+    let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for flag in ["--interface", "--filter", "--net-filter", "--no-dns", "--no-port-names",
+                 "--promiscuous", "--no-bars", "--bytes", "--hide-ports", "--no-processes",
+                 "--json", "--list-interfaces", "--list-colors", "--config", "--help", "--version"] {
+        assert!(stdout.contains(flag), "zsh completions missing flag: {}", flag);
+    }
+}
+
+#[test]
+fn completions_bash_includes_all_flags() {
+    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for flag in ["interface", "filter", "no-dns", "no-bars", "bytes",
+                 "hide-ports", "no-processes", "json", "list-colors"] {
+        assert!(stdout.contains(flag), "bash completions missing flag: {}", flag);
+    }
+}
+
+#[test]
+fn completions_fish_includes_all_flags() {
+    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for flag in ["interface", "filter", "no-dns", "bytes", "json", "list-colors"] {
+        assert!(stdout.contains(flag), "fish completions missing flag: {}", flag);
+    }
+}
+
+// ── Help output structure ──
+
+#[test]
+fn help_has_three_sections() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("CAPTURE"), "missing CAPTURE section");
+    assert!(stdout.contains("KEYBINDS"), "missing KEYBINDS section");
+    assert!(stdout.contains("SYSTEM"), "missing SYSTEM section");
+}
+
+#[test]
+fn help_shows_short_flags() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for flag in ["-i", "-f", "-F", "-n", "-N", "-p", "-b", "-B", "-P", "-Z", "-l", "-h", "-V", "-c"] {
+        assert!(stdout.contains(flag), "help missing short flag: {}", flag);
+    }
+}
+
+#[test]
+fn help_contains_bpf_example() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("tcp port 80"), "help should show BPF filter example");
+}
+
+#[test]
+fn help_contains_cidr_example() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("192.168.1.0/24"), "help should show CIDR example");
+}
+
+#[test]
+fn help_contains_promiscuous_description() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("promiscuous"), "help should describe promiscuous mode");
+}
+
+// ── Keybind documentation ──
+
+#[test]
+fn help_documents_all_keybinds() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let keybinds = [
+        "help HUD", "toggle DNS", "bars", "bytes/bits", "ports", "processes",
+        "line mode", "cumulative", "pause", "border", "themes", "filter",
+        "header bar", "refresh rate", "switch view",
+        "sort by", "freeze order", "scroll", "disconnect",
+    ];
+    for kb in &keybinds {
+        assert!(stdout.contains(kb), "help missing keybind: {}", kb);
+    }
+}
+
+#[test]
+fn help_documents_navigation_keys() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("j/k"), "help should show j/k scroll keys");
+    assert!(stdout.contains("1/2/3"), "help should show 1/2/3 sort keys");
+    assert!(stdout.contains("< / >"), "help should show </> sort keys");
+}
+
+#[test]
+fn help_shows_tagline() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("JACK IN"), "help should show cyberpunk tagline");
+    assert!(stdout.contains("neon rain"), "help should show neon rain quote");
+}
+
+// ── Version output format ──
+
+#[test]
+fn version_output_is_single_line() {
+    let output = cargo_bin().arg("-V").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    assert!(!stdout.contains('\n'), "version should be a single line");
+}
+
+#[test]
+fn version_and_help_show_same_version() {
+    let v_output = cargo_bin().arg("-V").output().unwrap();
+    let v_str = String::from_utf8_lossy(&v_output.stdout).trim().to_string();
+    let version = v_str.strip_prefix("iftoprs ").unwrap();
+
+    let h_output = cargo_bin().arg("-h").output().unwrap();
+    let h_str = String::from_utf8_lossy(&h_output.stdout);
+    assert!(h_str.contains(version), "help banner should show same version as -V");
+}
+
+// ── List colors output ──
+
+#[test]
+fn list_colors_contains_ansi() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("\x1b["), "list-colors should contain ANSI escape codes");
+}
+
+#[test]
+fn list_colors_shows_all_31_themes() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let themes = [
+        "Neon Sprawl", "Acid Rain", "Ice Breaker", "Synth Wave", "Rust Belt",
+        "Ghost Wire", "Red Sector", "Sakura Den", "Data Stream", "Solar Flare",
+        "Neon Noir", "Chrome Heart", "Blade Runner", "Void Walker", "Toxic Waste",
+        "Cyber Frost", "Plasma Core", "Steel Nerve", "Dark Signal", "Glitch Pop",
+        "Holo Shift", "Night City", "Deep Net", "Laser Grid", "Quantum Flux",
+        "Bio Hazard", "Darkwave", "Overlock", "Megacorp", "Zaibatsu", "iftopcolor",
+    ];
+    for theme in &themes {
+        assert!(stdout.contains(theme), "list-colors missing theme: {}", theme);
+    }
+}
+
+#[test]
+fn list_colors_shows_color_swatches() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Color swatches use 48;5;N escape codes for background
+    assert!(stdout.contains("48;5;"), "list-colors should contain 256-color escapes");
+}
+
+#[test]
+fn list_colors_has_section_header() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("BUILTIN COLOR SCHEMES"), "should have section header");
+}
+
+// ── Default config file ──
+
+#[test]
+fn default_config_is_valid_toml() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    // Filter out comment lines and parse as TOML
+    let filtered: String = content.lines()
+        .filter(|l| !l.trim_start().starts_with('#') || l.contains('='))
+        .collect::<Vec<_>>().join("\n");
+    let parsed: toml::Value = toml::from_str(&filtered).unwrap();
+    assert!(parsed.is_table());
+}
+
+#[test]
+fn default_config_theme_is_neon_sprawl() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("theme = \"NeonSprawl\""), "default theme should be NeonSprawl");
+}
+
+#[test]
+fn default_config_dns_enabled() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("dns_resolution = true"), "dns should be enabled by default");
+}
+
+#[test]
+fn default_config_refresh_rate_one() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("refresh_rate = 1"), "default refresh rate should be 1");
+}
+
+#[test]
+fn default_config_alert_disabled() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("alert_threshold = 0.0"), "alerts should be disabled by default");
+}
+
+#[test]
+fn default_config_has_comments() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    let comment_count = content.lines().filter(|l| l.trim_start().starts_with('#')).count();
+    assert!(comment_count >= 5, "default config should have documentation comments");
+}
+
+#[test]
+fn default_config_documents_bar_styles() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("Gradient"), "should document Gradient bar style");
+    assert!(content.contains("Solid"), "should document Solid bar style");
+    assert!(content.contains("Thin"), "should document Thin bar style");
+    assert!(content.contains("Ascii"), "should document Ascii bar style");
+}
+
+#[test]
+fn default_config_documents_alert_examples() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("1 Mbit/s"), "should show 1 Mbit/s example");
+    assert!(content.contains("1 Gbit/s"), "should show 1 Gbit/s example");
+}
+
+// ── Zsh completion file ──
+
+#[test]
+fn zsh_completion_file_exists() {
+    let path = std::path::Path::new("completions/_iftoprs");
+    assert!(path.exists(), "completions/_iftoprs should exist");
+}
+
+#[test]
+fn zsh_completion_file_has_compdef() {
+    let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
+    assert!(content.starts_with("#compdef iftoprs"), "should start with #compdef");
+}
+
+#[test]
+fn zsh_completion_file_has_function() {
+    let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
+    assert!(content.contains("_iftoprs()"), "should define _iftoprs function");
+}
+
+#[test]
+fn zsh_completion_file_includes_all_flags() {
+    let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
+    for flag in ["--config", "--interface", "--filter", "--net-filter", "--no-dns",
+                 "--no-port-names", "--promiscuous", "--no-bars", "--bytes",
+                 "--hide-ports", "--no-processes", "--json", "--list-interfaces",
+                 "--list-colors", "--help", "--version", "--completions"] {
+        assert!(content.contains(flag), "_iftoprs missing flag: {}", flag);
+    }
+}
+
+#[test]
+fn zsh_completion_file_includes_short_flags() {
+    let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
+    // Flags with values use '-X+[' or '-X[', boolean flags use '-X['
+    for flag in ["-i", "-f", "-F", "-c"] {
+        assert!(content.contains(&format!("'{flag}+")), "missing short flag with value: {}", flag);
+    }
+    for flag in ["-n", "-N", "-p", "-b", "-B", "-P", "-Z", "-l", "-h", "-V"] {
+        assert!(content.contains(&format!("'{flag}[")), "missing short boolean flag: {}", flag);
+    }
+}
+
+#[test]
+fn zsh_completion_file_has_shell_completions_values() {
+    let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
+    assert!(content.contains("bash"), "completions should list bash shell");
+    assert!(content.contains("zsh"), "completions should list zsh shell");
+    assert!(content.contains("fish"), "completions should list fish shell");
+}
+
+// ── Stderr output ──
+
+#[test]
+fn help_stderr_is_empty() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.is_empty(), "help should not write to stderr: {}", stderr);
+}
+
+#[test]
+fn version_stderr_is_empty() {
+    let output = cargo_bin().arg("-V").output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.is_empty(), "version should not write to stderr: {}", stderr);
+}
+
+#[test]
+fn list_colors_stderr_is_empty() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.is_empty(), "list-colors should not write to stderr: {}", stderr);
+}
+
+// ── Custom config flag ──
+
+#[test]
+fn config_flag_with_nonexistent_file_shows_help() {
+    // -c takes a path argument, then -h is parsed as a separate flag
+    let output = cargo_bin().args(["-c", "/tmp/nonexistent_iftoprs_test_12345.conf", "-h"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Should show help output (the -h flag takes priority over needing a valid config)
+    assert!(stdout.contains("BANDWIDTH MONITOR") || stdout.contains("IFTOPRS"),
+        "should still show help with nonexistent config");
+}
+
+// ── Output consistency ──
+
+#[test]
+fn help_output_is_deterministic() {
+    let out1 = cargo_bin().arg("-h").output().unwrap();
+    let out2 = cargo_bin().arg("-h").output().unwrap();
+    assert_eq!(out1.stdout, out2.stdout, "help output should be deterministic");
+}
+
+#[test]
+fn version_output_is_deterministic() {
+    let out1 = cargo_bin().arg("-V").output().unwrap();
+    let out2 = cargo_bin().arg("-V").output().unwrap();
+    assert_eq!(out1.stdout, out2.stdout, "version output should be deterministic");
+}
+
+#[test]
+fn completions_output_is_deterministic() {
+    let out1 = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
+    let out2 = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
+    assert_eq!(out1.stdout, out2.stdout, "completions output should be deterministic");
+}
+
+// ── Help output size ──
+
+#[test]
+fn help_output_is_substantial() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.len() > 1000, "help should be at least 1000 bytes, got {}", stdout.len());
+    let lines = stdout.lines().count();
+    assert!(lines >= 30, "help should have at least 30 lines, got {}", lines);
+}
+
+#[test]
+fn list_colors_output_is_substantial() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines = stdout.lines().count();
+    assert!(lines >= 33, "list-colors should have at least 33 lines (31 themes + header/footer), got {}", lines);
+}
+
+// ── Completions generated match static file ──
+
+#[test]
+fn generated_zsh_completions_match_static_file() {
+    let generated = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
+    let gen_str = String::from_utf8_lossy(&generated.stdout);
+    let static_file = std::fs::read_to_string("completions/_iftoprs").unwrap();
+    assert_eq!(gen_str.trim(), static_file.trim(),
+        "generated zsh completions should match completions/_iftoprs");
+}
+
+// ── Invalid argument handling ──
+
+#[test]
+fn invalid_completions_shell_fails() {
+    let output = cargo_bin().args(["--completions", "invalid_shell"]).output().unwrap();
+    assert!(!output.status.success(), "invalid shell name should fail");
+}
+
+// ── Help banner structure ──
+
+#[test]
+fn help_banner_has_signal_bar() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("SIGNAL"), "banner should have SIGNAL indicator");
+    assert!(stdout.contains("ONLINE"), "banner should show ONLINE status");
+}
+
+#[test]
+fn help_shows_iftop_clone_description() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("iftop clone"), "should describe as iftop clone");
+    assert!(stdout.contains("Rust"), "should mention Rust");
+}
+
+// ── Config file documentation ──
+
+#[test]
+fn default_config_lists_all_theme_names() {
+    let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
+    for theme in ["NeonSprawl", "BladeRunner", "Iftopcolor", "GlitchPop", "Zaibatsu"] {
+        assert!(content.contains(theme), "default config should list theme: {}", theme);
+    }
+}
+
+#[test]
+fn default_config_documents_interface_examples() {
+    let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
+    assert!(content.contains("en0"), "should show en0 example");
+    assert!(content.contains("eth0"), "should show eth0 example");
+}
+
+// ── Cargo.toml metadata ──
+
+#[test]
+fn cargo_toml_exists() {
+    assert!(std::path::Path::new("Cargo.toml").exists());
+}
+
+#[test]
+fn cargo_toml_has_package_name() {
+    let content = std::fs::read_to_string("Cargo.toml").unwrap();
+    assert!(content.contains("name = \"iftoprs\""));
+}
+
+#[test]
+fn cargo_toml_has_version() {
+    let content = std::fs::read_to_string("Cargo.toml").unwrap();
+    assert!(content.contains("version = "));
+}

@@ -334,12 +334,12 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
     let w = area.width;
     let buf = frame.buffer_mut();
 
-    // Header row
-    let proc_name_w = 24usize;
+    // Header row — column widths must match data rows exactly
+    let proc_name_w = 26usize; // data rows use proc_name_w for name column
     let flows_w = 8usize;
     let header = format!(
-        " {:<pw$} {:>fw$} {:>9} {:>9} {:>9} {:>9} {:>9} {:>9}",
-        "PROCESS", "FLOWS", "TX 2s", "RX 2s", "TX 10s", "RX 10s", "TOTAL TX", "TOTAL RX",
+        "{:<pw$}{:>fw$}{:>10}{:>10}{:>10}{:>10}{:>10}{:>10}",
+        " PROCESS", "FLOWS", "TX 2s", "RX 2s", "TX 10s", "RX 10s", "TOTAL TX", "TOTAL RX",
         pw = proc_name_w, fw = flows_w,
     );
     let header_s = Style::default().fg(t.scale_label).add_modifier(Modifier::BOLD);
@@ -370,12 +370,12 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
             Some(pid) => format!(" [{}] {}", pid, p.name),
             None => format!(" {}", p.name),
         };
-        let name_trunc = format!("{:<w$}", trunc(&name_display, proc_name_w + 2), w = proc_name_w + 2);
+        let name_trunc = format!("{:<w$}", trunc(&name_display, proc_name_w), w = proc_name_w);
         write_bar_styled(buf, area.x, y, &name_trunc, t.host_src, area.x, bl, t.bar_color, t.bar_text, bs);
 
         // Flow count
         let flows_str = format!("{:>fw$}", p.flow_count, fw = flows_w);
-        let fx = area.x + proc_name_w as u16 + 2;
+        let fx = area.x + proc_name_w as u16;
         write_bar_styled(buf, fx, y, &flows_str, t.proc_name, area.x, bl, t.bar_color, t.bar_text, bs);
 
         // Rate columns (each 9 chars + 1 space = 10 wide)
