@@ -72,13 +72,14 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
         } else {
             format!(" ▶▶▶ IFTOPRS v{} ◀◀◀ ", ver)
         };
-        let tx = (size.width.saturating_sub(title.len() as u16)) / 2;
+        let title_chars = title.chars().count() as u16;
+        let tx = (size.width.saturating_sub(title_chars)) / 2;
         let ts = if state.paused {
             Style::default().fg(Color::Indexed(196)).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(border_color).add_modifier(Modifier::BOLD)
         };
-        set_str(buf, tx, 0, &title, ts, title.len() as u16);
+        set_str(buf, tx, 0, &title, ts, title_chars);
     }
 
     // Inner area (inside borders)
@@ -89,23 +90,23 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
         height: size.height.saturating_sub(margin * 2),
     };
 
-    // Layout: optional header + scale + flows + separator + totals
+    // Layout: scale + flows + separator + totals + optional header (bottom)
     let header_h = if state.show_header { 1 } else { 0 };
     let c = Layout::default().direction(Direction::Vertical).constraints([
-        Constraint::Length(header_h),
         Constraint::Length(1), Constraint::Length(1), Constraint::Min(4),
         Constraint::Length(1), Constraint::Length(3),
+        Constraint::Length(header_h),
     ]).split(inner);
 
     // Store flow area Y for mouse hit-testing
-    state.flow_area_y = c[3].y;
+    state.flow_area_y = c[2].y;
 
-    if state.show_header { draw_header(frame, c[0], state); }
-    draw_scale_labels(frame, c[1], state);
-    draw_scale_ticks(frame, c[2], state);
-    draw_flows(frame, c[3], state, is_flashing);
-    draw_separator(frame, c[4], state);
-    draw_totals(frame, c[5], state);
+    draw_scale_labels(frame, c[0], state);
+    draw_scale_ticks(frame, c[1], state);
+    draw_flows(frame, c[2], state, is_flashing);
+    draw_separator(frame, c[3], state);
+    draw_totals(frame, c[4], state);
+    if state.show_header { draw_header(frame, c[5], state); }
 
     // Pause overlay
     if state.paused {
@@ -157,14 +158,16 @@ fn draw_header(frame: &mut Frame, area: Rect, state: &AppState) {
     if state.paused {
         title.push_str(&format!("{s}⏸ PAUSED"));
     }
-    if state.screen_filter.is_some() {
-        title.push_str(&format!("{s}filter:{}", state.screen_filter.as_deref().unwrap_or("")));
+    if let Some(ref filter) = state.screen_filter {
+        title.push_str(&format!("{s}filter:{filter}"));
     }
 
     let help_hint = " │ h=help ";
+    let help_hint_cw = help_hint.chars().count();
     let avail = inner_w as usize;
-    if title.chars().count() + help_hint.len() < avail {
-        let pad = avail - title.chars().count() - help_hint.len();
+    let title_cw = title.chars().count();
+    if title_cw + help_hint_cw < avail {
+        let pad = avail - title_cw - help_hint_cw;
         title.push_str(&" ".repeat(pad));
         title.push_str(help_hint);
     }
@@ -462,7 +465,8 @@ fn draw_box(buf: &mut Buffer, area: Rect, bw: u16, bh: u16, bg: Color, border_st
 }
 
 fn trunc(s: &str, m: usize) -> String {
-    if s.len() <= m { s.to_string() }
+    let char_count = s.chars().count();
+    if char_count <= m { s.to_string() }
     else if m <= 1 { s.chars().next().map(|c| c.to_string()).unwrap_or_default() }
     else { let t: String = s.chars().take(m - 1).collect(); format!("{}~", t) }
 }
@@ -485,7 +489,8 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
 
     let ver = env!("CARGO_PKG_VERSION");
     let title = format!("⌨ IFTOPRS v{} — KEYBOARD SHORTCUTS", ver);
-    set_str(buf, x0 + (bw.saturating_sub(title.len() as u16)) / 2, y0 + 1, &title, ts, bw - 2);
+    let title_cw = title.chars().count() as u16;
+    set_str(buf, x0 + (bw.saturating_sub(title_cw)) / 2, y0 + 1, &title, ts, bw - 2);
     let bl = "[ jacking into your packet stream ]";
     set_str(buf, x0 + (bw.saturating_sub(bl.len() as u16)) / 2, y0 + 2, bl, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 2);
 
@@ -622,7 +627,8 @@ fn draw_pause_overlay(frame: &mut Frame, area: Rect, _state: &AppState) {
 
     let ts = Style::default().fg(Color::Indexed(196)).bg(bg).add_modifier(Modifier::BOLD);
     let title = "⏸  PAUSED";
-    set_str(buf, x0 + (bw.saturating_sub(title.len() as u16)) / 2, y0 + 2, title, ts, bw - 4);
+    let title_cw = title.chars().count() as u16;
+    set_str(buf, x0 + (bw.saturating_sub(title_cw)) / 2, y0 + 2, title, ts, bw - 4);
 
     let info_s = Style::default().fg(Color::White).bg(bg);
     let info = "Data refresh is frozen";
@@ -638,9 +644,11 @@ fn draw_pause_overlay(frame: &mut Frame, area: Rect, _state: &AppState) {
 fn draw_status(frame: &mut Frame, area: Rect, state: &AppState, text: &str) {
     let t = &state.theme;
     let buf = frame.buffer_mut();
-    let msg_len = text.len() as u16 + 4;
+    let msg_len = text.chars().count() as u16 + 4;
     let x0 = (area.width.saturating_sub(msg_len)) / 2;
-    let y0 = area.height.saturating_sub(6);
+    // Position above header bar + totals (3 rows) + separator (1) + header (1) + border (1)
+    let bottom_offset: u16 = 6 + if state.show_header { 1 } else { 0 };
+    let y0 = area.height.saturating_sub(bottom_offset);
     let s = Style::default().fg(Color::Black).bg(t.help_key);
     set_str(buf, x0, y0, &format!(" {} ", text), s, msg_len);
 }

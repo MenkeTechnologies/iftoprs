@@ -105,6 +105,18 @@ cargo install iftoprs
   ├── e ── export all flows to ~/.iftoprs.export.txt
   └── includes per-flow rates + TX/RX totals
   │
+[ALERT_SYSTEM]
+  ├── Bandwidth threshold alerts ── configurable in ~/.iftoprs.conf
+  │   ├── red border flash on threshold crossing
+  │   ├── terminal bell (\x07) notification
+  │   └── status bar message: ⚠ ALERT: hostname rate/s
+  │
+[CONFIG_ENGINE]
+  ├── Auto-save ── every toggle writes to ~/.iftoprs.conf
+  ├── Default config ── created on first run if missing
+  ├── Reference config ── iftoprs.default.conf with full docs
+  └── TOML format ── human-readable, hand-editable
+  │
 [SHELL_COMPLETION]
   ├── Zsh completions ── completions/_iftoprs
   └── --completions flag ── zsh / bash / fish / elvish / powershell
@@ -198,6 +210,7 @@ sudo ./target/release/iftoprs
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-l, --list-interfaces` | List available interfaces and exit |
+| `--list-colors` | Preview all 31 color themes with swatches |
 | `--completions SHELL` | Generate shell completions (zsh, bash, fish, elvish, powershell) |
 | `-h, --help` | Display help transmission |
 | `-V, --version` | Display version information |
@@ -238,6 +251,8 @@ iftoprs --completions zsh              # generate zsh completions
 | `T` | Toggle cumulative totals |
 | `P` | Pause / resume display (shows overlay) |
 | `x` | Toggle border chrome |
+| `g` | Toggle column header |
+| `f` | Cycle refresh rate ── 1s / 2s / 5s / 10s |
 
 #### `// SORT_PROTOCOL`
 

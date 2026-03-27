@@ -136,6 +136,7 @@ fn run_app(
 ) -> Result<()> {
     let tick_rate = Duration::from_millis(33); // ~30 fps
     let mut last_tick = Instant::now();
+    let mut last_snapshot = Instant::now();
 
     loop {
         // Drain packet events (non-blocking)
@@ -150,9 +151,13 @@ fn run_app(
         // Periodic rotation
         tracker.maybe_rotate();
 
-        // Update display snapshot
-        let (flows, totals) = tracker.snapshot();
-        app.update_snapshot(flows, totals);
+        // Update display snapshot at the configured refresh rate
+        let refresh_interval = Duration::from_secs(app.refresh_rate);
+        if last_snapshot.elapsed() >= refresh_interval {
+            let (flows, totals) = tracker.snapshot();
+            app.update_snapshot(flows, totals);
+            last_snapshot = Instant::now();
+        }
 
         // Render
         terminal.draw(|frame| {

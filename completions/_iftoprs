@@ -38,6 +38,7 @@ _iftoprs() {
 '--no-processes[Hide owning process column]' \
 '-l[List available interfaces and exit]' \
 '--list-interfaces[List available interfaces and exit]' \
+'--list-colors[Preview all color themes and exit]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '-V[Print version]' \

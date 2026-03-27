@@ -145,6 +145,7 @@ impl Tooltip {
 }
 
 /// Alert state for bandwidth threshold crossing.
+#[derive(Default)]
 pub struct AlertState {
     /// Flow keys currently above threshold.
     pub alert_flows: HashSet<String>,
@@ -152,9 +153,6 @@ pub struct AlertState {
     pub flash: Option<Instant>,
 }
 
-impl Default for AlertState {
-    fn default() -> Self { Self { alert_flows: HashSet::new(), flash: None } }
-}
 
 impl AlertState {
     pub fn is_flashing(&self) -> bool {

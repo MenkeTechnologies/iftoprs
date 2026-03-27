@@ -121,3 +121,31 @@ fn help_contains_pause_keybind() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("pause"), "help should document pause keybind");
 }
+
+#[test]
+fn list_colors_shows_all_themes() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Neon Sprawl"), "should list Neon Sprawl theme");
+    assert!(stdout.contains("Blade Runner"), "should list Blade Runner theme");
+    assert!(stdout.contains("iftopcolor"), "should list iftopcolor theme");
+}
+
+#[test]
+fn default_config_file_exists() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    assert!(path.exists(), "iftoprs.default.conf should exist in project root");
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("theme"), "default config should contain theme");
+    assert!(content.contains("show_border"), "default config should contain show_border");
+    assert!(content.contains("refresh_rate"), "default config should contain refresh_rate");
+    assert!(content.contains("alert_threshold"), "default config should contain alert_threshold");
+    assert!(content.contains("pinned"), "default config should contain pinned");
+}
+
+#[test]
+fn completions_zsh_includes_list_colors() {
+    let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--list-colors"), "zsh completions should include --list-colors");
+}
