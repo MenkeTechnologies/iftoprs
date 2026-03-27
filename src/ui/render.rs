@@ -832,44 +832,73 @@ fn draw_filter_popup(frame: &mut Frame, area: Rect, state: &AppState) {
     let t = &state.theme;
     let fs = &state.filter_state;
     let buf = frame.buffer_mut();
-    let bw = 50u16.min(area.width.saturating_sub(4));
-    let bh = 5u16;
-    let x0 = (area.width.saturating_sub(bw)) / 2;
-    let y0 = (area.height.saturating_sub(bh)) / 2;
+    let bw = 54u16.min(area.width.saturating_sub(4));
+    let bh = 9u16;
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
-
-    // Fill + border
-    for y in y0..y0 + bh { for x in x0..x0 + bw { set_cell(buf, x, y, " ", Style::default().bg(bg)); } }
-    set_cell(buf, x0, y0, "╭", bs); set_cell(buf, x0 + bw - 1, y0, "╮", bs);
-    set_cell(buf, x0, y0 + bh - 1, "╰", bs); set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╯", bs);
-    for x in x0 + 1..x0 + bw - 1 { set_cell(buf, x, y0, "─", bs); set_cell(buf, x, y0 + bh - 1, "─", bs); }
-    for y in y0 + 1..y0 + bh - 1 { set_cell(buf, x0, y, "│", bs); set_cell(buf, x0 + bw - 1, y, "│", bs); }
-
     let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
-    set_str(buf, x0 + 2, y0 + 1, "Search:", ts, 8);
+    let input_s = Style::default().fg(t.help_key).bg(Color::Indexed(235));
+    let hint_s = Style::default().fg(Color::Indexed(240)).bg(bg);
+    let label_s = Style::default().fg(t.help_val).bg(bg);
 
-    // Input buffer with cursor
-    let input_x = x0 + 10;
-    let input_w = (bw - 12) as usize;
-    let display = if fs.buf.len() > input_w { &fs.buf[fs.buf.len() - input_w..] } else { &fs.buf };
-    let is = Style::default().fg(Color::White).bg(bg);
-    set_str(buf, input_x, y0 + 1, display, is, input_w as u16);
+    let (x0, y0) = draw_box(buf, area, bw, bh, bg, bs);
 
-    // Cursor
-    let cursor_x = input_x + display.len().min(input_w) as u16;
-    if cursor_x < x0 + bw - 1 {
-        set_cell(buf, cursor_x, y0 + 1, "▏", Style::default().fg(t.help_key).bg(bg));
+    // Centered bold title
+    let title = "⚡ FILTER FLOWS";
+    let tlen = title.chars().count() as u16;
+    set_str(buf, x0 + (bw.saturating_sub(tlen)) / 2, y0 + 1, title, ts, bw - 2);
+
+    // Active filter display
+    let current_val = state.screen_filter.as_deref().unwrap_or("(none)");
+    set_str(buf, x0 + 2, y0 + 2, "Active: ", label_s, 8);
+    set_str(buf, x0 + 10, y0 + 2, current_val, Style::default().fg(Color::White).bg(bg), bw.saturating_sub(13));
+
+    // Input field with contrasting background
+    let input_w = bw.saturating_sub(4);
+    let field_y = y0 + 3;
+    for x in x0 + 2..x0 + 2 + input_w {
+        set_cell(buf, x, field_y, " ", input_s);
+    }
+    set_str(buf, x0 + 2, field_y, "▸ ", input_s, 2);
+
+    let max_visible = (input_w as usize).saturating_sub(3);
+    let buf_len = fs.buf.len();
+    let cursor_pos = buf_len; // cursor at end
+
+    let (vis_start, vis_end) = if buf_len <= max_visible {
+        (0, buf_len)
+    } else {
+        (buf_len.saturating_sub(max_visible), buf_len)
+    };
+
+    let display_buf = &fs.buf[vis_start..vis_end.min(buf_len)];
+    set_str(buf, x0 + 4, field_y, display_buf, input_s, input_w.saturating_sub(3));
+
+    // Block cursor
+    let cursor_x = x0 + 4 + (cursor_pos - vis_start) as u16;
+    if cursor_x < x0 + 2 + input_w {
+        let ch = fs.buf.chars().nth(cursor_pos).unwrap_or(' ');
+        let cursor_s = Style::default().fg(Color::Indexed(235)).bg(t.help_key);
+        set_cell(buf, cursor_x, field_y, &ch.to_string(), cursor_s);
     }
 
     // Matched count
     let matched = state.flows.len();
     let info = format!("{} flows matched", matched);
-    let info_s = Style::default().fg(Color::Indexed(240)).bg(bg);
-    set_str(buf, x0 + 2, y0 + 2, &info, info_s, bw - 4);
+    set_str(buf, x0 + 2, y0 + 4, &info, hint_s, bw - 4);
 
-    let hint = "Enter=apply  Esc=cancel  ^W=del word";
-    set_str(buf, x0 + 2, y0 + 3, hint, info_s, bw - 4);
+    // Hint lines
+    let hints1 = "Enter=apply  Esc=cancel  ^W=del word";
+    let h1x = x0 + (bw.saturating_sub(hints1.len() as u16)) / 2;
+    set_str(buf, h1x, y0 + 5, hints1, hint_s, bw.saturating_sub(2));
+
+    let hints2 = "^A=home ^E=end ^U=clear";
+    let h2x = x0 + (bw.saturating_sub(hints2.len() as u16)) / 2;
+    set_str(buf, h2x, y0 + 6, hints2, hint_s, bw.saturating_sub(2));
+
+    let hints3 = "0=clear filter (from main view)";
+    let h3x = x0 + (bw.saturating_sub(hints3.len() as u16)) / 2;
+    set_str(buf, h3x, y0 + 7, hints3, hint_s, bw.saturating_sub(2));
 }
 
 // ─── Pause overlay ───────────────────────────────────────────────────────────
