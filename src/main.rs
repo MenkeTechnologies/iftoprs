@@ -66,20 +66,20 @@ fn main() -> Result<()> {
         tx,
     )?;
 
-    // Process attribution thread — always running so Z toggle works at runtime.
-    // Uses lsof which is expensive, so only look up flows that don't have info yet.
+    // Process attribution thread — refreshes the socket→pid table periodically,
+    // then applies lookups to all flows that don't have process info yet.
     let tracker_proc = tracker.clone();
     std::thread::Builder::new()
         .name("proc-lookup".into())
         .spawn(move || {
-            let mut known = std::collections::HashSet::new();
             loop {
+                // Refresh the entire socket→pid table (one lsof call for ALL sockets)
+                util::procinfo::refresh_proc_table();
                 std::thread::sleep(Duration::from_secs(2));
+
+                // Apply lookups to flows
                 let keys = tracker_proc.flow_keys();
                 for key in keys {
-                    if known.contains(&(key.src, key.src_port, key.dst, key.dst_port)) {
-                        continue;
-                    }
                     if let Some((pid, name)) = util::lookup_process(
                         key.src,
                         key.src_port,
@@ -88,7 +88,6 @@ fn main() -> Result<()> {
                         &key.protocol,
                     ) {
                         tracker_proc.set_process_info(&key, pid, name);
-                        known.insert((key.src, key.src_port, key.dst, key.dst_port));
                     }
                 }
             }
