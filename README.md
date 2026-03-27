@@ -62,7 +62,13 @@ cargo install iftoprs
   │   ├── PID + process name per connection
   │   ├── background polling via Arc<Mutex<>>
   │   ├── lsof-based socket→process mapping
-  │   └── per-process aggregated bandwidth view (Tab key)
+  │   ├── per-process aggregated bandwidth view (Tab key)
+  │   └── drill-down: Enter on process → filtered flows, Esc to clear
+  │
+[SPARKLINE]
+  ├── Per-flow bandwidth sparkline (▁▂▃▅▇█)
+  │   ├── shown on row below selected flow (40s history)
+  │   └── shown in right-click tooltip
   │
 [JSON_STREAM]
   ├── --json flag ── headless NDJSON output (no TUI)
@@ -294,7 +300,8 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | `Ctrl+U` | Half-page up |
 | `G` `End` | Jump to last |
 | `Home` | Jump to first |
-| `Esc` | Deselect / close overlay |
+| `Esc` | Deselect / clear process filter / close overlay |
+| `Enter` | Drill into selected process (Processes tab) |
 
 #### `// FILTER_OPS`
 
