@@ -8,16 +8,15 @@ use ratatui::Frame;
 use crate::ui::app::AppState;
 use crate::util::format::{readable_size, readable_total};
 
-// Color scheme matching iftopcolor screenshot
+// Color scheme matching iftop screenshot
 const COLOR_BAR_SENT: Color = Color::Blue;
-// const COLOR_BAR_RECV: Color = Color::Green; // reserved for two-line mode
-const COLOR_HOST1: Color = Color::Green;       // source hosts (green in screenshot)
-const COLOR_HOST2: Color = Color::Green;       // dest hosts (green in screenshot)
+const COLOR_HOST1: Color = Color::Green;
+const COLOR_HOST2: Color = Color::Green;
 const COLOR_PROC: Color = Color::Green;
 const COLOR_ARROW: Color = Color::Blue;
-const COLOR_2S: Color = Color::Yellow;         // 2s column
-const COLOR_10S: Color = Color::Green;         // 10s column
-const COLOR_40S: Color = Color::Cyan;          // 40s column
+const COLOR_2S: Color = Color::Yellow;
+const COLOR_10S: Color = Color::Green;
+const COLOR_40S: Color = Color::Cyan;
 const COLOR_SCALE_LABEL: Color = Color::Green;
 const COLOR_SCALE_LINE: Color = Color::Green;
 const COLOR_TOTAL_LABEL: Color = Color::Blue;

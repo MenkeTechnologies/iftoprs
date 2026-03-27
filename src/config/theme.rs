@@ -1,0 +1,204 @@
+use ratatui::style::Color;
+use serde::{Deserialize, Serialize};
+
+/// All named color themes — ported from storageshower.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum ThemeName {
+    #[default]
+    NeonSprawl,
+    AcidRain,
+    IceBreaker,
+    SynthWave,
+    RustBelt,
+    GhostWire,
+    RedSector,
+    SakuraDen,
+    DataStream,
+    SolarFlare,
+    NeonNoir,
+    ChromeHeart,
+    BladeRunner,
+    VoidWalker,
+    ToxicWaste,
+    CyberFrost,
+    PlasmaCore,
+    SteelNerve,
+    DarkSignal,
+    GlitchPop,
+    HoloShift,
+    NightCity,
+    DeepNet,
+    LaserGrid,
+    QuantumFlux,
+    BioHazard,
+    Darkwave,
+    Overlock,
+    Megacorp,
+    Zaibatsu,
+}
+
+impl ThemeName {
+    pub const ALL: &'static [ThemeName] = &[
+        ThemeName::NeonSprawl, ThemeName::AcidRain, ThemeName::IceBreaker,
+        ThemeName::SynthWave, ThemeName::RustBelt, ThemeName::GhostWire,
+        ThemeName::RedSector, ThemeName::SakuraDen, ThemeName::DataStream,
+        ThemeName::SolarFlare, ThemeName::NeonNoir, ThemeName::ChromeHeart,
+        ThemeName::BladeRunner, ThemeName::VoidWalker, ThemeName::ToxicWaste,
+        ThemeName::CyberFrost, ThemeName::PlasmaCore, ThemeName::SteelNerve,
+        ThemeName::DarkSignal, ThemeName::GlitchPop, ThemeName::HoloShift,
+        ThemeName::NightCity, ThemeName::DeepNet, ThemeName::LaserGrid,
+        ThemeName::QuantumFlux, ThemeName::BioHazard, ThemeName::Darkwave,
+        ThemeName::Overlock, ThemeName::Megacorp, ThemeName::Zaibatsu,
+    ];
+
+    pub fn display_name(self) -> &'static str {
+        match self {
+            ThemeName::NeonSprawl => "Neon Sprawl",
+            ThemeName::AcidRain => "Acid Rain",
+            ThemeName::IceBreaker => "Ice Breaker",
+            ThemeName::SynthWave => "Synth Wave",
+            ThemeName::RustBelt => "Rust Belt",
+            ThemeName::GhostWire => "Ghost Wire",
+            ThemeName::RedSector => "Red Sector",
+            ThemeName::SakuraDen => "Sakura Den",
+            ThemeName::DataStream => "Data Stream",
+            ThemeName::SolarFlare => "Solar Flare",
+            ThemeName::NeonNoir => "Neon Noir",
+            ThemeName::ChromeHeart => "Chrome Heart",
+            ThemeName::BladeRunner => "Blade Runner",
+            ThemeName::VoidWalker => "Void Walker",
+            ThemeName::ToxicWaste => "Toxic Waste",
+            ThemeName::CyberFrost => "Cyber Frost",
+            ThemeName::PlasmaCore => "Plasma Core",
+            ThemeName::SteelNerve => "Steel Nerve",
+            ThemeName::DarkSignal => "Dark Signal",
+            ThemeName::GlitchPop => "Glitch Pop",
+            ThemeName::HoloShift => "Holo Shift",
+            ThemeName::NightCity => "Night City",
+            ThemeName::DeepNet => "Deep Net",
+            ThemeName::LaserGrid => "Laser Grid",
+            ThemeName::QuantumFlux => "Quantum Flux",
+            ThemeName::BioHazard => "Bio Hazard",
+            ThemeName::Darkwave => "Darkwave",
+            ThemeName::Overlock => "Overlock",
+            ThemeName::Megacorp => "Megacorp",
+            ThemeName::Zaibatsu => "Zaibatsu",
+        }
+    }
+
+    pub fn next(self) -> Self {
+        let all = Self::ALL;
+        let idx = all.iter().position(|&t| t == self).unwrap_or(0);
+        all[(idx + 1) % all.len()]
+    }
+
+    pub fn prev(self) -> Self {
+        let all = Self::ALL;
+        let idx = all.iter().position(|&t| t == self).unwrap_or(0);
+        all[(idx + all.len() - 1) % all.len()]
+    }
+}
+
+/// 6-color palette from storageshower: (primary, accent, c3, c4, c5, c6)
+fn palette(name: ThemeName) -> (u8, u8, u8, u8, u8, u8) {
+    match name {
+        ThemeName::NeonSprawl  => (27, 48, 135, 141, 63, 99),
+        ThemeName::AcidRain    => (28, 46, 34, 40, 22, 35),
+        ThemeName::IceBreaker  => (19, 39, 25, 33, 21, 32),
+        ThemeName::SynthWave   => (91, 177, 128, 134, 93, 97),
+        ThemeName::RustBelt    => (172, 214, 178, 220, 166, 130),
+        ThemeName::GhostWire   => (37, 50, 44, 87, 30, 23),
+        ThemeName::RedSector   => (160, 203, 196, 210, 124, 88),
+        ThemeName::SakuraDen   => (175, 218, 182, 225, 169, 132),
+        ThemeName::DataStream  => (22, 46, 28, 119, 34, 22),
+        ThemeName::SolarFlare  => (202, 220, 196, 213, 160, 125),
+        ThemeName::NeonNoir    => (201, 231, 93, 219, 57, 53),
+        ThemeName::ChromeHeart => (250, 255, 246, 253, 243, 239),
+        ThemeName::BladeRunner => (208, 37, 166, 73, 130, 23),
+        ThemeName::VoidWalker  => (55, 99, 54, 141, 92, 17),
+        ThemeName::ToxicWaste  => (118, 190, 154, 226, 82, 58),
+        ThemeName::CyberFrost  => (159, 195, 153, 189, 111, 67),
+        ThemeName::PlasmaCore  => (199, 213, 163, 207, 126, 89),
+        ThemeName::SteelNerve  => (68, 110, 60, 146, 24, 236),
+        ThemeName::DarkSignal  => (30, 43, 23, 79, 29, 16),
+        ThemeName::GlitchPop   => (201, 51, 226, 47, 196, 21),
+        ThemeName::HoloShift   => (123, 219, 159, 183, 87, 133),
+        ThemeName::NightCity   => (214, 227, 209, 223, 172, 94),
+        ThemeName::DeepNet     => (19, 33, 17, 75, 26, 16),
+        ThemeName::LaserGrid   => (46, 201, 51, 226, 196, 21),
+        ThemeName::QuantumFlux => (135, 75, 171, 111, 98, 61),
+        ThemeName::BioHazard   => (148, 184, 106, 192, 64, 22),
+        ThemeName::Darkwave    => (53, 140, 89, 176, 127, 52),
+        ThemeName::Overlock    => (196, 208, 160, 214, 124, 52),
+        ThemeName::Megacorp    => (252, 39, 245, 81, 242, 236),
+        ThemeName::Zaibatsu    => (167, 216, 131, 224, 95, 52),
+    }
+}
+
+/// Complete theme for the iftoprs UI, derived from a 6-color palette.
+#[derive(Debug, Clone)]
+pub struct Theme {
+    pub bar_color: Color,
+    pub bar_text: Color,
+    pub host_src: Color,
+    pub host_dst: Color,
+    pub arrow: Color,
+    pub rate_2s: Color,
+    pub rate_10s: Color,
+    pub rate_40s: Color,
+    pub scale_label: Color,
+    pub scale_line: Color,
+    pub total_label: Color,
+    pub cum_label: Color,
+    pub peak_label: Color,
+    pub proc_name: Color,
+    pub header: Color,
+    pub help_bg: Color,
+    pub help_border: Color,
+    pub help_title: Color,
+    pub help_section: Color,
+    pub help_key: Color,
+    pub help_val: Color,
+}
+
+impl Theme {
+    pub fn from_name(name: ThemeName) -> Self {
+        let (c1, c2, c3, c4, c5, c6) = palette(name);
+        Theme {
+            bar_color: Color::Indexed(c6),       // darkest — bar background
+            bar_text: Color::Black,
+            host_src: Color::Indexed(c2),         // accent — bright
+            host_dst: Color::Indexed(c2),
+            arrow: Color::Indexed(c5),
+            rate_2s: Color::Indexed(c2),          // accent
+            rate_10s: Color::Indexed(c4),         // mid
+            rate_40s: Color::Indexed(c5),         // dim
+            scale_label: Color::Indexed(c2),
+            scale_line: Color::Indexed(c6),
+            total_label: Color::Indexed(c1),      // primary
+            cum_label: Color::Indexed(c2),
+            peak_label: Color::Indexed(c4),
+            proc_name: Color::Indexed(c3),
+            header: Color::Indexed(c1),
+            help_bg: Color::Indexed(236),
+            help_border: Color::Indexed(c1),
+            help_title: Color::Indexed(c1),
+            help_section: Color::Indexed(c6),
+            help_key: Color::Indexed(c2),
+            help_val: Color::Indexed(c4),
+        }
+    }
+
+    /// Generate a 6-cell color swatch string for theme preview.
+    pub fn swatch(name: ThemeName) -> Vec<(Color, &'static str)> {
+        let (c1, c2, c3, c4, c5, c6) = palette(name);
+        vec![
+            (Color::Indexed(c1), "██"),
+            (Color::Indexed(c2), "██"),
+            (Color::Indexed(c3), "██"),
+            (Color::Indexed(c4), "██"),
+            (Color::Indexed(c5), "██"),
+            (Color::Indexed(c6), "██"),
+        ]
+    }
+}

@@ -21,6 +21,11 @@
   <code>created by MenkeTechnologies</code>
 </p>
 
+<p align="center">
+  <img src="screenshots/cli-help.png" alt="CLI Help — iftoprs --help" width="800">
+</p>
+
+
 ```bash
 cargo install iftoprs
 ```
@@ -84,7 +89,7 @@ cargo install iftoprs
 #### `// LIVE_CAPTURE`
 
 <p align="center">
-  <img src="Screenshot 2026-03-27 at 7.41.05 AM.png" alt="Live Capture View" width="800">
+  <img src="screenshots/main-view.png" alt="Live Capture View" width="800">
 </p>
 
 ---

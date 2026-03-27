@@ -81,12 +81,14 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).context("Failed to create terminal")?;
 
+    let prefs = config::prefs::load_prefs();
     let mut app = AppState::new(
         resolver,
         !args.hide_ports,
         !args.no_bars,
         args.bytes,
         args.show_processes,
+        &prefs,
     );
 
     let result = run_app(&mut terminal, &mut app, &tracker, &mut rx);

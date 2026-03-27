@@ -1,3 +1,5 @@
+use crate::config::prefs::{self, Prefs};
+use crate::config::theme::{Theme, ThemeName};
 use crate::data::flow::Protocol;
 use crate::data::tracker::{FlowSnapshot, TotalStats};
 use crate::util::resolver::Resolver;
@@ -32,6 +34,29 @@ impl LineDisplay {
     }
 }
 
+/// Theme chooser popup state.
+pub struct ThemeChooser {
+    pub active: bool,
+    pub selected: usize,
+}
+
+impl ThemeChooser {
+    pub fn new() -> Self {
+        ThemeChooser {
+            active: false,
+            selected: 0,
+        }
+    }
+
+    pub fn open(&mut self, current: ThemeName) {
+        self.active = true;
+        self.selected = ThemeName::ALL
+            .iter()
+            .position(|&t| t == current)
+            .unwrap_or(0);
+    }
+}
+
 /// Application state for the TUI.
 pub struct AppState {
     pub show_dns: bool,
@@ -48,6 +73,9 @@ pub struct AppState {
     pub show_help: bool,
     pub screen_filter: Option<String>,
     pub frozen_order: bool,
+    pub theme_name: ThemeName,
+    pub theme: Theme,
+    pub theme_chooser: ThemeChooser,
 
     /// Cached data from last snapshot
     pub flows: Vec<FlowSnapshot>,
@@ -62,13 +90,15 @@ impl AppState {
         show_bars: bool,
         use_bytes: bool,
         show_processes: bool,
+        prefs: &Prefs,
     ) -> Self {
+        let theme_name = prefs.theme;
         AppState {
             show_dns: resolver.is_enabled(),
             show_port_names: true,
             show_ports,
             show_bars,
-            show_cumulative: false,
+            show_cumulative: prefs.show_cumulative,
             show_processes,
             use_bytes,
             sort_column: SortColumn::Avg2s,
@@ -78,6 +108,9 @@ impl AppState {
             show_help: false,
             screen_filter: None,
             frozen_order: false,
+            theme_name,
+            theme: Theme::from_name(theme_name),
+            theme_chooser: ThemeChooser::new(),
             flows: Vec::new(),
             totals: TotalStats {
                 sent_2s: 0.0,
@@ -95,13 +128,32 @@ impl AppState {
         }
     }
 
+    pub fn set_theme(&mut self, name: ThemeName) {
+        self.theme_name = name;
+        self.theme = Theme::from_name(name);
+    }
+
+    /// Save current settings to prefs file.
+    pub fn save_prefs(&self) {
+        let p = Prefs {
+            theme: self.theme_name,
+            dns_resolution: self.show_dns,
+            port_resolution: self.show_port_names,
+            show_ports: self.show_ports,
+            show_bars: self.show_bars,
+            use_bytes: self.use_bytes,
+            show_processes: self.show_processes,
+            show_cumulative: self.show_cumulative,
+        };
+        prefs::save_prefs(&p);
+    }
+
     /// Update the snapshot from the tracker.
     pub fn update_snapshot(&mut self, mut flows: Vec<FlowSnapshot>, totals: TotalStats) {
         if self.paused {
             return;
         }
 
-        // Apply screen filter
         if let Some(ref filter) = self.screen_filter {
             let re = regex::Regex::new(&format!("(?i){}", regex::escape(filter)));
             if let Ok(re) = re {
@@ -113,7 +165,6 @@ impl AppState {
             }
         }
 
-        // Sort unless frozen
         if !self.frozen_order {
             self.sort_flows(&mut flows);
         }
