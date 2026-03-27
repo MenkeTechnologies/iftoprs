@@ -1,14 +1,34 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Instant;
 
 use dns_lookup::lookup_addr;
+
+/// Maximum cache entries before eviction triggers.
+const CACHE_HIGH_WATER: usize = 4096;
+/// Entries older than this are eligible for eviction.
+const CACHE_TTL_SECS: u64 = 300;
+/// Maximum concurrent in-flight DNS lookups.
+const MAX_PENDING: usize = 64;
 
 /// Asynchronous DNS resolver with caching.
 #[derive(Clone)]
 pub struct Resolver {
-    cache: Arc<Mutex<HashMap<IpAddr, ResolveState>>>,
+    cache: Arc<Mutex<ResolverCache>>,
     enabled: bool,
+}
+
+#[derive(Debug)]
+struct ResolverCache {
+    entries: HashMap<IpAddr, CacheEntry>,
+    pending_count: usize,
+}
+
+#[derive(Clone, Debug)]
+struct CacheEntry {
+    state: ResolveState,
+    last_used: Instant,
 }
 
 #[derive(Clone, Debug)]
@@ -23,7 +43,10 @@ impl Resolver {
         // Eagerly parse /etc/services on startup
         let _ = services_map();
         Resolver {
-            cache: Arc::new(Mutex::new(HashMap::new())),
+            cache: Arc::new(Mutex::new(ResolverCache {
+                entries: HashMap::new(),
+                pending_count: 0,
+            })),
             enabled,
         }
     }
@@ -36,26 +59,40 @@ impl Resolver {
         }
 
         let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
-        match cache.get(&addr) {
-            Some(ResolveState::Resolved(name)) => return name.clone(),
-            Some(ResolveState::Pending) => return addr.to_string(),
-            Some(ResolveState::Failed) => return addr.to_string(),
-            None => {}
+
+        if let Some(entry) = cache.entries.get_mut(&addr) {
+            entry.last_used = Instant::now();
+            return match &entry.state {
+                ResolveState::Resolved(name) => name.clone(),
+                ResolveState::Pending | ResolveState::Failed => addr.to_string(),
+            };
+        }
+
+        // Evict stale entries when cache grows too large
+        if cache.entries.len() >= CACHE_HIGH_WATER {
+            evict_stale(&mut cache);
+        }
+
+        // Cap concurrent DNS threads
+        if cache.pending_count >= MAX_PENDING {
+            return addr.to_string();
         }
 
         // Start background resolution
-        cache.insert(addr, ResolveState::Pending);
+        let now = Instant::now();
+        cache.entries.insert(addr, CacheEntry { state: ResolveState::Pending, last_used: now });
+        cache.pending_count += 1;
         let cache_ref = Arc::clone(&self.cache);
         std::thread::spawn(move || {
             let result = lookup_addr(&addr);
             let mut cache = cache_ref.lock().unwrap_or_else(|e| e.into_inner());
-            match result {
-                Ok(hostname) => {
-                    cache.insert(addr, ResolveState::Resolved(hostname));
-                }
-                Err(_) => {
-                    cache.insert(addr, ResolveState::Failed);
-                }
+            cache.pending_count = cache.pending_count.saturating_sub(1);
+            let state = match result {
+                Ok(hostname) => ResolveState::Resolved(hostname),
+                Err(_) => ResolveState::Failed,
+            };
+            if let Some(entry) = cache.entries.get_mut(&addr) {
+                entry.state = state;
             }
         });
 
@@ -69,6 +106,35 @@ impl Resolver {
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
+}
+
+/// Remove entries not used within the TTL window. If the cache is still above
+/// the high-water mark after TTL eviction, drop the oldest half.
+fn evict_stale(cache: &mut ResolverCache) {
+    let cutoff = Instant::now() - std::time::Duration::from_secs(CACHE_TTL_SECS);
+    cache.entries.retain(|_, entry| entry.last_used > cutoff);
+
+    // If still over capacity, keep only the most recently used half
+    if cache.entries.len() >= CACHE_HIGH_WATER {
+        let mut by_age: Vec<(IpAddr, Instant)> = cache
+            .entries
+            .iter()
+            .map(|(ip, e)| (*ip, e.last_used))
+            .collect();
+        by_age.sort_by(|a, b| b.1.cmp(&a.1)); // newest first
+        let keep: usize = CACHE_HIGH_WATER / 2;
+        let to_remove: Vec<IpAddr> = by_age.iter().skip(keep).map(|(ip, _)| *ip).collect();
+        for ip in to_remove {
+            cache.entries.remove(&ip);
+        }
+    }
+
+    // Recount pending entries after eviction
+    cache.pending_count = cache
+        .entries
+        .values()
+        .filter(|e| matches!(e.state, ResolveState::Pending))
+        .count();
 }
 
 // ─── /etc/services lookup ─────────────────────────────────────────────────────
@@ -279,5 +345,58 @@ mod tests {
         let a = services_map() as *const _;
         let b = services_map() as *const _;
         assert_eq!(a, b, "services_map should return same OnceLock instance");
+    }
+
+    // ── Cache eviction ──
+
+    #[test]
+    fn evict_stale_removes_old_entries() {
+        let mut cache = ResolverCache { entries: HashMap::new(), pending_count: 0 };
+        let old = Instant::now() - std::time::Duration::from_secs(CACHE_TTL_SECS + 10);
+        let recent = Instant::now();
+
+        let old_ip: IpAddr = "10.0.0.1".parse().unwrap();
+        let new_ip: IpAddr = "10.0.0.2".parse().unwrap();
+
+        cache.entries.insert(old_ip, CacheEntry { state: ResolveState::Failed, last_used: old });
+        cache.entries.insert(new_ip, CacheEntry { state: ResolveState::Resolved("host".into()), last_used: recent });
+
+        evict_stale(&mut cache);
+        assert!(!cache.entries.contains_key(&old_ip));
+        assert!(cache.entries.contains_key(&new_ip));
+    }
+
+    #[test]
+    fn evict_stale_halves_when_all_recent() {
+        let mut cache = ResolverCache { entries: HashMap::new(), pending_count: 0 };
+        let now = Instant::now();
+
+        // Fill to high-water mark with recent entries
+        for i in 0..CACHE_HIGH_WATER {
+            let ip: IpAddr = format!("10.{}.{}.{}", (i >> 16) & 0xFF, (i >> 8) & 0xFF, i & 0xFF).parse().unwrap();
+            cache.entries.insert(ip, CacheEntry {
+                state: ResolveState::Resolved(format!("host{}", i)),
+                last_used: now,
+            });
+        }
+
+        evict_stale(&mut cache);
+        assert!(cache.entries.len() <= CACHE_HIGH_WATER / 2);
+    }
+
+    #[test]
+    fn pending_cap_prevents_excessive_threads() {
+        let r = Resolver::new(true);
+        {
+            let mut cache = r.cache.lock().unwrap();
+            cache.pending_count = MAX_PENDING;
+        }
+        // With pending at cap, resolve should return IP without spawning
+        let addr: IpAddr = "203.0.113.1".parse().unwrap();
+        let result = r.resolve(addr);
+        assert_eq!(result, "203.0.113.1");
+        // No entry should have been inserted
+        let cache = r.cache.lock().unwrap();
+        assert!(!cache.entries.contains_key(&addr));
     }
 }
