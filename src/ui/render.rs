@@ -98,8 +98,9 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
         Constraint::Length(header_h),
     ]).split(inner);
 
-    // Store flow area Y for mouse hit-testing
+    // Store layout positions for mouse hit-testing
     state.flow_area_y = c[2].y;
+    state.header_bar_y = c[5].y;
 
     draw_scale_labels(frame, c[0], state);
     draw_scale_ticks(frame, c[1], state);
@@ -115,8 +116,19 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
 
     // Overlays
     if state.theme_chooser.active { draw_theme_chooser(frame, size, state); }
+    if state.interface_chooser.active { draw_interface_chooser(frame, size, state); }
     if state.filter_state.active { draw_filter_popup(frame, size, state); }
     if state.tooltip.active { draw_tooltip(frame, size, state); }
+
+    // Hover tooltip on header bar segments
+    if state.show_header && !state.show_help && !state.theme_chooser.active
+        && !state.filter_state.active && state.hover.ready()
+        && let Some((_, hy)) = state.hover.pos
+        && hy == state.header_bar_y
+    {
+        draw_header_hover_tooltip(frame, size, state);
+    }
+
     if let Some(ref msg) = state.status_msg
         && !msg.expired() { draw_status(frame, size, state, &msg.text); }
 }
@@ -316,6 +328,21 @@ fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let s = Style::default().fg(state.theme.scale_line);
     for x in area.x..area.x + area.width { buf.set_string(x, area.y, "─", s); }
+
+    // Show interface name, flow count, refresh rate, and theme in separator
+    let mut parts: Vec<String> = Vec::new();
+    if !state.interface_name.is_empty() {
+        parts.push(format!("iface:{}", state.interface_name));
+    }
+    parts.push(format!("flows:{}", state.flows.len()));
+    parts.push(format!("rate:{}s", state.refresh_rate));
+    parts.push(state.theme_name.display_name().to_string());
+    if state.paused { parts.push("⏸".to_string()); }
+
+    let info = format!(" {} ", parts.join(" │ "));
+    let info_x = area.x + area.width.saturating_sub(info.len() as u16 + 1);
+    let info_s = Style::default().fg(state.theme.cum_label);
+    set_str(buf, info_x, area.y, &info, info_s, info.len() as u16);
 }
 
 fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
@@ -375,7 +402,7 @@ fn paint_bar_styled(buf: &mut Buffer, x0: u16, y: u16, len: u16, max_w: u16, col
 
 #[allow(clippy::too_many_arguments)]
 fn write_bar_styled(buf: &mut Buffer, x: u16, y: u16, text: &str, fg: Color,
-    x0: u16, bl: u16, bar_bg: Color, bar_fg: Color, bs: BarStyle)
+    x0: u16, bl: u16, bar_bg: Color, bar_fg: Color, _bs: BarStyle)
 {
     let mx = buf.area().x + buf.area().width;
     let my = buf.area().y + buf.area().height;
@@ -385,25 +412,8 @@ fn write_bar_styled(buf: &mut Buffer, x: u16, y: u16, text: &str, fg: Color,
         let c = &mut buf[(cx, y)];
         c.set_char(ch);
         if cx < x0 + bl {
-            // Inside bar region
-            match bs {
-                BarStyle::Solid => {
-                    c.set_fg(bar_fg); c.set_bg(bar_bg);
-                }
-                BarStyle::Gradient => {
-                    // Bright text on dark bar bg
-                    c.set_fg(fg); c.set_bg(bar_bg);
-                    c.set_style(c.style().add_modifier(Modifier::BOLD));
-                }
-                BarStyle::Thin => {
-                    c.set_fg(fg); c.set_bg(bar_bg);
-                    c.set_style(c.style().add_modifier(Modifier::BOLD | Modifier::UNDERLINED));
-                }
-                BarStyle::Ascii => {
-                    c.set_fg(fg); c.set_bg(bar_bg);
-                    c.set_style(c.style().add_modifier(Modifier::BOLD));
-                }
-            }
+            // Inside bar region — always black text on colored background
+            c.set_fg(bar_fg); c.set_bg(bar_bg);
         } else {
             // Outside bar
             c.set_fg(fg); c.set_bg(Color::Reset);
@@ -500,7 +510,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
         ("NAV", &[("j/↓","Select next"),("k/↑","Select prev"),("^D","Half-page dn"),("^U","Half-page up"),("G/End","Jump last"),("Home","Jump first"),("Esc","Deselect")]),
         ("FILTER", &[("/","Search flows"),("0","Clear filter")]),
         ("ACTIONS", &[("e","Export flows"),("y","Copy selected"),("F","Pin/unpin ★")]),
-        ("DISPLAY", &[("c","Theme chooser"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
+        ("DISPLAY", &[("c","Theme chooser"),("i","Interface"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
         ("", &[]),
     ];
 
@@ -565,6 +575,36 @@ fn draw_theme_chooser(frame: &mut Frame, area: Rect, state: &AppState) {
     }
 
     let ft = "j/k:nav  Enter:select  Esc:cancel";
+    set_str(buf, x0 + (bw.saturating_sub(ft.len() as u16)) / 2, y0 + bh - 2,
+        ft, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 4);
+}
+
+// ─── Interface chooser ───────────────────────────────────────────────────────
+
+fn draw_interface_chooser(frame: &mut Frame, area: Rect, state: &AppState) {
+    let t = &state.theme;
+    let ch = &state.interface_chooser;
+    let buf = frame.buffer_mut();
+    let bw = 50u16.min(area.width.saturating_sub(4));
+    let bh = (ch.interfaces.len() as u16 + 5).min(area.height.saturating_sub(4));
+    let (x0, y0) = draw_box(buf, area, bw, bh, t.help_bg, Style::default().fg(t.help_border));
+    let bg = t.help_bg;
+    let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
+
+    set_str(buf, x0 + 2, y0 + 1, "INTERFACE CHOOSER", ts, bw - 4);
+
+    for (i, iface) in ch.interfaces.iter().enumerate() {
+        let ey = y0 + 3 + i as u16;
+        if ey >= y0 + bh - 2 { break; }
+        let sel = i == ch.selected;
+        let act = *iface == state.interface_name;
+        let mk = if act { "▸ " } else { "  " };
+        let rs = if sel { Style::default().fg(Color::Black).bg(t.help_key) }
+                 else { Style::default().fg(Color::White).bg(bg) };
+        set_str(buf, x0 + 2, ey, &format!("{}{}", mk, iface), rs, bw - 4);
+    }
+
+    let ft = "j/k:nav  i:next  Enter:select  Esc:cancel";
     set_str(buf, x0 + (bw.saturating_sub(ft.len() as u16)) / 2, y0 + bh - 2,
         ft, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 4);
 }
@@ -651,6 +691,100 @@ fn draw_status(frame: &mut Frame, area: Rect, state: &AppState, text: &str) {
     let y0 = area.height.saturating_sub(bottom_offset);
     let s = Style::default().fg(Color::Black).bg(t.help_key);
     set_str(buf, x0, y0, &format!(" {} ", text), s, msg_len);
+}
+
+// ─── Right-click tooltip ──────────────────────────────────────────────────────
+
+// ─── Header hover tooltip ─────────────────────────────────────────────────────
+
+/// Find which pipe-delimited segment the cursor x falls into.
+fn segment_at_x(buf: &Buffer, hover_x: u16, hover_y: u16, bar_start_x: u16, bar_end_x: u16) -> Option<String> {
+    // Read the rendered bar text from the buffer
+    let mut bar_text = String::new();
+    for x in bar_start_x..bar_end_x {
+        let a = buf.area();
+        if x < a.x + a.width && hover_y < a.y + a.height {
+            bar_text.push_str(buf[(x, hover_y)].symbol());
+        }
+    }
+
+    // Split by │ (U+2502) and find which segment the cursor falls into
+    let rel_x = hover_x.saturating_sub(bar_start_x) as usize;
+    let mut pos = 0usize;
+    for segment in bar_text.split('│') {
+        let seg_chars = segment.chars().count() + 1; // +1 for the pipe
+        if rel_x < pos + seg_chars {
+            let trimmed = segment.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+            return None;
+        }
+        pos += seg_chars;
+    }
+    bar_text.split('│').next_back().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+}
+
+fn draw_header_hover_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
+    let (hover_x, hover_y) = match state.hover.pos {
+        Some(pos) => pos,
+        None => return,
+    };
+
+    let margin: u16 = if state.show_border { 1 } else { 0 };
+    let buf = frame.buffer_mut();
+
+    let segment = match segment_at_x(buf, hover_x, hover_y, margin, area.width.saturating_sub(margin)) {
+        Some(s) => s,
+        None => return,
+    };
+
+    let lines = state.header_segment_tooltip(&segment);
+    if lines.is_empty() { return; }
+
+    // Render tooltip popup
+    let t = &state.theme;
+    let label_s = Style::default().fg(t.help_val).bg(t.help_bg);
+    let val_s = Style::default().fg(t.help_key).bg(t.help_bg);
+    let bs = Style::default().fg(t.help_border);
+    let bg = t.help_bg;
+
+    let max_label = lines.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(0);
+    let max_val = lines.iter().map(|(_, v)| v.chars().count()).max().unwrap_or(0);
+    let inner_w = (max_label + 3 + max_val).max(20);
+    let bw = (inner_w + 4) as u16;
+    let bh = (lines.len() + 2) as u16;
+
+    // Position above the header bar (since it's at the bottom)
+    let x0 = if hover_x + bw + 2 < area.width { hover_x + 1 } else { area.width.saturating_sub(bw + 1) };
+    let y0 = hover_y.saturating_sub(bh);
+
+    // Fill + rounded border
+    for y in y0..y0 + bh {
+        for x in x0..x0 + bw {
+            set_cell(buf, x, y, " ", Style::default().bg(bg));
+        }
+    }
+    set_cell(buf, x0, y0, "╭", bs); set_cell(buf, x0 + bw - 1, y0, "╮", bs);
+    set_cell(buf, x0, y0 + bh - 1, "╰", bs); set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╯", bs);
+    for x in x0 + 1..x0 + bw - 1 {
+        set_cell(buf, x, y0, "─", bs); set_cell(buf, x, y0 + bh - 1, "─", bs);
+    }
+    for y in y0 + 1..y0 + bh - 1 {
+        set_cell(buf, x0, y, "│", bs); set_cell(buf, x0 + bw - 1, y, "│", bs);
+    }
+
+    // Content
+    for (i, (label, value)) in lines.iter().enumerate() {
+        let ey = y0 + 1 + i as u16;
+        if ey >= y0 + bh - 1 { break; }
+        set_str(buf, x0 + 2, ey, label, label_s, max_label as u16 + 1);
+        if !value.is_empty() {
+            let vx = x0 + 2 + max_label as u16 + 2;
+            let remaining = bw.saturating_sub(max_label as u16 + 5);
+            set_str(buf, vx, ey, value, val_s, remaining);
+        }
+    }
 }
 
 // ─── Right-click tooltip ──────────────────────────────────────────────────────

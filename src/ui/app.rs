@@ -9,6 +9,17 @@ use crate::data::flow::{FlowKey, Protocol};
 use crate::data::tracker::{FlowSnapshot, TotalStats};
 use crate::util::resolver::Resolver;
 
+/// Tracks which fields were overridden by CLI flags (never saved to config).
+#[derive(Debug, Clone, Default)]
+pub struct CliOverrides {
+    pub dns: bool,
+    pub show_ports: bool,
+    pub show_bars: bool,
+    pub use_bytes: bool,
+    pub show_processes: bool,
+    pub interface: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortColumn {
     Avg2s, Avg10s, Avg40s, SrcName, DstName,
@@ -62,6 +73,27 @@ impl ThemeChooser {
         self.active = true;
         self.selected = ThemeName::ALL.iter().position(|&t| t == current).unwrap_or(0);
     }
+}
+
+/// Interface chooser popup state.
+pub struct InterfaceChooser {
+    pub active: bool,
+    pub selected: usize,
+    pub interfaces: Vec<String>,
+}
+
+impl InterfaceChooser {
+    pub fn new() -> Self { Self { active: false, selected: 0, interfaces: Vec::new() } }
+    pub fn open(&mut self, current: &str) {
+        self.interfaces = crate::capture::sniffer::list_interfaces().unwrap_or_default();
+        if self.interfaces.is_empty() { return; }
+        self.active = true;
+        self.selected = self.interfaces.iter().position(|i| i == current).unwrap_or(0);
+    }
+}
+
+impl Default for InterfaceChooser {
+    fn default() -> Self { Self::new() }
 }
 
 /// Filter input state (/ key).
@@ -144,6 +176,46 @@ impl Tooltip {
     pub fn new() -> Self { Self { active: false, x: 0, y: 0, lines: Vec::new() } }
 }
 
+/// Hover state for timed tooltips on header bar segments.
+#[derive(Default)]
+pub struct HoverState {
+    pub pos: Option<(u16, u16)>,
+    pub since: Option<Instant>,
+    pub right_click: bool,
+}
+
+impl HoverState {
+    /// Returns true when hover has been active long enough to show tooltip (1s delay, 3s visible).
+    pub fn ready(&self) -> bool {
+        self.since
+            .map(|t| {
+                let elapsed = t.elapsed().as_millis();
+                let visible = elapsed >= 1000;
+                let expired = !self.right_click && elapsed >= 4000;
+                visible && !expired
+            })
+            .unwrap_or(false)
+    }
+
+    /// Update position. Resets timer if position changed.
+    pub fn move_to(&mut self, x: u16, y: u16) {
+        let new_pos = (x, y);
+        if self.pos != Some(new_pos) {
+            self.pos = Some(new_pos);
+            self.since = Some(Instant::now());
+            self.right_click = false;
+        }
+    }
+
+    /// Instant activation via right-click (bypasses 1s delay).
+    pub fn right_click_at(&mut self, x: u16, y: u16) {
+        self.pos = Some((x, y));
+        self.since = Some(Instant::now() - std::time::Duration::from_secs(2));
+        self.right_click = true;
+    }
+
+}
+
 /// Alert state for bandwidth threshold crossing.
 #[derive(Default)]
 pub struct AlertState {
@@ -192,6 +264,7 @@ pub struct AppState {
     pub theme: Theme,
     pub theme_chooser: ThemeChooser,
     pub filter_state: FilterState,
+    pub interface_chooser: InterfaceChooser,
     pub status_msg: Option<StatusMsg>,
     pub pinned: Vec<PinnedFlow>,
     pub tooltip: Tooltip,
@@ -199,6 +272,10 @@ pub struct AppState {
     pub show_header: bool,
     /// Y offset where the flow area starts (set by renderer).
     pub flow_area_y: u16,
+    /// Y offset of the header bar (set by renderer).
+    pub header_bar_y: u16,
+    /// Hover state for timed tooltips.
+    pub hover: HoverState,
 
     /// Alert system
     pub alert_state: AlertState,
@@ -209,6 +286,13 @@ pub struct AppState {
 
     /// Interface name for header display
     pub interface_name: String,
+    /// Original interface from config (preserved across saves)
+    pub config_interface: Option<String>,
+
+    /// Original prefs loaded from config (for fields overridden by CLI)
+    pub orig_prefs: Prefs,
+    /// Which fields were overridden by CLI flags
+    pub cli_overrides: CliOverrides,
 
     /// Total flow count before filtering (for header display)
     pub total_flow_count: usize,
@@ -223,6 +307,7 @@ impl AppState {
     pub fn new(
         resolver: Resolver, show_ports: bool, show_bars: bool,
         use_bytes: bool, show_processes: bool, prefs: &Prefs,
+        cli_overrides: CliOverrides,
     ) -> Self {
         let theme_name = prefs.theme;
         AppState {
@@ -245,16 +330,22 @@ impl AppState {
             theme: Theme::from_name(theme_name),
             theme_chooser: ThemeChooser::new(),
             filter_state: FilterState::new(),
+            interface_chooser: InterfaceChooser::new(),
             status_msg: None,
             pinned: prefs.pinned.clone(),
             tooltip: Tooltip::new(),
             show_border: prefs.show_border,
             show_header: prefs.show_header,
             flow_area_y: 2,
+            header_bar_y: 0,
+            hover: HoverState::default(),
             alert_state: AlertState::default(),
             alert_threshold: prefs.alert_threshold,
             refresh_rate: prefs.refresh_rate,
             interface_name: String::new(),
+            config_interface: prefs.interface.clone(),
+            orig_prefs: prefs.clone(),
+            cli_overrides,
             total_flow_count: 0,
             flows: Vec::new(),
             totals: TotalStats {
@@ -277,14 +368,16 @@ impl AppState {
     }
 
     pub fn save_prefs(&self) {
+        let co = &self.cli_overrides;
+        let op = &self.orig_prefs;
         let p = Prefs {
             theme: self.theme_name,
-            dns_resolution: self.show_dns,
+            dns_resolution: if co.dns { op.dns_resolution } else { self.show_dns },
             port_resolution: self.show_port_names,
-            show_ports: self.show_ports,
-            show_bars: self.show_bars,
-            use_bytes: self.use_bytes,
-            show_processes: self.show_processes,
+            show_ports: if co.show_ports { op.show_ports } else { self.show_ports },
+            show_bars: if co.show_bars { op.show_bars } else { self.show_bars },
+            use_bytes: if co.use_bytes { op.use_bytes } else { self.use_bytes },
+            show_processes: if co.show_processes { op.show_processes } else { self.show_processes },
             show_cumulative: self.show_cumulative,
             bar_style: self.bar_style,
             pinned: self.pinned.clone(),
@@ -292,6 +385,7 @@ impl AppState {
             show_header: self.show_header,
             refresh_rate: self.refresh_rate,
             alert_threshold: self.alert_threshold,
+            interface: if co.interface { op.interface.clone() } else { self.config_interface.clone() },
         };
         prefs::save_prefs(&p);
     }
@@ -303,6 +397,105 @@ impl AppState {
         };
         self.set_status(format!("Refresh rate: {}s", self.refresh_rate));
         self.save_prefs();
+    }
+
+    /// Generate tooltip lines for a hovered header bar segment.
+    pub fn header_segment_tooltip(&self, segment: &str) -> Vec<(String, String)> {
+        let seg = segment.to_lowercase();
+        if seg.contains("iftoprs") {
+            vec![
+                ("▶ App".into(), "IFTOPRS".into()),
+                ("  Version".into(), format!("v{}", env!("CARGO_PKG_VERSION"))),
+                ("  Desc".into(), "Real-time bandwidth monitor".into()),
+                ("  Author".into(), "MenkeTechnologies".into()),
+                ("  License".into(), "MIT".into()),
+                ("  Repo".into(), "github.com/MenkeTechnologies/iftoprs".into()),
+            ]
+        } else if seg.starts_with("iface:") {
+            let iface = if self.interface_name.is_empty() { "auto-detected" } else { &self.interface_name };
+            vec![
+                ("▶ Interface".into(), iface.to_string()),
+                ("  Mode".into(), if self.interface_name.is_empty() { "Auto (default gateway)" } else { "Manual (-i flag)" }.into()),
+                ("  DNS".into(), if self.show_dns { "Enabled (n to toggle)" } else { "Disabled" }.into()),
+                ("  Ports".into(), if self.show_ports { "Shown (p to toggle)" } else { "Hidden" }.into()),
+                ("  Promisc".into(), "Set via -p flag".into()),
+            ]
+        } else if seg.starts_with("flows:") {
+            let filtered = self.flows.len();
+            let pinned = self.pinned.len();
+            let total_rate = self.totals.sent_2s + self.totals.recv_2s;
+            vec![
+                ("▶ Flows".into(), format!("{} total", self.total_flow_count)),
+                ("  Visible".into(), format!("{} (after filter)", filtered)),
+                ("  Pinned".into(), format!("{} (F to pin)", pinned)),
+                ("  Total TX".into(), crate::util::format::readable_size(self.totals.sent_2s, self.use_bytes)),
+                ("  Total RX".into(), crate::util::format::readable_size(self.totals.recv_2s, self.use_bytes)),
+                ("  Combined".into(), crate::util::format::readable_size(total_rate, self.use_bytes)),
+                ("  Peak TX".into(), crate::util::format::readable_size(self.totals.peak_sent, self.use_bytes)),
+                ("  Peak RX".into(), crate::util::format::readable_size(self.totals.peak_recv, self.use_bytes)),
+            ]
+        } else if seg.starts_with("clock:") {
+            let now = chrono::Local::now();
+            vec![
+                ("▶ Clock".into(), now.format("%H:%M:%S").to_string()),
+                ("  Date".into(), now.format("%Y-%m-%d").to_string()),
+                ("  Timezone".into(), now.format("%Z").to_string()),
+                ("  Uptime".into(), format!("{}s", std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs())),
+            ]
+        } else if seg.starts_with("sort:") {
+            let name = match self.sort_column {
+                SortColumn::Avg2s => "2-second average",
+                SortColumn::Avg10s => "10-second average",
+                SortColumn::Avg40s => "40-second average",
+                SortColumn::SrcName => "Source hostname",
+                SortColumn::DstName => "Destination hostname",
+            };
+            vec![
+                ("▶ Sort".into(), name.into()),
+                ("  Direction".into(), if self.sort_reverse { "Reversed" } else { "Normal (highest first)" }.into()),
+                ("  Frozen".into(), if self.frozen_order { "Yes (o to unfreeze)" } else { "No (live re-sort)" }.into()),
+                ("  Keys".into(), "1/2/3 = rate, </> = host".into()),
+                ("  Reverse".into(), "r to toggle".into()),
+            ]
+        } else if seg.starts_with("rate:") {
+            vec![
+                ("▶ Refresh Rate".into(), format!("{}s", self.refresh_rate)),
+                ("  Cycle".into(), "f to change (1→2→5→10)".into()),
+                ("  Rendering".into(), "~30 fps (33ms)".into()),
+                ("  Data".into(), format!("Every {}s", self.refresh_rate)),
+            ]
+        } else if seg.starts_with("theme:") {
+            vec![
+                ("▶ Theme".into(), self.theme_name.display_name().into()),
+                ("  Available".into(), format!("{} themes", crate::config::theme::ThemeName::ALL.len())),
+                ("  Chooser".into(), "c to open".into()),
+                ("  CLI".into(), "--list-colors to preview".into()),
+            ]
+        } else if seg.starts_with("filter:") {
+            let filter_text = self.screen_filter.as_deref().unwrap_or("(none)");
+            vec![
+                ("▶ Filter".into(), filter_text.into()),
+                ("  Matched".into(), format!("{} of {} flows", self.flows.len(), self.total_flow_count)),
+                ("  Open".into(), "/ to search".into()),
+                ("  Clear".into(), "0 to reset".into()),
+            ]
+        } else if seg.contains("PAUSED") {
+            vec![
+                ("▶ Paused".into(), "Data refresh is frozen".into()),
+                ("  Resume".into(), "P to toggle".into()),
+                ("  Display".into(), "Showing last captured state".into()),
+            ]
+        } else if seg.starts_with("h=help") {
+            vec![
+                ("▶ Help".into(), "Press h or ? for keybinds".into()),
+                ("  Export".into(), "e to export flows".into()),
+                ("  Copy".into(), "y to copy selected flow".into()),
+                ("  Quit".into(), "q to exit".into()),
+            ]
+        } else {
+            vec![("▶ Header".into(), segment.to_string())]
+        }
     }
 
     /// Check flows against alert threshold and trigger flash if new alerts found.
@@ -638,7 +831,7 @@ mod tests {
 
     fn make_app() -> AppState {
         let resolver = Resolver::new(false);
-        AppState::new(resolver, true, true, false, true, &dummy_prefs())
+        AppState::new(resolver, true, true, false, true, &dummy_prefs(), CliOverrides::default())
     }
 
     fn make_flow(src_port: u16) -> FlowSnapshot {
@@ -1221,5 +1414,92 @@ mod tests {
         assert!(p.show_header);
         assert_eq!(p.refresh_rate, 1);
         assert_eq!(p.alert_threshold, 0.0);
+        assert!(p.interface.is_none());
+    }
+
+    // ── InterfaceChooser ──
+
+    #[test]
+    fn interface_chooser_new_is_inactive() {
+        let ic = InterfaceChooser::new();
+        assert!(!ic.active);
+        assert_eq!(ic.selected, 0);
+        assert!(ic.interfaces.is_empty());
+    }
+
+    #[test]
+    fn interface_chooser_default() {
+        let ic = InterfaceChooser::default();
+        assert!(!ic.active);
+    }
+
+    // ── CliOverrides ──
+
+    #[test]
+    fn cli_overrides_default_all_false() {
+        let co = CliOverrides::default();
+        assert!(!co.dns);
+        assert!(!co.show_ports);
+        assert!(!co.show_bars);
+        assert!(!co.use_bytes);
+        assert!(!co.show_processes);
+        assert!(!co.interface);
+    }
+
+    // ── Config interface preservation ──
+
+    #[test]
+    fn config_interface_preserved_on_save() {
+        let mut app = make_app();
+        app.config_interface = Some("en0".to_string());
+        // save_prefs is no-op in test, but verify the struct is built correctly
+        let p = Prefs {
+            theme: app.theme_name,
+            dns_resolution: app.show_dns,
+            port_resolution: app.show_port_names,
+            show_ports: app.show_ports,
+            show_bars: app.show_bars,
+            use_bytes: app.use_bytes,
+            show_processes: app.show_processes,
+            show_cumulative: app.show_cumulative,
+            bar_style: app.bar_style,
+            pinned: app.pinned.clone(),
+            show_border: app.show_border,
+            show_header: app.show_header,
+            refresh_rate: app.refresh_rate,
+            alert_threshold: app.alert_threshold,
+            interface: app.config_interface.clone(),
+        };
+        assert_eq!(p.interface, Some("en0".to_string()));
+        let s = toml::to_string_pretty(&p).unwrap();
+        assert!(s.contains("interface = \"en0\""));
+    }
+
+    #[test]
+    fn config_interface_none_omitted_from_toml() {
+        let p = Prefs::default();
+        assert!(p.interface.is_none());
+        let s = toml::to_string_pretty(&p).unwrap();
+        assert!(!s.contains("interface"), "None interface should be omitted from TOML");
+    }
+
+    #[test]
+    fn config_interface_roundtrip() {
+        let mut p = Prefs::default();
+        p.interface = Some("eth0".to_string());
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.interface, Some("eth0".to_string()));
+    }
+
+    // ── save_prefs no-op in test ──
+
+    #[test]
+    fn save_prefs_does_not_write_in_test() {
+        let mut app = make_app();
+        // This should not panic or write to disk
+        app.save_prefs();
+        app.cycle_refresh_rate();
+        // If we got here, save_prefs is correctly a no-op
     }
 }

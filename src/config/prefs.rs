@@ -34,6 +34,8 @@ pub struct Prefs {
     pub refresh_rate: u64,
     #[serde(default)]
     pub alert_threshold: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interface: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -61,6 +63,7 @@ impl Default for Prefs {
             show_header: true,
             refresh_rate: 1,
             alert_threshold: 0.0,
+            interface: None,
         }
     }
 }
@@ -86,6 +89,10 @@ pub fn load_prefs() -> Prefs {
 }
 
 pub fn save_prefs(prefs: &Prefs) {
+    #[cfg(test)]
+    { let _ = prefs; return; }
+
+    #[cfg(not(test))]
     if let Some(path) = prefs_path()
         && let Ok(s) = toml::to_string_pretty(prefs) {
             let _ = std::fs::write(path, s);

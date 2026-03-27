@@ -297,6 +297,15 @@ iftoprs --completions zsh              # generate zsh completions
 | `Enter` | Select theme |
 | `Esc` | Cancel |
 
+#### `// INTERFACE_OPS`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `i` | Open interface chooser (also cycles in popup) |
+| `j/k` | Navigate interfaces |
+| `Enter` | Select interface (saved to config, restart to apply) |
+| `Esc` | Cancel |
+
 #### `// ACTIONS`
 
 | `KEY` | `ACTION` |

@@ -149,3 +149,18 @@ fn completions_zsh_includes_list_colors() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("--list-colors"), "zsh completions should include --list-colors");
 }
+
+#[test]
+fn default_config_has_interface_docs() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(content.contains("interface"), "default config should document interface field");
+}
+
+#[test]
+fn help_contains_interface_keybind() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // -h help mentions interface flag
+    assert!(stdout.contains("--interface"), "help should show --interface flag");
+}

@@ -18,7 +18,7 @@ use tokio::sync::mpsc;
 
 use config::cli::Args;
 use data::tracker::FlowTracker;
-use ui::app::{AppState, SortColumn};
+use ui::app::{AppState, CliOverrides, SortColumn};
 use util::resolver::Resolver;
 
 fn main() -> Result<()> {
@@ -55,9 +55,13 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
+    let prefs = config::prefs::load_prefs();
+
+    // CLI -i overrides config interface
+    let effective_interface = args.interface.clone().or(prefs.interface.clone());
+
     let local_net = args.parse_net_filter().or_else(|| {
-        // Auto-detect local IP from the capture interface
-        auto_detect_local_net(args.interface.as_deref())
+        auto_detect_local_net(effective_interface.as_deref())
     });
     let resolver = Resolver::new(!args.no_dns);
     let tracker = FlowTracker::new();
@@ -65,7 +69,7 @@ fn main() -> Result<()> {
     // Start packet capture
     let (tx, mut rx) = mpsc::unbounded_channel();
     let _capture_handle = capture::sniffer::start_capture(
-        args.interface.clone(),
+        effective_interface.clone(),
         args.filter.clone(),
         args.promiscuous,
         local_net,
@@ -107,7 +111,15 @@ fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).context("Failed to create terminal")?;
 
-    let prefs = config::prefs::load_prefs();
+    let cli_overrides = CliOverrides {
+        dns: args.no_dns,
+        show_ports: args.hide_ports,
+        show_bars: args.no_bars,
+        use_bytes: args.bytes,
+        show_processes: args.no_processes,
+        interface: args.interface.is_some(),
+    };
+
     let mut app = AppState::new(
         resolver,
         !args.hide_ports,
@@ -115,8 +127,13 @@ fn main() -> Result<()> {
         args.bytes,
         !args.no_processes,
         &prefs,
+        cli_overrides,
     );
-    app.interface_name = args.interface.clone().unwrap_or_default();
+    app.interface_name = effective_interface.clone().unwrap_or_default();
+    // If CLI -i was used, override runtime interface (but don't persist)
+    if args.interface.is_some() {
+        app.config_interface = args.interface.clone();
+    }
 
     let result = run_app(&mut terminal, &mut app, &tracker, &mut rx);
 
@@ -253,6 +270,37 @@ fn run_app(
                     continue;
                 }
 
+                // Interface chooser mode
+                if app.interface_chooser.active {
+                    match key.code {
+                        KeyCode::Char('j') | KeyCode::Down | KeyCode::Char('i') => {
+                            let len = app.interface_chooser.interfaces.len();
+                            if len > 0 {
+                                app.interface_chooser.selected = (app.interface_chooser.selected + 1) % len;
+                            }
+                        }
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            let len = app.interface_chooser.interfaces.len();
+                            if len > 0 {
+                                app.interface_chooser.selected = (app.interface_chooser.selected + len - 1) % len;
+                            }
+                        }
+                        KeyCode::Enter => {
+                            let name = app.interface_chooser.interfaces[app.interface_chooser.selected].clone();
+                            app.interface_chooser.active = false;
+                            app.interface_name = name.clone();
+                            app.config_interface = Some(name.clone());
+                            app.save_prefs();
+                            app.set_status(format!("Interface: {} (restart to apply)", name));
+                        }
+                        KeyCode::Esc | KeyCode::Char('q') => {
+                            app.interface_chooser.active = false;
+                        }
+                        _ => {}
+                    }
+                    continue;
+                }
+
                 // Ctrl+key combos
                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                     match key.code {
@@ -272,6 +320,10 @@ fn run_app(
                     KeyCode::Char('c') => {
                         app.show_help = false;
                         app.theme_chooser.open(app.theme_name);
+                    }
+                    KeyCode::Char('i') => {
+                        app.show_help = false;
+                        app.interface_chooser.open(&app.interface_name);
                     }
 
                     // ── Filter ──
@@ -367,9 +419,12 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
             }
         }
         MouseEventKind::Down(MouseButton::Right) => {
-            // Right-click → show tooltip
             let row = mouse.row;
-            if row >= app.flow_area_y {
+            if app.show_header && row == app.header_bar_y {
+                // Right-click on header bar → instant hover tooltip
+                app.hover.right_click_at(mouse.column, mouse.row);
+            } else if row >= app.flow_area_y {
+                // Right-click on flow → show flow tooltip
                 let idx = app.scroll_offset + (row - app.flow_area_y) as usize;
                 if idx < app.flows.len() {
                     app.selected = Some(idx);
@@ -389,6 +444,10 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
                     app.toggle_pin();
                 }
             }
+        }
+        MouseEventKind::Moved => {
+            // Track hover position for header bar tooltips
+            app.hover.move_to(mouse.column, mouse.row);
         }
         _ => {}
     }
