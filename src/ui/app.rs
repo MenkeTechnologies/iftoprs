@@ -557,7 +557,7 @@ impl AppState {
                 ("  Open".into(), "/ to search".into()),
                 ("  Clear".into(), "0 to reset".into()),
             ]
-        } else if seg.contains("PAUSED") {
+        } else if seg.contains("paused") {
             vec![
                 ("▶ Paused".into(), "Data refresh is frozen".into()),
                 ("  Resume".into(), "P to toggle".into()),
@@ -1676,5 +1676,533 @@ mod tests {
         app.save_prefs();
         app.cycle_refresh_rate();
         // If we got here, save_prefs is correctly a no-op
+    }
+}
+
+#[cfg(test)]
+mod tests_extended {
+    use super::*;
+    use crate::data::tracker::TotalStats;
+
+    fn dummy_prefs() -> Prefs { Prefs::default() }
+    fn make_app() -> AppState {
+        let resolver = Resolver::new(false);
+        AppState::new(resolver, true, true, false, true, &dummy_prefs(), CliOverrides::default())
+    }
+    fn make_flow(src_port: u16) -> FlowSnapshot {
+        FlowSnapshot {
+            key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(),
+                src_port, dst_port: 80, protocol: Protocol::Tcp },
+            sent_2s: src_port as f64 * 100.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            total_sent: 1000, total_recv: 500, process_name: None, pid: None,
+        }
+    }
+    fn zero_totals() -> TotalStats {
+        TotalStats { sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            cumulative_sent: 0, cumulative_recv: 0, peak_sent: 0.0, peak_recv: 0.0 }
+    }
+
+    // ── HoverState ──
+
+    #[test] fn hover_state_default_not_ready() {
+        let h = HoverState::default();
+        assert!(!h.ready()); assert!(h.pos.is_none()); assert!(!h.right_click);
+    }
+    #[test] fn hover_state_move_to_sets_position() {
+        let mut h = HoverState::default(); h.move_to(10, 20);
+        assert_eq!(h.pos, Some((10, 20))); assert!(h.since.is_some());
+    }
+    #[test] fn hover_state_move_same_no_reset() {
+        let mut h = HoverState::default(); h.move_to(10, 20);
+        let s = h.since.unwrap(); h.move_to(10, 20); assert_eq!(h.since.unwrap(), s);
+    }
+    #[test] fn hover_state_move_different_resets() {
+        let mut h = HoverState::default(); h.move_to(10, 20);
+        let s = h.since.unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        h.move_to(11, 20); assert_ne!(h.since.unwrap(), s);
+    }
+    #[test] fn hover_right_click_immediately_ready() {
+        let mut h = HoverState::default(); h.right_click_at(5, 5);
+        assert!(h.right_click); assert!(h.ready());
+    }
+    #[test] fn hover_not_ready_before_delay() {
+        let mut h = HoverState::default(); h.move_to(10, 10); assert!(!h.ready());
+    }
+    #[test] fn hover_right_click_clears_on_move() {
+        let mut h = HoverState::default(); h.right_click_at(5, 5);
+        h.move_to(6, 6); assert!(!h.right_click);
+    }
+
+    // ── AlertState ──
+
+    #[test] fn alert_flashing_recent() {
+        let mut a = AlertState::default(); a.flash = Some(Instant::now()); assert!(a.is_flashing());
+    }
+    #[test] fn alert_not_flashing_expired() {
+        let mut a = AlertState::default();
+        a.flash = Some(Instant::now() - std::time::Duration::from_secs(3));
+        assert!(!a.is_flashing());
+    }
+
+    // ── check_alerts ──
+
+    #[test] fn check_alerts_disabled() {
+        let mut app = make_app(); app.alert_threshold = 0.0;
+        app.flows = vec![make_flow(100)]; app.check_alerts();
+        assert!(app.alert_state.flash.is_none());
+    }
+    #[test] fn check_alerts_fires() {
+        let mut app = make_app(); app.alert_threshold = 50.0;
+        app.flows = vec![make_flow(100)]; app.check_alerts();
+        assert!(app.alert_state.flash.is_some());
+    }
+    #[test] fn check_alerts_no_double_fire() {
+        let mut app = make_app(); app.alert_threshold = 50.0;
+        app.flows = vec![make_flow(100)]; app.check_alerts();
+        app.alert_state.flash = None; app.check_alerts();
+        assert!(app.alert_state.flash.is_none());
+    }
+    #[test] fn check_alerts_clears_old() {
+        let mut app = make_app(); app.alert_threshold = 50.0;
+        app.flows = vec![make_flow(100)]; app.check_alerts();
+        app.flows.clear(); app.check_alerts();
+        assert!(app.alert_state.alert_flows.is_empty());
+    }
+
+    // ── toggle_pin ──
+
+    #[test] fn toggle_pin_no_selection() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)];
+        app.toggle_pin(); assert!(app.pinned.is_empty());
+    }
+    #[test] fn toggle_pin_adds() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)]; app.selected = Some(0);
+        app.toggle_pin(); assert_eq!(app.pinned.len(), 1);
+        assert!(app.status_msg.unwrap().text.contains("Pinned"));
+    }
+    #[test] fn toggle_pin_removes() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)]; app.selected = Some(0);
+        app.toggle_pin(); app.toggle_pin(); assert!(app.pinned.is_empty());
+        assert!(app.status_msg.unwrap().text.contains("Unpinned"));
+    }
+    #[test] fn toggle_pin_out_of_bounds() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)]; app.selected = Some(99);
+        app.toggle_pin(); assert!(app.pinned.is_empty());
+    }
+
+    // ── show_tooltip ──
+
+    #[test] fn show_tooltip_basic() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)];
+        app.show_tooltip(0, 10, 5);
+        assert!(app.tooltip.active); assert_eq!(app.tooltip.x, 10);
+    }
+    #[test] fn show_tooltip_oob() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)];
+        app.show_tooltip(99, 0, 0); assert!(!app.tooltip.active);
+    }
+    #[test] fn show_tooltip_process() {
+        let mut app = make_app();
+        let mut f = make_flow(1); f.pid = Some(1234); f.process_name = Some("curl".into());
+        app.flows = vec![f]; app.show_tooltip(0, 0, 0);
+        assert!(app.tooltip.lines.iter().any(|(l, _)| l == "Process"));
+    }
+    #[test] fn show_tooltip_pinned() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)];
+        app.pinned.push(PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() });
+        app.show_tooltip(0, 0, 0);
+        assert!(app.tooltip.lines.iter().any(|(l, _)| l == "Pinned"));
+    }
+    #[test] fn show_tooltip_bandwidth_lines() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)];
+        app.show_tooltip(0, 0, 0);
+        assert!(app.tooltip.lines.iter().any(|(l, _)| l == "TX 2s"));
+        assert!(app.tooltip.lines.iter().any(|(l, _)| l == "RX 2s"));
+        assert!(app.tooltip.lines.iter().any(|(l, _)| l == "Combined"));
+    }
+
+    // ── header_segment_tooltip ──
+
+    #[test] fn hdr_iftoprs() {
+        let app = make_app();
+        let l = app.header_segment_tooltip("IFTOPRS");
+        assert!(l[0].1.contains("IFTOPRS"));
+    }
+    #[test] fn hdr_iface() {
+        let mut app = make_app(); app.interface_name = "en0".into();
+        let l = app.header_segment_tooltip("iface:en0");
+        assert!(l.iter().any(|(_, v)| v.contains("en0")));
+    }
+    #[test] fn hdr_iface_empty() {
+        let l = make_app().header_segment_tooltip("iface:");
+        assert!(l.iter().any(|(_, v)| v.contains("auto-detected")));
+    }
+    #[test] fn hdr_flows() {
+        let mut app = make_app(); app.total_flow_count = 42;
+        let l = app.header_segment_tooltip("flows:42");
+        assert!(l.iter().any(|(_, v)| v.contains("42")));
+    }
+    #[test] fn hdr_clock() {
+        let l = make_app().header_segment_tooltip("clock:12:00");
+        assert!(l.iter().any(|(l, _)| l.contains("Clock")));
+    }
+    #[test] fn hdr_sort_all_columns() {
+        for (col, expected) in [
+            (SortColumn::Avg2s, "2-second"), (SortColumn::Avg10s, "10-second"),
+            (SortColumn::Avg40s, "40-second"), (SortColumn::SrcName, "Source"),
+            (SortColumn::DstName, "Destination"),
+        ] {
+            let mut app = make_app(); app.sort_column = col;
+            let l = app.header_segment_tooltip("sort:x");
+            assert!(l.iter().any(|(_, v)| v.contains(expected)), "{:?}", col);
+        }
+    }
+    #[test] fn hdr_sort_reversed() {
+        let mut app = make_app(); app.sort_reverse = true;
+        let l = app.header_segment_tooltip("sort:2s");
+        assert!(l.iter().any(|(_, v)| v.contains("Reversed")));
+    }
+    #[test] fn hdr_sort_frozen() {
+        let mut app = make_app(); app.frozen_order = true;
+        let l = app.header_segment_tooltip("sort:2s");
+        assert!(l.iter().any(|(_, v)| v.contains("Yes")));
+    }
+    #[test] fn hdr_rate() {
+        let mut app = make_app(); app.refresh_rate = 5;
+        let l = app.header_segment_tooltip("rate:5s");
+        assert!(l.iter().any(|(_, v)| v.contains("5s")));
+    }
+    #[test] fn hdr_theme() {
+        let mut app = make_app(); app.set_theme(ThemeName::BladeRunner);
+        let l = app.header_segment_tooltip("theme:blade");
+        assert!(l.iter().any(|(_, v)| v.contains("Blade Runner")));
+    }
+    #[test] fn hdr_filter() {
+        let mut app = make_app(); app.screen_filter = Some("tcp".into());
+        let l = app.header_segment_tooltip("filter:tcp");
+        assert!(l.iter().any(|(_, v)| v.contains("tcp")));
+    }
+    #[test] fn hdr_filter_none() {
+        let l = make_app().header_segment_tooltip("filter:");
+        assert!(l.iter().any(|(_, v)| v.contains("(none)")));
+    }
+    #[test] fn hdr_paused() {
+        let l = make_app().header_segment_tooltip("PAUSED");
+        assert!(l.iter().any(|(_, v)| v.contains("frozen")));
+    }
+    #[test] fn hdr_help() {
+        let l = make_app().header_segment_tooltip("h=help");
+        assert!(l.iter().any(|(l, _)| l.contains("Help")));
+    }
+    #[test] fn hdr_unknown() {
+        let l = make_app().header_segment_tooltip("unknown_segment");
+        assert_eq!(l.len(), 1); assert!(l[0].1.contains("unknown_segment"));
+    }
+
+    // ── update_snapshot filter ──
+
+    #[test] fn snapshot_filter_match() {
+        let mut app = make_app(); app.screen_filter = Some("10.0.0.1".into());
+        app.update_snapshot(vec![make_flow(1), make_flow(2)], zero_totals());
+        assert_eq!(app.flows.len(), 2);
+    }
+    #[test] fn snapshot_filter_no_match() {
+        let mut app = make_app(); app.screen_filter = Some("172.16.0.0".into());
+        app.update_snapshot(vec![make_flow(1), make_flow(2)], zero_totals());
+        assert_eq!(app.flows.len(), 0);
+    }
+    #[test] fn snapshot_total_count_before_filter() {
+        let mut app = make_app(); app.screen_filter = Some("172.16.0.0".into());
+        app.update_snapshot(vec![make_flow(1), make_flow(2), make_flow(3)], zero_totals());
+        assert_eq!(app.total_flow_count, 3); assert_eq!(app.flows.len(), 0);
+    }
+
+    // ── Sort columns ──
+
+    #[test] fn sort_avg10s() {
+        let mut app = make_app(); app.sort_column = SortColumn::Avg10s;
+        let mut f1 = make_flow(1); f1.sent_10s = 100.0;
+        let mut f2 = make_flow(2); f2.sent_10s = 500.0;
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        assert_eq!(app.flows[0].key.src_port, 2);
+    }
+    #[test] fn sort_avg40s() {
+        let mut app = make_app(); app.sort_column = SortColumn::Avg40s;
+        let mut f1 = make_flow(1); f1.sent_40s = 300.0;
+        let mut f2 = make_flow(2); f2.sent_40s = 100.0;
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        assert_eq!(app.flows[0].key.src_port, 1);
+    }
+    #[test] fn sort_src_name() {
+        let mut app = make_app(); app.sort_column = SortColumn::SrcName;
+        let f1 = FlowSnapshot { key: FlowKey { src: "192.168.1.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 1, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None };
+        let f2 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 2, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None };
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        assert_eq!(app.flows[0].key.src_port, 2);
+    }
+    #[test] fn sort_dst_name() {
+        let mut app = make_app(); app.sort_column = SortColumn::DstName;
+        let f1 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "192.168.1.1".parse().unwrap(), src_port: 1, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None };
+        let f2 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 2, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None };
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        assert_eq!(app.flows[0].key.src_port, 2);
+    }
+
+    // ── format_host port names ──
+
+    #[test] fn format_host_service_name() {
+        let mut app = make_app(); app.show_ports = true; app.show_port_names = true;
+        let r = app.format_host("10.0.0.1".parse().unwrap(), 80, &Protocol::Tcp);
+        assert!(r.contains("http") || r.contains("80"));
+    }
+    #[test] fn format_host_unknown_port() {
+        let mut app = make_app(); app.show_ports = true; app.show_port_names = true;
+        let r = app.format_host("10.0.0.1".parse().unwrap(), 65432, &Protocol::Tcp);
+        assert!(r.contains("65432"));
+    }
+
+    // ── Defaults ──
+
+    #[test] fn tooltip_default() { let t = Tooltip::default(); assert!(!t.active); }
+    #[test] fn filter_state_default() { let f = FilterState::default(); assert!(!f.active); }
+
+    // ── FilterState unicode ──
+
+    #[test] fn filter_unicode_insert() {
+        let mut f = FilterState::new(); f.insert('ä'); f.insert('ö');
+        assert_eq!(f.buf, "äö"); assert_eq!(f.cursor, f.buf.len());
+    }
+    #[test] fn filter_unicode_backspace() {
+        let mut f = FilterState::new(); f.insert('ä'); f.insert('ö');
+        f.backspace(); assert_eq!(f.buf, "ä");
+    }
+    #[test] fn filter_unicode_left_right() {
+        let mut f = FilterState::new(); f.insert('ä'); f.insert('b');
+        f.left(); assert_eq!(f.cursor, 2); f.left(); assert_eq!(f.cursor, 0);
+        f.right(); assert_eq!(f.cursor, 2);
+    }
+    #[test] fn filter_mid_insert() {
+        let mut f = FilterState::new(); f.insert('a'); f.insert('c');
+        f.left(); f.insert('b'); assert_eq!(f.buf, "abc");
+    }
+
+    // ── Navigation edge cases ──
+
+    #[test] fn select_next_empty() { let mut app = make_app(); app.select_next(); assert_eq!(app.selected, Some(0)); }
+    #[test] fn select_prev_empty() { let mut app = make_app(); app.select_prev(); assert_eq!(app.selected, Some(0)); }
+    #[test] fn jump_bottom_empty() { let mut app = make_app(); app.jump_bottom(); assert_eq!(app.selected, Some(0)); }
+    #[test] fn scroll_adjusts_next() {
+        let mut app = make_app(); app.flows = (0..50).map(make_flow).collect();
+        app.selected = Some(19); app.select_next();
+        assert_eq!(app.selected, Some(20)); assert!(app.scroll_offset > 0);
+    }
+    #[test] fn scroll_adjusts_prev() {
+        let mut app = make_app(); app.flows = (0..50).map(make_flow).collect();
+        app.scroll_offset = 10; app.selected = Some(10);
+        app.select_prev(); assert_eq!(app.selected, Some(9)); assert!(app.scroll_offset <= 9);
+    }
+
+    // ── Misc ──
+
+    #[test] fn snapshot_stores_totals() {
+        let mut app = make_app();
+        let t = TotalStats { sent_2s: 100.0, sent_10s: 200.0, sent_40s: 300.0, recv_2s: 50.0, recv_10s: 100.0, recv_40s: 150.0, cumulative_sent: 5000, cumulative_recv: 3000, peak_sent: 500.0, peak_recv: 250.0 };
+        app.update_snapshot(vec![make_flow(1)], t);
+        assert_eq!(app.totals.cumulative_sent, 5000);
+    }
+    #[test] fn app_defaults() {
+        let app = make_app();
+        assert_eq!(app.sort_column, SortColumn::Avg2s);
+        assert!(!app.sort_reverse); assert!(!app.paused);
+        assert!(app.selected.is_none()); assert!(app.flows.is_empty());
+    }
+    #[test] fn status_clears_on_snapshot() {
+        let mut app = make_app();
+        app.status_msg = Some(StatusMsg { text: "old".into(), since: Instant::now() - std::time::Duration::from_secs(5) });
+        app.update_snapshot(vec![], zero_totals());
+        assert!(app.status_msg.is_none());
+    }
+    #[test] fn cli_override_preserves() {
+        let mut p = Prefs::default(); p.dns_resolution = true;
+        let co = CliOverrides { dns: true, ..Default::default() };
+        let app = AppState::new(Resolver::new(false), true, true, false, true, &p, co);
+        assert!(app.cli_overrides.dns); assert!(app.orig_prefs.dns_resolution);
+    }
+    #[test] fn pinned_hash() {
+        use std::collections::HashSet;
+        let mut s = HashSet::new();
+        s.insert(PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() });
+        assert!(s.contains(&PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() }));
+    }
+    #[test] fn cycle_rate_status() {
+        let mut app = make_app(); app.cycle_refresh_rate();
+        assert!(app.status_msg.unwrap().text.contains("Refresh rate"));
+    }
+    #[test] fn export_works() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)]; app.export();
+        assert!(app.status_msg.is_some());
+    }
+    #[test] fn copy_no_selection() {
+        let mut app = make_app(); app.copy_selected();
+        assert!(app.status_msg.unwrap().text.contains("Select a flow"));
+    }
+    #[test] fn copy_oob() {
+        let mut app = make_app(); app.flows = vec![make_flow(1)]; app.selected = Some(99);
+        app.copy_selected(); assert!(app.status_msg.unwrap().text.contains("Select a flow"));
+    }
+    #[test] fn show_cumulative_default() { assert!(!make_app().show_cumulative); }
+    #[test] fn sort_column_variants() {
+        assert_eq!(SortColumn::Avg2s, SortColumn::Avg2s);
+        assert_ne!(SortColumn::Avg2s, SortColumn::Avg10s);
+    }
+
+    // ── ViewTab ──
+
+    #[test]
+    fn view_tab_default_is_flows() {
+        let app = make_app();
+        assert_eq!(app.view_tab, ViewTab::Flows);
+    }
+
+    // ── Process aggregation ──
+
+    #[test]
+    fn process_aggregation_empty() {
+        let mut app = make_app();
+        app.update_snapshot(vec![], zero_totals());
+        assert!(app.process_snapshots.is_empty());
+    }
+
+    #[test]
+    fn process_aggregation_groups_by_name() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1);
+        f1.process_name = Some("curl".into());
+        f1.pid = Some(100);
+        let mut f2 = make_flow(2);
+        f2.process_name = Some("curl".into());
+        f2.pid = Some(100);
+        let mut f3 = make_flow(3);
+        f3.process_name = Some("firefox".into());
+        f3.pid = Some(200);
+        app.update_snapshot(vec![f1, f2, f3], zero_totals());
+        assert_eq!(app.process_snapshots.len(), 2);
+    }
+
+    #[test]
+    fn process_aggregation_sums_rates() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1);
+        f1.process_name = Some("curl".into());
+        f1.sent_2s = 100.0;
+        f1.recv_2s = 50.0;
+        let mut f2 = make_flow(2);
+        f2.process_name = Some("curl".into());
+        f2.sent_2s = 200.0;
+        f2.recv_2s = 75.0;
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        let proc = &app.process_snapshots[0];
+        assert_eq!(proc.name, "curl");
+        assert_eq!(proc.flow_count, 2);
+        assert_eq!(proc.sent_2s, 300.0);
+        assert_eq!(proc.recv_2s, 125.0);
+    }
+
+    #[test]
+    fn process_aggregation_unknown_process() {
+        let mut app = make_app();
+        let f = make_flow(1); // no process_name
+        app.update_snapshot(vec![f], zero_totals());
+        assert_eq!(app.process_snapshots.len(), 1);
+        assert_eq!(app.process_snapshots[0].name, "(unknown)");
+    }
+
+    #[test]
+    fn process_aggregation_sorted_by_rate() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1);
+        f1.process_name = Some("slow".into());
+        f1.sent_2s = 10.0;
+        let mut f2 = make_flow(2);
+        f2.process_name = Some("fast".into());
+        f2.sent_2s = 1000.0;
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        assert_eq!(app.process_snapshots[0].name, "fast");
+        assert_eq!(app.process_snapshots[1].name, "slow");
+    }
+
+    // ── Process navigation ──
+
+    #[test]
+    fn process_select_next_from_none() {
+        let mut app = make_app();
+        let mut f = make_flow(1);
+        f.process_name = Some("test".into());
+        app.update_snapshot(vec![f], zero_totals());
+        app.process_select_next();
+        assert_eq!(app.process_selected, Some(0));
+    }
+
+    #[test]
+    fn process_select_next_increments() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1); f1.process_name = Some("a".into());
+        let mut f2 = make_flow(2); f2.process_name = Some("b".into());
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        app.process_selected = Some(0);
+        app.process_select_next();
+        assert_eq!(app.process_selected, Some(1));
+    }
+
+    #[test]
+    fn process_select_prev_decrements() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1); f1.process_name = Some("a".into());
+        let mut f2 = make_flow(2); f2.process_name = Some("b".into());
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        app.process_selected = Some(1);
+        app.process_select_prev();
+        assert_eq!(app.process_selected, Some(0));
+    }
+
+    #[test]
+    fn process_select_clamps() {
+        let mut app = make_app();
+        let mut f = make_flow(1); f.process_name = Some("a".into());
+        app.update_snapshot(vec![f], zero_totals());
+        app.process_selected = Some(0);
+        app.process_select_next(); // only 1 item
+        assert_eq!(app.process_selected, Some(0));
+    }
+
+    #[test]
+    fn process_page_down_up() {
+        let mut app = make_app();
+        let flows: Vec<_> = (0..30).map(|i| {
+            let mut f = make_flow(i);
+            f.process_name = Some(format!("proc{}", i));
+            f
+        }).collect();
+        app.update_snapshot(flows, zero_totals());
+        app.process_selected = Some(0);
+        app.process_page_down();
+        assert_eq!(app.process_selected, Some(10));
+        app.process_page_up();
+        assert_eq!(app.process_selected, Some(0));
+    }
+
+    #[test]
+    fn process_selection_clamps_on_snapshot() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1); f1.process_name = Some("a".into());
+        let mut f2 = make_flow(2); f2.process_name = Some("b".into());
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        app.process_selected = Some(10); // out of bounds
+        let mut f3 = make_flow(3); f3.process_name = Some("c".into());
+        app.update_snapshot(vec![f3], zero_totals());
+        assert_eq!(app.process_selected, Some(0));
     }
 }

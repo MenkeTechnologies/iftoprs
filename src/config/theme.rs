@@ -249,4 +249,69 @@ mod tests {
             assert_eq!(Theme::swatch(name).len(), 6);
         }
     }
+
+    #[test]
+    fn theme_fields_are_indexed_colors() {
+        let t = Theme::from_name(ThemeName::NeonSprawl);
+        assert!(matches!(t.bar_color, Color::Indexed(_)));
+        assert_eq!(t.bar_text, Color::Black);
+        assert!(matches!(t.host_src, Color::Indexed(_)));
+        assert!(matches!(t.arrow, Color::Indexed(_)));
+        assert!(matches!(t.proc_name, Color::Indexed(_)));
+        assert_eq!(t.help_bg, Color::Indexed(236));
+    }
+
+    #[test]
+    fn all_themes_unique_display_names() {
+        let mut names: Vec<&str> = ThemeName::ALL.iter().map(|t| t.display_name()).collect();
+        names.sort();
+        names.dedup();
+        assert_eq!(names.len(), ThemeName::ALL.len());
+    }
+
+    #[test]
+    fn neon_sprawl_palette() {
+        let t = Theme::from_name(ThemeName::NeonSprawl);
+        assert_eq!(t.bar_color, Color::Indexed(99));
+        assert_eq!(t.host_src, Color::Indexed(48));
+        assert_eq!(t.total_label, Color::Indexed(27));
+        assert_eq!(t.proc_name, Color::Indexed(135));
+    }
+
+    #[test]
+    fn blade_runner_palette() {
+        let t = Theme::from_name(ThemeName::BladeRunner);
+        assert_eq!(t.bar_color, Color::Indexed(23));
+        assert_eq!(t.host_src, Color::Indexed(37));
+        assert_eq!(t.total_label, Color::Indexed(208));
+    }
+
+    #[test]
+    fn swatch_colors_match_palette() {
+        let s = Theme::swatch(ThemeName::NeonSprawl);
+        assert_eq!(s[0].0, Color::Indexed(27));
+        assert_eq!(s[1].0, Color::Indexed(48));
+        assert_eq!(s[5].0, Color::Indexed(99));
+    }
+
+    #[test]
+    fn theme_name_serde_roundtrip() {
+        let name = ThemeName::BladeRunner;
+        let json = serde_json::to_string(&name).unwrap();
+        let parsed: ThemeName = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, name);
+    }
+
+    #[test]
+    fn theme_all_contains_default() {
+        assert!(ThemeName::ALL.contains(&ThemeName::default()));
+    }
+
+    #[test]
+    fn theme_clone() {
+        let t = Theme::from_name(ThemeName::AcidRain);
+        let t2 = t.clone();
+        assert_eq!(t.bar_color, t2.bar_color);
+        assert_eq!(t.host_src, t2.host_src);
+    }
 }

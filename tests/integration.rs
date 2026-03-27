@@ -292,3 +292,26 @@ fn help_mentions_capture_section() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("CAPTURE"), "help should have CAPTURE section");
 }
+
+#[test]
+fn help_contains_json_flag() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--json"), "help should show --json flag");
+    assert!(stdout.contains("NDJSON"), "help should describe NDJSON output");
+}
+
+#[test]
+fn help_contains_tab_keybind() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Tab"), "help should document Tab key for switching views");
+    assert!(stdout.contains("switch view"), "help should explain Tab switches views");
+}
+
+#[test]
+fn completions_zsh_includes_json_flag() {
+    let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--json"), "zsh completions should include --json");
+}

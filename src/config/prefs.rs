@@ -118,3 +118,133 @@ pub fn save_prefs(prefs: &Prefs) {
             let _ = std::fs::write(path, s);
         }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prefs_default_values() {
+        let p = Prefs::default();
+        assert_eq!(p.theme, ThemeName::default());
+        assert!(p.dns_resolution);
+        assert!(p.port_resolution);
+        assert!(p.show_ports);
+        assert!(p.show_bars);
+        assert!(!p.use_bytes);
+        assert!(p.show_processes);
+        assert!(!p.show_cumulative);
+        assert_eq!(p.bar_style, BarStyle::default());
+        assert!(p.pinned.is_empty());
+        assert!(p.show_border);
+        assert!(p.show_header);
+        assert_eq!(p.refresh_rate, 1);
+        assert_eq!(p.alert_threshold, 0.0);
+        assert!(p.interface.is_none());
+    }
+
+    #[test]
+    fn prefs_serialize_deserialize() {
+        let p = Prefs::default();
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, p.theme);
+        assert_eq!(p2.dns_resolution, p.dns_resolution);
+        assert_eq!(p2.show_border, p.show_border);
+        assert_eq!(p2.refresh_rate, p.refresh_rate);
+    }
+
+    #[test]
+    fn prefs_deserialize_empty_toml() {
+        let p: Prefs = toml::from_str("").unwrap();
+        assert_eq!(p.theme, ThemeName::default());
+        assert!(p.show_border);
+        assert_eq!(p.refresh_rate, 1);
+    }
+
+    #[test]
+    fn prefs_deserialize_partial_toml() {
+        let p: Prefs = toml::from_str("theme = \"BladeRunner\"\nuse_bytes = true").unwrap();
+        assert_eq!(p.theme, ThemeName::BladeRunner);
+        assert!(p.use_bytes);
+        // defaults for missing fields
+        assert!(p.show_border);
+        assert_eq!(p.refresh_rate, 1);
+    }
+
+    #[test]
+    fn prefs_interface_none_omitted() {
+        let p = Prefs::default();
+        let s = toml::to_string_pretty(&p).unwrap();
+        assert!(!s.contains("interface"));
+    }
+
+    #[test]
+    fn prefs_interface_some_included() {
+        let mut p = Prefs::default();
+        p.interface = Some("en0".into());
+        let s = toml::to_string_pretty(&p).unwrap();
+        assert!(s.contains("interface = \"en0\""));
+    }
+
+    #[test]
+    fn prefs_interface_roundtrip() {
+        let mut p = Prefs::default();
+        p.interface = Some("eth0".into());
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.interface, Some("eth0".into()));
+    }
+
+    #[test]
+    fn prefs_pinned_roundtrip() {
+        let mut p = Prefs::default();
+        p.pinned.push(crate::ui::app::PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() });
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.pinned.len(), 1);
+        assert_eq!(p2.pinned[0].src, "10.0.0.1");
+    }
+
+    #[test]
+    fn prefs_custom_values_roundtrip() {
+        let mut p = Prefs::default();
+        p.theme = ThemeName::GlitchPop;
+        p.use_bytes = true;
+        p.show_border = false;
+        p.refresh_rate = 5;
+        p.alert_threshold = 1000.0;
+        p.bar_style = BarStyle::Thin;
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::GlitchPop);
+        assert!(p2.use_bytes);
+        assert!(!p2.show_border);
+        assert_eq!(p2.refresh_rate, 5);
+        assert_eq!(p2.alert_threshold, 1000.0);
+        assert_eq!(p2.bar_style, BarStyle::Thin);
+    }
+
+    #[test]
+    fn save_prefs_no_op_in_test() {
+        let p = Prefs::default();
+        save_prefs(&p); // should not panic or write to disk
+    }
+
+    #[test]
+    fn load_prefs_returns_valid() {
+        let p = load_prefs();
+        // Should always return a valid Prefs, regardless of file state
+        assert!(p.refresh_rate >= 1);
+    }
+
+    #[test]
+    fn default_true_helper() {
+        assert!(default_true());
+    }
+
+    #[test]
+    fn default_refresh_helper() {
+        assert_eq!(default_refresh(), 1);
+    }
+}

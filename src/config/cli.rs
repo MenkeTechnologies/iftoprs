@@ -36,6 +36,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
   -B, --bytes                    \x1b[32m//\x1b[0m Display bandwidth in bytes instead of bits
   -P, --hide-ports               \x1b[32m//\x1b[0m Ghost the port numbers from host display
   -Z, --no-processes             \x1b[32m//\x1b[0m Hide owning process column (shown by default)
+      --json                     \x1b[32m//\x1b[0m Stream NDJSON to stdout (no TUI)
   -l, --list-interfaces          \x1b[32m//\x1b[0m Enumerate available interfaces and disconnect
       --list-colors              \x1b[32m//\x1b[0m Preview all 31 color themes
   -h, --help                     Print help
@@ -45,7 +46,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
 \x1b[33m  B\x1b[0m ── bytes/bits     \x1b[33mp\x1b[0m ── ports           \x1b[33mZ\x1b[0m ── processes
 \x1b[33m  t\x1b[0m ── line mode      \x1b[33mT\x1b[0m ── cumulative      \x1b[33mP\x1b[0m ── pause
 \x1b[33m  x\x1b[0m ── border          \x1b[33mc\x1b[0m ── themes           \x1b[33m/\x1b[0m ── filter
-\x1b[33m  g\x1b[0m ── header bar     \x1b[33mf\x1b[0m ── refresh rate
+\x1b[33m  g\x1b[0m ── header bar     \x1b[33mf\x1b[0m ── refresh rate    \x1b[33mTab\x1b[0m ── switch view
 \x1b[33m  1/2/3\x1b[0m ── sort by 2s/10s/40s average
 \x1b[33m  < / >\x1b[0m ── sort by src/dst    \x1b[33mo\x1b[0m ── freeze order
 \x1b[33m  j/k\x1b[0m ── scroll                \x1b[33mq\x1b[0m ── disconnect

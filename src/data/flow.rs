@@ -97,4 +97,69 @@ mod tests {
         let k2 = k1.clone();
         assert_eq!(k1, k2);
     }
+
+    #[test]
+    fn flow_key_inequality_port() {
+        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Tcp };
+        let k2 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 81, dst_port: 80, protocol: Protocol::Tcp };
+        assert_ne!(k1, k2);
+    }
+
+    #[test]
+    fn flow_key_inequality_protocol() {
+        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Tcp };
+        let k2 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Udp };
+        assert_ne!(k1, k2);
+    }
+
+    #[test]
+    fn flow_key_inequality_ip() {
+        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Tcp };
+        let k2 = FlowKey { src: "10.0.0.3".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Tcp };
+        assert_ne!(k1, k2);
+    }
+
+    #[test]
+    fn flow_key_hash_consistency() {
+        use std::collections::HashMap;
+        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 443, protocol: Protocol::Tcp };
+        let k2 = k1.clone();
+        let mut map = HashMap::new();
+        map.insert(k1, 42);
+        assert_eq!(map.get(&k2), Some(&42));
+    }
+
+    #[test]
+    fn flow_key_ipv6() {
+        let k = FlowKey { src: "::1".parse().unwrap(), dst: "::2".parse().unwrap(), src_port: 80, dst_port: 443, protocol: Protocol::Tcp };
+        let k2 = k.clone();
+        assert_eq!(k, k2);
+    }
+
+    #[test]
+    fn direction_eq() {
+        assert_eq!(Direction::Sent, Direction::Sent);
+        assert_eq!(Direction::Received, Direction::Received);
+        assert_ne!(Direction::Sent, Direction::Received);
+    }
+
+    #[test]
+    fn protocol_debug() {
+        let p = Protocol::Tcp;
+        let s = format!("{:?}", p);
+        assert_eq!(s, "Tcp");
+    }
+
+    #[test]
+    fn protocol_other_display() {
+        assert_eq!(format!("{}", Protocol::Other(0)), "Proto(0)");
+        assert_eq!(format!("{}", Protocol::Other(255)), "Proto(255)");
+    }
+
+    #[test]
+    fn protocol_copy() {
+        let p = Protocol::Udp;
+        let p2 = p;
+        assert_eq!(p, p2);
+    }
 }

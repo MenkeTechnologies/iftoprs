@@ -55,6 +55,11 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
+    // JSON streaming mode (no TUI)
+    if args.json {
+        return run_json_mode(&args);
+    }
+
     if let Some(ref path) = args.config {
         config::prefs::set_config_path(std::path::PathBuf::from(path));
     }
@@ -604,6 +609,134 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
             app.hover.move_to(mouse.column, mouse.row);
         }
         _ => {}
+    }
+}
+
+/// Run in headless JSON streaming mode — no TUI, outputs NDJSON to stdout.
+fn run_json_mode(args: &Args) -> Result<()> {
+    use serde::Serialize;
+
+    if let Some(ref path) = args.config {
+        config::prefs::set_config_path(std::path::PathBuf::from(path));
+    }
+    let prefs = config::prefs::load_prefs();
+    let effective_interface = args.interface.clone().or(prefs.interface.clone());
+    let local_net = args.parse_net_filter().or_else(|| {
+        auto_detect_local_net(effective_interface.as_deref())
+    });
+    let resolver = Resolver::new(!args.no_dns);
+    let tracker = FlowTracker::new();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _capture_handle = capture::sniffer::start_capture(
+        effective_interface,
+        args.filter.clone(),
+        args.promiscuous,
+        local_net,
+        tx,
+    )?;
+
+    // Process attribution thread
+    let tracker_proc = tracker.clone();
+    std::thread::Builder::new()
+        .name("proc-lookup".into())
+        .spawn(move || {
+            loop {
+                util::procinfo::refresh_proc_table();
+                std::thread::sleep(Duration::from_secs(2));
+                let keys = tracker_proc.flow_keys();
+                for key in keys {
+                    if let Some((pid, name)) = util::lookup_process(
+                        key.src, key.src_port, key.dst, key.dst_port, &key.protocol,
+                    ) {
+                        tracker_proc.set_process_info(&key, pid, name);
+                    }
+                }
+            }
+        })
+        .context("Failed to spawn proc-lookup thread")?;
+
+    let refresh = Duration::from_secs(prefs.refresh_rate);
+    let use_bytes = args.bytes;
+
+    #[derive(Serialize)]
+    struct JsonFlow {
+        src: String,
+        dst: String,
+        src_port: u16,
+        dst_port: u16,
+        protocol: String,
+        sent_2s: f64,
+        recv_2s: f64,
+        sent_10s: f64,
+        recv_10s: f64,
+        sent_40s: f64,
+        recv_40s: f64,
+        total_sent: u64,
+        total_recv: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        process_name: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pid: Option<u32>,
+    }
+
+    #[derive(Serialize)]
+    struct JsonSnapshot {
+        timestamp: String,
+        flow_count: usize,
+        total_sent: u64,
+        total_recv: u64,
+        peak_sent: f64,
+        peak_recv: f64,
+        flows: Vec<JsonFlow>,
+    }
+
+    loop {
+        // Drain packets
+        while let Ok(event) = rx.try_recv() {
+            tracker.record(event.parsed.key, event.parsed.direction, event.parsed.len);
+        }
+        tracker.maybe_rotate();
+
+        let (flows, totals) = tracker.snapshot();
+
+        let json_flows: Vec<JsonFlow> = flows.iter().map(|f| {
+            let src_host = resolver.resolve(f.key.src);
+            let dst_host = resolver.resolve(f.key.dst);
+            JsonFlow {
+                src: if f.key.src_port > 0 { format!("{}:{}", src_host, f.key.src_port) } else { src_host },
+                dst: if f.key.dst_port > 0 { format!("{}:{}", dst_host, f.key.dst_port) } else { dst_host },
+                src_port: f.key.src_port,
+                dst_port: f.key.dst_port,
+                protocol: format!("{}", f.key.protocol),
+                sent_2s: if use_bytes { f.sent_2s } else { f.sent_2s * 8.0 },
+                recv_2s: if use_bytes { f.recv_2s } else { f.recv_2s * 8.0 },
+                sent_10s: if use_bytes { f.sent_10s } else { f.sent_10s * 8.0 },
+                recv_10s: if use_bytes { f.recv_10s } else { f.recv_10s * 8.0 },
+                sent_40s: if use_bytes { f.sent_40s } else { f.sent_40s * 8.0 },
+                recv_40s: if use_bytes { f.recv_40s } else { f.recv_40s * 8.0 },
+                total_sent: f.total_sent,
+                total_recv: f.total_recv,
+                process_name: f.process_name.clone(),
+                pid: f.pid,
+            }
+        }).collect();
+
+        let snapshot = JsonSnapshot {
+            timestamp: chrono::Local::now().to_rfc3339(),
+            flow_count: json_flows.len(),
+            total_sent: totals.cumulative_sent,
+            total_recv: totals.cumulative_recv,
+            peak_sent: totals.peak_sent,
+            peak_recv: totals.peak_recv,
+            flows: json_flows,
+        };
+
+        if let Ok(line) = serde_json::to_string(&snapshot) {
+            println!("{}", line);
+        }
+
+        std::thread::sleep(refresh);
     }
 }
 

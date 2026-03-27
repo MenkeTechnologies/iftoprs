@@ -206,4 +206,92 @@ mod tests {
         h.rotate();
         assert_eq!(h.peak_sent, 1000.0);
     }
+
+    #[test]
+    fn default_trait() {
+        let h = FlowHistory::default();
+        assert_eq!(h.total_sent, 0);
+        assert_eq!(h.total_recv, 0);
+    }
+
+    #[test]
+    fn last_seen_updates_on_sent() {
+        let h1 = FlowHistory::new();
+        let before = h1.last_seen;
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        let mut h2 = FlowHistory::new();
+        h2.add_sent(100);
+        assert!(h2.last_seen >= before);
+    }
+
+    #[test]
+    fn last_seen_updates_on_recv() {
+        let mut h = FlowHistory::new();
+        let before = h.last_seen;
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        h.add_recv(100);
+        assert!(h.last_seen >= before);
+    }
+
+    #[test]
+    fn process_fields_none_by_default() {
+        let h = FlowHistory::new();
+        assert!(h.process_name.is_none());
+        assert!(h.pid.is_none());
+    }
+
+    #[test]
+    fn recv_window_averages() {
+        let mut h = FlowHistory::new();
+        h.add_recv(100);
+        h.rotate();
+        h.add_recv(200);
+        assert_eq!(h.avg_recv_2s(), 300.0);
+        assert_eq!(h.avg_recv_10s(), 300.0);
+        assert_eq!(h.avg_recv_40s(), 300.0);
+    }
+
+    #[test]
+    fn recv_peak_tracking() {
+        let mut h = FlowHistory::new();
+        h.add_recv(500);
+        h.rotate();
+        h.add_recv(1000);
+        h.rotate();
+        assert_eq!(h.peak_recv, 1000.0);
+    }
+
+    #[test]
+    fn window_avg_single_slot() {
+        let mut h = FlowHistory::new();
+        h.add_sent(42);
+        assert_eq!(h.avg_sent_2s(), 42.0);
+        assert_eq!(h.avg_sent_10s(), 42.0);
+        assert_eq!(h.avg_sent_40s(), 42.0);
+    }
+
+    #[test]
+    fn window_avg_many_slots() {
+        let mut h = FlowHistory::new();
+        for i in 0..20 {
+            h.add_sent(i * 10);
+            h.rotate();
+        }
+        // 2s = last 2 slots, which are 0 (new empty) and the value from last iteration
+        let s2 = h.avg_sent_2s();
+        let s10 = h.avg_sent_10s();
+        let s40 = h.avg_sent_40s();
+        assert!(s2 <= s10);
+        assert!(s10 <= s40);
+    }
+
+    #[test]
+    fn rotate_evicts_recv_after_40_slots() {
+        let mut h = FlowHistory::new();
+        for _ in 0..50 {
+            h.add_recv(1);
+            h.rotate();
+        }
+        assert!(h.recv.len() <= 40);
+    }
 }
