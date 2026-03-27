@@ -34,8 +34,8 @@ _iftoprs() {
 '--bytes[Display bandwidth in bytes (instead of bits)]' \
 '-P[Hide ports alongside hosts]' \
 '--hide-ports[Hide ports alongside hosts]' \
-'-Z[Show owning process for each flow]' \
-'--show-processes[Show owning process for each flow]' \
+'-Z[Hide owning process column]' \
+'--no-processes[Hide owning process column]' \
 '-l[List available interfaces and exit]' \
 '--list-interfaces[List available interfaces and exit]' \
 '-h[Print help]' \

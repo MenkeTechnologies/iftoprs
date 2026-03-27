@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://NET_INTERCEPT v1.0 ]</code><br>
+  <code>[ SYSTEM://NET_INTERCEPT v2.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR PACKET STREAM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for real-time bandwidth monitoring</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a> + <a href="https://docs.rs/pcap">pcap</a></em><br><br>
@@ -82,10 +82,28 @@ cargo install iftoprs
   └── requires libpcap (root/sudo for raw capture)
   │
 [THEME_ENGINE]
-  ├── 30 builtin cyberpunk color themes
+  ├── 31 builtin cyberpunk color themes (including iftopcolor)
   │   ├── live theme chooser (c key)
   │   ├── swatch preview per theme
   │   └── persistent selection via ~/.iftoprs.conf
+  │
+[FLOW_SELECTION]
+  ├── j/k ── select next/prev flow
+  ├── Ctrl+d/u ── half-page scroll
+  ├── G/Home ── jump to last/first
+  ├── y ── copy selected flow to clipboard
+  ├── F ── pin/unpin flow (★ floats to top)
+  └── Esc ── deselect
+  │
+[FILTER_ENGINE]
+  ├── / ── live filter by hostname/IP
+  ├── 0 ── clear filter
+  ├── Ctrl+w ── delete word
+  └── Ctrl+k ── kill to end of line
+  │
+[EXPORT]
+  ├── e ── export all flows to ~/.iftoprs.export.txt
+  └── includes per-flow rates + TX/RX totals
   │
 [SHELL_COMPLETION]
   ├── Zsh completions ── completions/_iftoprs
@@ -173,7 +191,7 @@ sudo ./target/release/iftoprs
 | `-b, --no-bars` | Disable bar graph display |
 | `-B, --bytes` | Display bandwidth in bytes (instead of bits) |
 | `-P, --hide-ports` | Hide ports alongside hosts |
-| `-Z, --show-processes` | Show owning process for each flow |
+| `-Z, --no-processes` | Hide process column (shown by default) |
 
 #### `// SYSTEM`
 

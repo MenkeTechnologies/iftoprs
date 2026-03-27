@@ -33,6 +33,7 @@ fn completions_zsh_generates_valid_output() {
     assert!(stdout.contains("--interface"), "completions should include --interface");
     assert!(stdout.contains("--no-dns"), "completions should include --no-dns");
     assert!(stdout.contains("--completions"), "completions should include --completions");
+    assert!(stdout.contains("--no-processes"), "completions should include --no-processes");
 }
 
 #[test]
@@ -62,4 +63,33 @@ fn help_contains_ansi_colors() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("\x1b["), "help should contain ANSI escape codes");
+}
+
+#[test]
+fn help_contains_new_keybinds() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("scroll"), "help should document scroll keybinds");
+    assert!(stdout.contains("disconnect"), "help should document quit keybind");
+}
+
+#[test]
+fn help_shows_system_section() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("SYSTEM"), "help should contain SYSTEM section");
+    assert!(stdout.contains("MenkeTechnologies"), "help should credit author");
+}
+
+#[test]
+fn version_matches_cargo_toml() {
+    let output = cargo_bin().arg("-V").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let version = stdout.strip_prefix("iftoprs ").unwrap();
+    // Version should be semver
+    let parts: Vec<&str> = version.split('.').collect();
+    assert_eq!(parts.len(), 3, "version should be semver: {}", version);
+    for part in &parts {
+        assert!(part.parse::<u32>().is_ok(), "non-numeric version part: {}", part);
+    }
 }

@@ -97,9 +97,12 @@ impl FilterState {
         }
     }
     pub fn delete_word(&mut self) {
-        let new_end = self.buf[..self.cursor].trim_end_matches(|c: char| !c.is_whitespace()).trim_end().len();
-        self.buf.drain(new_end..self.cursor);
-        self.cursor = new_end;
+        // Ctrl+W behavior: skip trailing spaces, then delete the word
+        let s = &self.buf[..self.cursor];
+        let trimmed = s.trim_end();
+        let word_start = trimmed.rfind(char::is_whitespace).map(|i| i + 1).unwrap_or(0);
+        self.buf.drain(word_start..self.cursor);
+        self.cursor = word_start;
     }
     pub fn home(&mut self) { self.cursor = 0; }
     pub fn end(&mut self) { self.cursor = self.buf.len(); }
@@ -122,6 +125,22 @@ pub struct StatusMsg { pub text: String, pub since: Instant }
 impl StatusMsg {
     pub fn new(text: String) -> Self { Self { text, since: Instant::now() } }
     pub fn expired(&self) -> bool { self.since.elapsed().as_secs() >= 3 }
+}
+
+/// Right-click tooltip state.
+pub struct Tooltip {
+    pub active: bool,
+    pub x: u16,
+    pub y: u16,
+    pub lines: Vec<(String, String)>, // (label, value) pairs
+}
+
+impl Default for Tooltip {
+    fn default() -> Self { Self::new() }
+}
+
+impl Tooltip {
+    pub fn new() -> Self { Self { active: false, x: 0, y: 0, lines: Vec::new() } }
 }
 
 /// A flow identity for pinning (favorites).
@@ -156,6 +175,9 @@ pub struct AppState {
     pub filter_state: FilterState,
     pub status_msg: Option<StatusMsg>,
     pub pinned: Vec<PinnedFlow>,
+    pub tooltip: Tooltip,
+    /// Y offset where the flow area starts (set by renderer).
+    pub flow_area_y: u16,
 
     /// Cached data from last snapshot
     pub flows: Vec<FlowSnapshot>,
@@ -191,6 +213,8 @@ impl AppState {
             filter_state: FilterState::new(),
             status_msg: None,
             pinned: prefs.pinned.clone(),
+            tooltip: Tooltip::new(),
+            flow_area_y: 2,
             flows: Vec::new(),
             totals: TotalStats {
                 sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
@@ -248,6 +272,37 @@ impl AppState {
             self.set_status(format!("Pinned ★ {}", label));
         }
         self.save_prefs();
+    }
+
+    /// Show right-click tooltip for a flow.
+    pub fn show_tooltip(&mut self, idx: usize, x: u16, y: u16) {
+        if idx >= self.flows.len() { return; }
+        let f = &self.flows[idx];
+        let src = self.format_host(f.key.src, f.key.src_port, &f.key.protocol);
+        let dst = self.format_host(f.key.dst, f.key.dst_port, &f.key.protocol);
+        let mut lines = Vec::new();
+        lines.push(("Source".into(), src));
+        lines.push(("Destination".into(), dst));
+        lines.push(("Protocol".into(), format!("{}", f.key.protocol)));
+        if let (Some(pid), Some(name)) = (f.pid, &f.process_name) {
+            lines.push(("Process".into(), format!("[{}:{}]", pid, name)));
+        }
+        lines.push(("".into(), "".into()));
+        lines.push(("TX 2s".into(), crate::util::format::readable_size(f.sent_2s, self.use_bytes)));
+        lines.push(("TX 10s".into(), crate::util::format::readable_size(f.sent_10s, self.use_bytes)));
+        lines.push(("TX 40s".into(), crate::util::format::readable_size(f.sent_40s, self.use_bytes)));
+        lines.push(("TX total".into(), crate::util::format::readable_total(f.total_sent, self.use_bytes)));
+        lines.push(("".into(), "".into()));
+        lines.push(("RX 2s".into(), crate::util::format::readable_size(f.recv_2s, self.use_bytes)));
+        lines.push(("RX 10s".into(), crate::util::format::readable_size(f.recv_10s, self.use_bytes)));
+        lines.push(("RX 40s".into(), crate::util::format::readable_size(f.recv_40s, self.use_bytes)));
+        lines.push(("RX total".into(), crate::util::format::readable_total(f.total_recv, self.use_bytes)));
+        lines.push(("".into(), "".into()));
+        lines.push(("Combined".into(), crate::util::format::readable_total(f.total_sent + f.total_recv, self.use_bytes)));
+        if self.is_pinned(&f.key) {
+            lines.push(("Pinned".into(), "★".into()));
+        }
+        self.tooltip = Tooltip { active: true, x, y, lines };
     }
 
     /// Check if a flow is pinned.
@@ -484,5 +539,436 @@ impl AppState {
         } else {
             hostname
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::tracker::TotalStats;
+
+    fn dummy_prefs() -> Prefs {
+        Prefs::default()
+    }
+
+    fn make_app() -> AppState {
+        let resolver = Resolver::new(false);
+        AppState::new(resolver, true, true, false, true, &dummy_prefs())
+    }
+
+    fn make_flow(src_port: u16) -> FlowSnapshot {
+        FlowSnapshot {
+            key: FlowKey {
+                src: "10.0.0.1".parse().unwrap(),
+                dst: "10.0.0.2".parse().unwrap(),
+                src_port,
+                dst_port: 80,
+                protocol: Protocol::Tcp,
+            },
+            sent_2s: src_port as f64 * 100.0,
+            sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            total_sent: 1000, total_recv: 500,
+            process_name: None, pid: None,
+        }
+    }
+
+    fn zero_totals() -> TotalStats {
+        TotalStats {
+            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            cumulative_sent: 0, cumulative_recv: 0,
+            peak_sent: 0.0, peak_recv: 0.0,
+        }
+    }
+
+    // ── LineDisplay ──
+
+    #[test]
+    fn line_display_cycles() {
+        let mut d = LineDisplay::TwoLine;
+        d = d.next(); assert_eq!(d, LineDisplay::OneLine);
+        d = d.next(); assert_eq!(d, LineDisplay::SentOnly);
+        d = d.next(); assert_eq!(d, LineDisplay::RecvOnly);
+        d = d.next(); assert_eq!(d, LineDisplay::TwoLine);
+    }
+
+    // ── BarStyle ──
+
+    #[test]
+    fn bar_style_cycles() {
+        let mut b = BarStyle::Gradient;
+        b = b.next(); assert_eq!(b, BarStyle::Solid);
+        b = b.next(); assert_eq!(b, BarStyle::Thin);
+        b = b.next(); assert_eq!(b, BarStyle::Ascii);
+        b = b.next(); assert_eq!(b, BarStyle::Gradient);
+    }
+
+    #[test]
+    fn bar_style_names() {
+        assert_eq!(BarStyle::Gradient.name(), "gradient");
+        assert_eq!(BarStyle::Solid.name(), "solid");
+        assert_eq!(BarStyle::Thin.name(), "thin");
+        assert_eq!(BarStyle::Ascii.name(), "ascii");
+    }
+
+    #[test]
+    fn bar_style_default() {
+        assert_eq!(BarStyle::default(), BarStyle::Gradient);
+    }
+
+    // ── FilterState ──
+
+    #[test]
+    fn filter_state_new_is_inactive() {
+        let f = FilterState::new();
+        assert!(!f.active);
+        assert!(f.buf.is_empty());
+        assert_eq!(f.cursor, 0);
+    }
+
+    #[test]
+    fn filter_state_open_copies_current() {
+        let mut f = FilterState::new();
+        f.open(&Some("test".to_string()));
+        assert!(f.active);
+        assert_eq!(f.buf, "test");
+        assert_eq!(f.cursor, 4);
+        assert_eq!(f.prev, Some("test".to_string()));
+    }
+
+    #[test]
+    fn filter_state_open_none() {
+        let mut f = FilterState::new();
+        f.open(&None);
+        assert!(f.active);
+        assert!(f.buf.is_empty());
+    }
+
+    #[test]
+    fn filter_state_insert() {
+        let mut f = FilterState::new();
+        f.insert('a');
+        f.insert('b');
+        f.insert('c');
+        assert_eq!(f.buf, "abc");
+        assert_eq!(f.cursor, 3);
+    }
+
+    #[test]
+    fn filter_state_backspace() {
+        let mut f = FilterState::new();
+        f.insert('a');
+        f.insert('b');
+        f.backspace();
+        assert_eq!(f.buf, "a");
+        assert_eq!(f.cursor, 1);
+    }
+
+    #[test]
+    fn filter_state_backspace_at_start() {
+        let mut f = FilterState::new();
+        f.backspace();
+        assert!(f.buf.is_empty());
+    }
+
+    #[test]
+    fn filter_state_home_end() {
+        let mut f = FilterState::new();
+        f.insert('a'); f.insert('b'); f.insert('c');
+        f.home(); assert_eq!(f.cursor, 0);
+        f.end(); assert_eq!(f.cursor, 3);
+    }
+
+    #[test]
+    fn filter_state_left_right() {
+        let mut f = FilterState::new();
+        f.insert('a'); f.insert('b');
+        f.left(); assert_eq!(f.cursor, 1);
+        f.left(); assert_eq!(f.cursor, 0);
+        f.left(); assert_eq!(f.cursor, 0); // clamp
+        f.right(); assert_eq!(f.cursor, 1);
+        f.right(); assert_eq!(f.cursor, 2);
+        f.right(); assert_eq!(f.cursor, 2); // clamp
+    }
+
+    #[test]
+    fn filter_state_kill_to_end() {
+        let mut f = FilterState::new();
+        f.buf = "hello world".to_string();
+        f.cursor = 5;
+        f.kill_to_end();
+        assert_eq!(f.buf, "hello");
+    }
+
+    #[test]
+    fn filter_state_delete_word() {
+        let mut f = FilterState::new();
+        f.buf = "hello world".to_string();
+        f.cursor = 11;
+        f.delete_word();
+        assert_eq!(f.buf, "hello ");  // Ctrl+W deletes the word, preserves preceding space
+    }
+
+    // ── StatusMsg ──
+
+    #[test]
+    fn status_msg_not_immediately_expired() {
+        let msg = StatusMsg::new("test".to_string());
+        assert!(!msg.expired());
+        assert_eq!(msg.text, "test");
+    }
+
+    // ── ThemeChooser ──
+
+    #[test]
+    fn theme_chooser_open_selects_current() {
+        let mut tc = ThemeChooser::new();
+        assert!(!tc.active);
+        tc.open(ThemeName::BladeRunner);
+        assert!(tc.active);
+        let expected = ThemeName::ALL.iter().position(|&t| t == ThemeName::BladeRunner).unwrap();
+        assert_eq!(tc.selected, expected);
+    }
+
+    // ── Tooltip ──
+
+    #[test]
+    fn tooltip_new_is_inactive() {
+        let t = Tooltip::new();
+        assert!(!t.active);
+        assert!(t.lines.is_empty());
+    }
+
+    // ── PinnedFlow ──
+
+    #[test]
+    fn pinned_flow_equality() {
+        let a = PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() };
+        let b = PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() };
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn pinned_flow_inequality() {
+        let a = PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() };
+        let b = PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.3".into() };
+        assert_ne!(a, b);
+    }
+
+    // ── Navigation ──
+
+    #[test]
+    fn select_next_from_none() {
+        let mut app = make_app();
+        app.flows = vec![make_flow(1), make_flow(2), make_flow(3)];
+        app.select_next();
+        assert_eq!(app.selected, Some(0));
+    }
+
+    #[test]
+    fn select_next_increments() {
+        let mut app = make_app();
+        app.flows = vec![make_flow(1), make_flow(2), make_flow(3)];
+        app.selected = Some(0);
+        app.select_next();
+        assert_eq!(app.selected, Some(1));
+    }
+
+    #[test]
+    fn select_next_clamps_at_end() {
+        let mut app = make_app();
+        app.flows = vec![make_flow(1), make_flow(2)];
+        app.selected = Some(1);
+        app.select_next();
+        assert_eq!(app.selected, Some(1));
+    }
+
+    #[test]
+    fn select_prev_decrements() {
+        let mut app = make_app();
+        app.flows = vec![make_flow(1), make_flow(2), make_flow(3)];
+        app.selected = Some(2);
+        app.select_prev();
+        assert_eq!(app.selected, Some(1));
+    }
+
+    #[test]
+    fn select_prev_clamps_at_start() {
+        let mut app = make_app();
+        app.flows = vec![make_flow(1)];
+        app.selected = Some(0);
+        app.select_prev();
+        assert_eq!(app.selected, Some(0));
+    }
+
+    #[test]
+    fn jump_top_and_bottom() {
+        let mut app = make_app();
+        app.flows = (0..50).map(make_flow).collect();
+        app.jump_bottom();
+        assert_eq!(app.selected, Some(49));
+        app.jump_top();
+        assert_eq!(app.selected, Some(0));
+        assert_eq!(app.scroll_offset, 0);
+    }
+
+    #[test]
+    fn page_down_moves() {
+        let mut app = make_app();
+        app.flows = (0..50).map(make_flow).collect();
+        app.selected = Some(0);
+        app.page_down();
+        assert_eq!(app.selected, Some(10));
+    }
+
+    #[test]
+    fn page_up_moves() {
+        let mut app = make_app();
+        app.flows = (0..50).map(make_flow).collect();
+        app.selected = Some(20);
+        app.page_up();
+        assert_eq!(app.selected, Some(10));
+    }
+
+    #[test]
+    fn page_up_clamps_at_zero() {
+        let mut app = make_app();
+        app.flows = (0..50).map(make_flow).collect();
+        app.selected = Some(3);
+        app.page_up();
+        assert_eq!(app.selected, Some(0));
+    }
+
+    // ── Pinning ──
+
+    #[test]
+    fn is_pinned_false_by_default() {
+        let app = make_app();
+        let key = FlowKey {
+            src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(),
+            src_port: 5000, dst_port: 80, protocol: Protocol::Tcp,
+        };
+        assert!(!app.is_pinned(&key));
+    }
+
+    #[test]
+    fn is_pinned_after_adding() {
+        let mut app = make_app();
+        app.pinned.push(PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() });
+        let key = FlowKey {
+            src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(),
+            src_port: 5000, dst_port: 80, protocol: Protocol::Tcp,
+        };
+        assert!(app.is_pinned(&key));
+    }
+
+    // ── Theme ──
+
+    #[test]
+    fn set_theme_changes() {
+        let mut app = make_app();
+        app.set_theme(ThemeName::BladeRunner);
+        assert_eq!(app.theme_name, ThemeName::BladeRunner);
+    }
+
+    // ── Status ──
+
+    #[test]
+    fn set_status_creates_message() {
+        let mut app = make_app();
+        assert!(app.status_msg.is_none());
+        app.set_status("hello");
+        assert_eq!(app.status_msg.as_ref().unwrap().text, "hello");
+    }
+
+    // ── Snapshot ──
+
+    #[test]
+    fn update_snapshot_stores_flows() {
+        let mut app = make_app();
+        app.update_snapshot(vec![make_flow(1), make_flow(2)], zero_totals());
+        assert_eq!(app.flows.len(), 2);
+    }
+
+    #[test]
+    fn update_snapshot_paused_ignores() {
+        let mut app = make_app();
+        app.paused = true;
+        app.update_snapshot(vec![make_flow(1)], zero_totals());
+        assert!(app.flows.is_empty());
+    }
+
+    #[test]
+    fn update_snapshot_sorts_by_rate() {
+        let mut app = make_app();
+        app.sort_column = SortColumn::Avg2s;
+        app.update_snapshot(vec![make_flow(1), make_flow(5), make_flow(3)], zero_totals());
+        assert_eq!(app.flows[0].key.src_port, 5);
+        assert_eq!(app.flows[1].key.src_port, 3);
+        assert_eq!(app.flows[2].key.src_port, 1);
+    }
+
+    #[test]
+    fn update_snapshot_pinned_float_to_top() {
+        let mut app = make_app();
+        app.pinned.push(PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() });
+        app.update_snapshot(vec![make_flow(5), make_flow(1)], zero_totals());
+        // Both match the pin (same src/dst), so sort order preserved
+        assert_eq!(app.flows.len(), 2);
+    }
+
+    #[test]
+    fn update_snapshot_frozen_order() {
+        let mut app = make_app();
+        app.frozen_order = true;
+        app.update_snapshot(vec![make_flow(1), make_flow(5), make_flow(3)], zero_totals());
+        assert_eq!(app.flows[0].key.src_port, 1);
+        assert_eq!(app.flows[1].key.src_port, 5);
+        assert_eq!(app.flows[2].key.src_port, 3);
+    }
+
+    #[test]
+    fn update_snapshot_clamps_selection() {
+        let mut app = make_app();
+        app.selected = Some(10);
+        app.update_snapshot(vec![make_flow(1), make_flow(2)], zero_totals());
+        assert_eq!(app.selected, Some(1));
+    }
+
+    // ── Format host ──
+
+    #[test]
+    fn format_host_no_port() {
+        let mut app = make_app();
+        app.show_ports = false;
+        assert_eq!(app.format_host("10.0.0.1".parse().unwrap(), 80, &Protocol::Tcp), "10.0.0.1");
+    }
+
+    #[test]
+    fn format_host_with_port() {
+        let mut app = make_app();
+        app.show_ports = true;
+        app.show_port_names = false;
+        assert_eq!(app.format_host("10.0.0.1".parse().unwrap(), 8080, &Protocol::Tcp), "10.0.0.1:8080");
+    }
+
+    #[test]
+    fn format_host_port_zero_hidden() {
+        let app = make_app();
+        assert_eq!(app.format_host("10.0.0.1".parse().unwrap(), 0, &Protocol::Tcp), "10.0.0.1");
+    }
+
+    // ── Sort reverse ──
+
+    #[test]
+    fn sort_reverse_flips_order() {
+        let mut app = make_app();
+        app.sort_column = SortColumn::Avg2s;
+        app.sort_reverse = true;
+        app.update_snapshot(vec![make_flow(1), make_flow(5), make_flow(3)], zero_totals());
+        assert_eq!(app.flows[0].key.src_port, 1);
+        assert_eq!(app.flows[1].key.src_port, 3);
+        assert_eq!(app.flows[2].key.src_port, 5);
     }
 }

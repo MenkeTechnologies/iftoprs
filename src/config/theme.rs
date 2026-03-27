@@ -35,6 +35,7 @@ pub enum ThemeName {
     Overlock,
     Megacorp,
     Zaibatsu,
+    Iftopcolor,
 }
 
 impl ThemeName {
@@ -49,6 +50,7 @@ impl ThemeName {
         ThemeName::NightCity, ThemeName::DeepNet, ThemeName::LaserGrid,
         ThemeName::QuantumFlux, ThemeName::BioHazard, ThemeName::Darkwave,
         ThemeName::Overlock, ThemeName::Megacorp, ThemeName::Zaibatsu,
+        ThemeName::Iftopcolor,
     ];
 
     pub fn display_name(self) -> &'static str {
@@ -83,6 +85,7 @@ impl ThemeName {
             ThemeName::Overlock => "Overlock",
             ThemeName::Megacorp => "Megacorp",
             ThemeName::Zaibatsu => "Zaibatsu",
+            ThemeName::Iftopcolor => "iftopcolor",
         }
     }
 
@@ -121,6 +124,7 @@ fn palette(name: ThemeName) -> (u8, u8, u8, u8, u8, u8) {
         ThemeName::Overlock    => (196, 208, 160, 214, 124, 52),
         ThemeName::Megacorp    => (252, 39, 245, 81, 242, 236),
         ThemeName::Zaibatsu    => (167, 216, 131, 224, 95, 52),
+        ThemeName::Iftopcolor  => (21, 46, 28, 48, 33, 19),
     }
 }
 
@@ -196,7 +200,7 @@ mod tests {
 
     #[test]
     fn all_themes_count() {
-        assert_eq!(ThemeName::ALL.len(), 30);
+        assert_eq!(ThemeName::ALL.len(), 31);
     }
 
     #[test]

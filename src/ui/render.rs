@@ -47,6 +47,7 @@ pub fn draw(frame: &mut Frame, state: &AppState) {
     // Overlays
     if state.theme_chooser.active { draw_theme_chooser(frame, size, state); }
     if state.filter_state.active { draw_filter_popup(frame, size, state); }
+    if state.tooltip.active { draw_tooltip(frame, size, state); }
     if let Some(ref msg) = state.status_msg
         && !msg.expired() { draw_status(frame, size, state, &msg.text); }
 }
@@ -460,7 +461,61 @@ fn draw_status(frame: &mut Frame, area: Rect, state: &AppState, text: &str) {
     let buf = frame.buffer_mut();
     let msg_len = text.len() as u16 + 4;
     let x0 = (area.width.saturating_sub(msg_len)) / 2;
-    let y0 = area.height.saturating_sub(6); // just above totals
+    let y0 = area.height.saturating_sub(6);
     let s = Style::default().fg(Color::Black).bg(t.help_key);
     set_str(buf, x0, y0, &format!(" {} ", text), s, msg_len);
+}
+
+// ─── Right-click tooltip ──────────────────────────────────────────────────────
+
+fn draw_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
+    let tt = &state.tooltip;
+    let t = &state.theme;
+    let buf = frame.buffer_mut();
+
+    // Calculate box size from content
+    let max_label = tt.lines.iter().map(|(l, _)| l.len()).max().unwrap_or(0);
+    let max_val = tt.lines.iter().map(|(_, v)| v.len()).max().unwrap_or(0);
+    let inner_w = (max_label + 3 + max_val).max(20);
+    let bw = (inner_w + 4) as u16;
+    let bh = (tt.lines.len() + 2) as u16;
+
+    // Position near the click, but keep on screen
+    let x0 = if tt.x + bw + 2 < area.width { tt.x + 1 } else { tt.x.saturating_sub(bw + 1) };
+    let y0 = if tt.y + bh + 1 < area.height { tt.y } else { tt.y.saturating_sub(bh) };
+
+    let bg = t.help_bg;
+    let bs = Style::default().fg(t.help_border);
+    let label_s = Style::default().fg(t.help_val).bg(bg);
+    let val_s = Style::default().fg(t.help_key).bg(bg);
+
+    // Fill + rounded border
+    for y in y0..y0 + bh {
+        for x in x0..x0 + bw {
+            set_cell(buf, x, y, " ", Style::default().bg(bg));
+        }
+    }
+    set_cell(buf, x0, y0, "╭", bs); set_cell(buf, x0 + bw - 1, y0, "╮", bs);
+    set_cell(buf, x0, y0 + bh - 1, "╰", bs); set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╯", bs);
+    for x in x0 + 1..x0 + bw - 1 {
+        set_cell(buf, x, y0, "─", bs); set_cell(buf, x, y0 + bh - 1, "─", bs);
+    }
+    for y in y0 + 1..y0 + bh - 1 {
+        set_cell(buf, x0, y, "│", bs); set_cell(buf, x0 + bw - 1, y, "│", bs);
+    }
+
+    // Content
+    for (i, (label, value)) in tt.lines.iter().enumerate() {
+        let ey = y0 + 1 + i as u16;
+        if ey >= y0 + bh - 1 { break; }
+        if label.is_empty() && value.is_empty() {
+            // Separator line
+            for x in x0 + 1..x0 + bw - 1 {
+                set_cell(buf, x, ey, "·", Style::default().fg(Color::Indexed(240)).bg(bg));
+            }
+        } else {
+            set_str(buf, x0 + 2, ey, label, label_s, max_label as u16 + 1);
+            set_str(buf, x0 + 2 + max_label as u16 + 2, ey, value, val_s, max_val as u16 + 1);
+        }
+    }
 }

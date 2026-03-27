@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode, KeyModifiers, MouseEvent, MouseEventKind, MouseButton, EnableMouseCapture, DisableMouseCapture};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::execute;
 use ratatui::backend::CrosstermBackend;
@@ -97,7 +97,7 @@ fn main() -> Result<()> {
     // Setup terminal
     enable_raw_mode().context("Failed to enable raw mode")?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen).context("Failed to enter alternate screen")?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).context("Failed to enter alternate screen")?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).context("Failed to create terminal")?;
 
@@ -115,7 +115,7 @@ fn main() -> Result<()> {
 
     // Restore terminal
     disable_raw_mode().ok();
-    execute!(terminal.backend_mut(), LeaveAlternateScreen).ok();
+    execute!(terminal.backend_mut(), DisableMouseCapture, LeaveAlternateScreen).ok();
     terminal.show_cursor().ok();
 
     result
@@ -157,8 +157,18 @@ fn run_app(
             .checked_sub(last_tick.elapsed())
             .unwrap_or(Duration::ZERO);
 
-        if event::poll(timeout).context("Failed to poll events")?
-            && let Event::Key(key) = event::read().context("Failed to read event")? {
+        if event::poll(timeout).context("Failed to poll events")? {
+            let ev = event::read().context("Failed to read event")?;
+
+            // Mouse events
+            if let Event::Mouse(mouse) = ev {
+                handle_mouse(app, mouse);
+                continue;
+            }
+
+            // Keyboard events
+            let Event::Key(key) = ev else { continue; };
+
                 // Ctrl+C always quits
                 if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c')
                 {
@@ -311,6 +321,51 @@ fn run_app(
         if last_tick.elapsed() >= tick_rate {
             last_tick = Instant::now();
         }
+    }
+}
+
+fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
+    // Dismiss tooltip on any click
+    if matches!(mouse.kind, MouseEventKind::Down(_)) {
+        app.tooltip.active = false;
+    }
+
+    match mouse.kind {
+        MouseEventKind::Down(MouseButton::Left) => {
+            // Click on flow row → select it
+            let row = mouse.row;
+            if row >= app.flow_area_y {
+                let idx = app.scroll_offset + (row - app.flow_area_y) as usize;
+                if idx < app.flows.len() {
+                    app.selected = Some(idx);
+                }
+            }
+        }
+        MouseEventKind::Down(MouseButton::Right) => {
+            // Right-click → show tooltip
+            let row = mouse.row;
+            if row >= app.flow_area_y {
+                let idx = app.scroll_offset + (row - app.flow_area_y) as usize;
+                if idx < app.flows.len() {
+                    app.selected = Some(idx);
+                    app.show_tooltip(idx, mouse.column, mouse.row);
+                }
+            }
+        }
+        MouseEventKind::ScrollDown => app.select_next(),
+        MouseEventKind::ScrollUp => app.select_prev(),
+        MouseEventKind::Down(MouseButton::Middle) => {
+            // Middle-click → toggle pin
+            let row = mouse.row;
+            if row >= app.flow_area_y {
+                let idx = app.scroll_offset + (row - app.flow_area_y) as usize;
+                if idx < app.flows.len() {
+                    app.selected = Some(idx);
+                    app.toggle_pin();
+                }
+            }
+        }
+        _ => {}
     }
 }
 
