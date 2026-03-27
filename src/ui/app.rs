@@ -176,6 +176,7 @@ pub struct AppState {
     pub status_msg: Option<StatusMsg>,
     pub pinned: Vec<PinnedFlow>,
     pub tooltip: Tooltip,
+    pub show_border: bool,
     /// Y offset where the flow area starts (set by renderer).
     pub flow_area_y: u16,
 
@@ -214,6 +215,7 @@ impl AppState {
             status_msg: None,
             pinned: prefs.pinned.clone(),
             tooltip: Tooltip::new(),
+            show_border: prefs.show_border,
             flow_area_y: 2,
             flows: Vec::new(),
             totals: TotalStats {
@@ -247,6 +249,7 @@ impl AppState {
             show_cumulative: self.show_cumulative,
             bar_style: self.bar_style,
             pinned: self.pinned.clone(),
+            show_border: self.show_border,
         };
         prefs::save_prefs(&p);
     }

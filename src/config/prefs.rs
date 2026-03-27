@@ -26,6 +26,8 @@ pub struct Prefs {
     pub bar_style: BarStyle,
     #[serde(default)]
     pub pinned: Vec<PinnedFlow>,
+    #[serde(default = "default_true")]
+    pub show_border: bool,
 }
 
 fn default_true() -> bool {
@@ -45,6 +47,7 @@ impl Default for Prefs {
             show_cumulative: false,
             bar_style: BarStyle::default(),
             pinned: Vec::new(),
+            show_border: true,
         }
     }
 }

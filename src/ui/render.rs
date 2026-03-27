@@ -28,7 +28,7 @@ fn bar_length(bps: f64, cols: u16) -> u16 {
 
 // ─── Main draw ────────────────────────────────────────────────────────────────
 
-pub fn draw(frame: &mut Frame, state: &AppState) {
+pub fn draw(frame: &mut Frame, state: &mut AppState) {
     let size = frame.area();
     if state.show_help { draw_help(frame, size, state); return; }
 
@@ -37,6 +37,9 @@ pub fn draw(frame: &mut Frame, state: &AppState) {
         Constraint::Length(1), Constraint::Length(1), Constraint::Min(4),
         Constraint::Length(1), Constraint::Length(3),
     ]).split(size);
+
+    // Store flow area Y for mouse hit-testing
+    state.flow_area_y = c[2].y;
 
     draw_scale_labels(frame, c[0], state);
     draw_scale_ticks(frame, c[1], state);
@@ -111,19 +114,7 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
         let bl = bar_length(rate, w);
         let bs = state.bar_style;
 
-        // Selection highlight: paint entire row with dim highlight bg
-        if is_selected {
-            let sel_bg = Color::Indexed(238); // subtle dark gray highlight
-            let bw = buf.area().width; let bx = buf.area().x; let bh = buf.area().height; let by = buf.area().y;
-            for x in area.x..area.x + w {
-                if x < bx + bw && y < by + bh {
-                    let c = &mut buf[(x, y)];
-                    c.set_bg(sel_bg);
-                }
-            }
-        }
-
-        // Bar
+        // Bar first
         paint_bar_styled(buf, area.x, y, bl, w, t.bar_color, bs);
 
         // Pin indicator
@@ -161,6 +152,28 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState) {
         write_right_styled(buf, rx, y, f.total_sent + f.total_recv,
             f.sent_2s + f.recv_2s, f.sent_10s + f.recv_10s, f.sent_40s + f.recv_40s,
             state.use_bytes, area.x, bl, t, bs);
+
+        // Selection indicator — applied AFTER everything else so it's visible
+        if is_selected {
+            let buf_w = buf.area().width;
+            let buf_x = buf.area().x;
+            let buf_h = buf.area().height;
+            let buf_y = buf.area().y;
+            // Add underline to entire row + bright cursor at start
+            for x in area.x..area.x + w {
+                if x < buf_x + buf_w && y < buf_y + buf_h {
+                    let c = &mut buf[(x, y)];
+                    c.set_style(c.style().add_modifier(Modifier::UNDERLINED));
+                }
+            }
+            // Bright arrow indicator at column 0
+            if area.x < buf_x + buf_w && y < buf_y + buf_h {
+                let c = &mut buf[(area.x, y)];
+                c.set_char('▶');
+                c.set_fg(t.rate_2s);
+                c.set_style(c.style().add_modifier(Modifier::BOLD).remove_modifier(Modifier::UNDERLINED));
+            }
+        }
     }
 }
 
