@@ -293,6 +293,10 @@ fn run_app(
                     KeyCode::Char('T') => app.show_cumulative = !app.show_cumulative,
                     KeyCode::Char('Z') => app.show_processes = !app.show_processes,
                     KeyCode::Char('P') => app.paused = !app.paused,
+                    KeyCode::Char('x') => {
+                        app.show_border = !app.show_border;
+                        app.set_status(if app.show_border { "Border: on" } else { "Border: off" });
+                    }
 
                     // ── Sort ──
                     KeyCode::Char('1') => { app.sort_column = SortColumn::Avg2s; app.frozen_order = false; }

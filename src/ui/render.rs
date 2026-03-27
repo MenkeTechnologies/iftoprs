@@ -12,6 +12,7 @@ const TOTAL_COL_W: usize = 8;
 const RIGHT_AREA_W: usize = TOTAL_COL_W + RATE_COL_W * 3;
 const PROC_COL_W: usize = 20;
 const LOG10_MAX_BITS: f64 = 9.0;
+const DIM_BORDER: Color = Color::Indexed(240);
 
 const SCALE_TICKS: [(f64, f64); 5] = [
     (1.25, 1.0), (125.0, 3.0), (12_500.0, 5.0), (1_250_000.0, 7.0), (125_000_000.0, 9.0),
@@ -32,11 +33,58 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
     let size = frame.area();
     if state.show_help { draw_help(frame, size, state); return; }
 
-    // Always draw the main UI (so theme changes preview live)
+    // Border support
+    let border = state.show_border;
+    let border_color = if state.paused { DIM_BORDER } else { state.theme.scale_line };
+    let margin: u16 = if border { 1 } else { 0 };
+
+    if border {
+        let buf = frame.buffer_mut();
+        let bs = Style::default().fg(border_color);
+        let x1 = size.width.saturating_sub(1);
+        let y1 = size.height.saturating_sub(1);
+        // Corners first, then edges skip corner positions
+        set_cell(buf, 0, 0, "┌", bs);
+        set_cell(buf, x1, 0, "┐", bs);
+        set_cell(buf, 0, y1, "└", bs);
+        set_cell(buf, x1, y1, "┘", bs);
+        for x in 1..x1 {
+            set_cell(buf, x, 0, "─", bs);
+            set_cell(buf, x, y1, "─", bs);
+        }
+        for y in 1..y1 {
+            set_cell(buf, 0, y, "│", bs);
+            set_cell(buf, x1, y, "│", bs);
+        }
+
+        // Title in top border
+        let ver = env!("CARGO_PKG_VERSION");
+        let title = if state.paused {
+            format!(" ⏸ IFTOPRS v{} — PAUSED ", ver)
+        } else {
+            format!(" ▶▶▶ IFTOPRS v{} ◀◀◀ ", ver)
+        };
+        let tx = (size.width.saturating_sub(title.len() as u16)) / 2;
+        let ts = if state.paused {
+            Style::default().fg(Color::Indexed(196)).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(border_color).add_modifier(Modifier::BOLD)
+        };
+        set_str(buf, tx, 0, &title, ts, title.len() as u16);
+    }
+
+    // Inner area (inside borders)
+    let inner = Rect {
+        x: margin,
+        y: margin,
+        width: size.width.saturating_sub(margin * 2),
+        height: size.height.saturating_sub(margin * 2),
+    };
+
     let c = Layout::default().direction(Direction::Vertical).constraints([
         Constraint::Length(1), Constraint::Length(1), Constraint::Min(4),
         Constraint::Length(1), Constraint::Length(3),
-    ]).split(size);
+    ]).split(inner);
 
     // Store flow area Y for mouse hit-testing
     state.flow_area_y = c[2].y;
@@ -46,6 +94,11 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
     draw_flows(frame, c[2], state);
     draw_separator(frame, c[3], state);
     draw_totals(frame, c[4], state);
+
+    // Pause overlay
+    if state.paused {
+        draw_pause_overlay(frame, size, state);
+    }
 
     // Overlays
     if state.theme_chooser.active { draw_theme_chooser(frame, size, state); }
@@ -293,17 +346,42 @@ fn write_right_styled(buf: &mut Buffer, x: u16, y: u16, tot: u64, r2: f64, r10: 
 
 fn set_cell(buf: &mut Buffer, x: u16, y: u16, ch: &str, s: Style) {
     let a = buf.area();
-    if x < a.x + a.width && y < a.y + a.height { buf[(x, y)].set_symbol(ch); buf[(x, y)].set_style(s); }
+    if x < a.x + a.width && y < a.y + a.height {
+        let c = &mut buf[(x, y)];
+        c.set_symbol(ch);
+        c.set_style(s);
+    }
 }
 
 fn set_str(buf: &mut Buffer, x: u16, y: u16, s: &str, st: Style, mw: u16) {
     let aw = buf.area().x + buf.area().width;
     let ah = buf.area().y + buf.area().height;
+    if y >= ah { return; }
+    let mut char_buf = [0u8; 4];
     for (i, ch) in s.chars().enumerate() {
         let cx = x + i as u16;
-        if cx >= x + mw || cx >= aw || y >= ah { break; }
-        buf[(cx, y)].set_symbol(&ch.to_string()); buf[(cx, y)].set_style(st);
+        if cx >= x + mw || cx >= aw { break; }
+        let c = &mut buf[(cx, y)];
+        c.set_symbol(ch.encode_utf8(&mut char_buf));
+        c.set_style(st);
     }
+}
+
+/// Draw a filled box with double-line border. Returns (x0, y0, bw, bh).
+fn draw_box(buf: &mut Buffer, area: Rect, bw: u16, bh: u16, bg: Color, border_style: Style) -> (u16, u16) {
+    let x0 = (area.width.saturating_sub(bw)) / 2;
+    let y0 = (area.height.saturating_sub(bh)) / 2;
+    let x1 = x0 + bw - 1;
+    let y1 = y0 + bh - 1;
+    let fill = Style::default().bg(bg);
+    for y in y0..y0 + bh { for x in x0..x0 + bw { set_cell(buf, x, y, " ", fill); } }
+    set_cell(buf, x0, y0, "╔", border_style);
+    set_cell(buf, x1, y0, "╗", border_style);
+    set_cell(buf, x0, y1, "╚", border_style);
+    set_cell(buf, x1, y1, "╝", border_style);
+    for x in x0 + 1..x1 { set_cell(buf, x, y0, "═", border_style); set_cell(buf, x, y1, "═", border_style); }
+    for y in y0 + 1..y1 { set_cell(buf, x0, y, "║", border_style); set_cell(buf, x1, y, "║", border_style); }
+    (x0, y0)
 }
 
 fn trunc(s: &str, m: usize) -> String {
@@ -319,8 +397,6 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let bw = 90u16.min(area.width.saturating_sub(4));
     let bh = 30u16.min(area.height.saturating_sub(4));
-    let x0 = (area.width.saturating_sub(bw)) / 2;
-    let y0 = (area.height.saturating_sub(bh)) / 2;
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
     let bgs = Style::default().fg(Color::White).bg(bg);
@@ -328,11 +404,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
     let ss = Style::default().fg(t.help_section).bg(bg).add_modifier(Modifier::BOLD);
 
-    for y in y0..y0 + bh { for x in x0..x0 + bw { set_cell(buf, x, y, " ", Style::default().bg(bg)); } }
-    set_cell(buf, x0, y0, "╔", bs); set_cell(buf, x0 + bw - 1, y0, "╗", bs);
-    set_cell(buf, x0, y0 + bh - 1, "╚", bs); set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╝", bs);
-    for x in x0 + 1..x0 + bw - 1 { set_cell(buf, x, y0, "═", bs); set_cell(buf, x, y0 + bh - 1, "═", bs); }
-    for y in y0 + 1..y0 + bh - 1 { set_cell(buf, x0, y, "║", bs); set_cell(buf, x0 + bw - 1, y, "║", bs); }
+    let (x0, y0) = draw_box(buf, area, bw, bh, bg, bs);
 
     let ver = env!("CARGO_PKG_VERSION");
     let title = format!("⌨ IFTOPRS v{} — KEYBOARD SHORTCUTS", ver);
@@ -346,7 +418,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
         ("NAV", &[("j/↓","Select next"),("k/↑","Select prev"),("^D","Half-page dn"),("^U","Half-page up"),("G/End","Jump last"),("Home","Jump first"),("Esc","Deselect")]),
         ("FILTER", &[("/","Search flows"),("0","Clear filter")]),
         ("ACTIONS", &[("e","Export flows"),("y","Copy selected"),("F","Pin/unpin ★")]),
-        ("DISPLAY", &[("c","Theme chooser"),("t","Line mode"),("h/?","Toggle help"),("q","Quit")]),
+        ("DISPLAY", &[("c","Theme chooser"),("t","Line mode"),("x","Toggle border"),("h/?","Toggle help"),("q","Quit")]),
         ("", &[]),
     ];
 
@@ -385,17 +457,11 @@ fn draw_theme_chooser(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let bw = 50u16.min(area.width.saturating_sub(4));
     let bh = (ThemeName::ALL.len() as u16 + 6).min(area.height.saturating_sub(4));
-    let x0 = (area.width.saturating_sub(bw)) / 2;
-    let y0 = (area.height.saturating_sub(bh)) / 2;
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
     let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
 
-    for y in y0..y0 + bh { for x in x0..x0 + bw { set_cell(buf, x, y, " ", Style::default().bg(bg)); } }
-    set_cell(buf, x0, y0, "╔", bs); set_cell(buf, x0 + bw - 1, y0, "╗", bs);
-    set_cell(buf, x0, y0 + bh - 1, "╚", bs); set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╝", bs);
-    for x in x0 + 1..x0 + bw - 1 { set_cell(buf, x, y0, "═", bs); set_cell(buf, x, y0 + bh - 1, "═", bs); }
-    for y in y0 + 1..y0 + bh - 1 { set_cell(buf, x0, y, "║", bs); set_cell(buf, x0 + bw - 1, y, "║", bs); }
+    let (x0, y0) = draw_box(buf, area, bw, bh, bg, bs);
     set_str(buf, x0 + 2, y0 + 1, "THEME CHOOSER", ts, bw - 4);
 
     for (i, &tn) in ThemeName::ALL.iter().enumerate() {
@@ -465,6 +531,29 @@ fn draw_filter_popup(frame: &mut Frame, area: Rect, state: &AppState) {
 
     let hint = "Enter=apply  Esc=cancel  ^W=del word";
     set_str(buf, x0 + 2, y0 + 3, hint, info_s, bw - 4);
+}
+
+// ─── Pause overlay ───────────────────────────────────────────────────────────
+
+fn draw_pause_overlay(frame: &mut Frame, area: Rect, _state: &AppState) {
+    let bw = 40u16.min(area.width.saturating_sub(4));
+    let bh = 7u16;
+    let bg = Color::Indexed(236);
+    let bs = Style::default().fg(Color::Indexed(196));
+    let buf = frame.buffer_mut();
+    let (x0, y0) = draw_box(buf, area, bw, bh, bg, bs);
+
+    let ts = Style::default().fg(Color::Indexed(196)).bg(bg).add_modifier(Modifier::BOLD);
+    let title = "⏸  PAUSED";
+    set_str(buf, x0 + (bw.saturating_sub(title.len() as u16)) / 2, y0 + 2, title, ts, bw - 4);
+
+    let info_s = Style::default().fg(Color::White).bg(bg);
+    let info = "Data refresh is frozen";
+    set_str(buf, x0 + (bw.saturating_sub(info.len() as u16)) / 2, y0 + 3, info, info_s, bw - 4);
+
+    let hint_s = Style::default().fg(DIM_BORDER).bg(bg);
+    let hint = "press P to resume";
+    set_str(buf, x0 + (bw.saturating_sub(hint.len() as u16)) / 2, y0 + 5, hint, hint_s, bw - 4);
 }
 
 // ─── Status message ───────────────────────────────────────────────────────────

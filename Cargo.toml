@@ -2,6 +2,12 @@
 name = "iftoprs"
 version = "2.0.0"
 edition = "2024"
+description = "Real-time bandwidth monitor — iftop clone in Rust with ratatui TUI, 31 themes, process attribution, mouse support"
+license = "MIT"
+repository = "https://github.com/MenkeTechnologies/iftoprs"
+keywords = ["network", "bandwidth", "monitor", "tui", "iftop"]
+categories = ["command-line-utilities", "network-programming"]
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0.102"
