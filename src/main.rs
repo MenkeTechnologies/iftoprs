@@ -43,7 +43,7 @@ fn main() -> Result<()> {
 
     // Start packet capture
     let (tx, mut rx) = mpsc::unbounded_channel();
-    let capture_handle = capture::sniffer::start_capture(
+    let _capture_handle = capture::sniffer::start_capture(
         args.interface.clone(),
         args.filter.clone(),
         args.promiscuous,
@@ -51,31 +51,28 @@ fn main() -> Result<()> {
         tx,
     )?;
 
-    // Process attribution thread
-    let show_processes = args.show_processes;
+    // Process attribution thread — always running so Z toggle works at runtime
     let tracker_proc = tracker.clone();
-    if show_processes {
-        std::thread::Builder::new()
-            .name("proc-lookup".into())
-            .spawn(move || {
-                loop {
-                    std::thread::sleep(Duration::from_millis(500));
-                    let keys = tracker_proc.flow_keys();
-                    for key in keys {
-                        if let Some((pid, name)) = util::lookup_process(
-                            key.src,
-                            key.src_port,
-                            key.dst,
-                            key.dst_port,
-                            &key.protocol,
-                        ) {
-                            tracker_proc.set_process_info(&key, pid, name);
-                        }
+    std::thread::Builder::new()
+        .name("proc-lookup".into())
+        .spawn(move || {
+            loop {
+                std::thread::sleep(Duration::from_millis(500));
+                let keys = tracker_proc.flow_keys();
+                for key in keys {
+                    if let Some((pid, name)) = util::lookup_process(
+                        key.src,
+                        key.src_port,
+                        key.dst,
+                        key.dst_port,
+                        &key.protocol,
+                    ) {
+                        tracker_proc.set_process_info(&key, pid, name);
                     }
                 }
-            })
-            .context("Failed to spawn proc-lookup thread")?;
-    }
+            }
+        })
+        .context("Failed to spawn proc-lookup thread")?;
 
     // Setup terminal
     enable_raw_mode().context("Failed to enable raw mode")?;

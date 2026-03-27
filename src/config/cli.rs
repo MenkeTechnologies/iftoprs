@@ -3,53 +3,88 @@ use std::net::IpAddr;
 use clap::Parser;
 
 #[derive(Parser, Debug, Clone)]
-#[command(name = "iftoprs", about = "Real-time bandwidth monitor (iftop clone in Rust)")]
+#[command(
+    name = "iftoprs",
+    about = "Real-time bandwidth monitor (iftop clone in Rust)",
+    long_about = r#"
+ ██╗███████╗████████╗ ██████╗ ██████╗ ██████╗ ███████╗
+ ██║██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝
+ ██║█████╗     ██║   ██║   ██║██████╔╝██████╔╝╚█████╗
+ ██║██╔══╝     ██║   ██║   ██║██╔═══╝ ██╔══██╗ ╚═══██╗
+ ██║██║        ██║   ╚██████╔╝██║     ██║  ██║██████╔╝
+ ╚═╝╚═╝        ╚═╝    ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═════╝
+
+  [ SYSTEM://NET_INTERCEPT v1.0 ]
+  ⟦ JACKING INTO YOUR PACKET STREAM ⟧
+
+  A neon-drenched terminal UI for real-time bandwidth monitoring.
+  Captures live network traffic via libpcap and renders per-flow
+  bandwidth with sliding-window averages on a log10 scale.
+
+  ── CAPTURE ──────────────────────────────────────────
+  Sniffs raw packets on the specified interface (or auto-
+  detects the default gateway). Supports BPF filters,
+  CIDR network filters, and promiscuous mode.
+
+  ── DISPLAY ──────────────────────────────────────────
+  Color-coded rate columns: yellow(2s) / green(10s) /
+  cyan(40s). Bar graphs, DNS resolution, port-to-service
+  mapping, and process attribution toggleable at runtime.
+
+  ── KEYBINDS ─────────────────────────────────────────
+  h ── help HUD       n ── toggle DNS      b ── bars
+  B ── bytes/bits     p ── ports           Z ── processes
+  t ── line mode      T ── cumulative      P ── pause
+  1/2/3 ── sort by 2s/10s/40s average
+  < / > ── sort by src/dst    o ── freeze order
+  j/k ── scroll                q ── disconnect
+
+  // THE STREET FINDS ITS OWN USES FOR BANDWIDTH //
+"#,
+    after_help = "⟦ END OF LINE ⟧"
+)]
 pub struct Args {
-    /// Network interface to monitor
+    /// >> Network interface to jack into
     #[arg(short = 'i', long)]
     pub interface: Option<String>,
 
-    /// BPF filter expression (e.g., "tcp port 80")
+    /// >> BPF filter expression (e.g., "tcp port 80")
     #[arg(short = 'f', long)]
     pub filter: Option<String>,
 
-    /// IPv4 network filter (e.g., "192.168.1.0/24")
+    /// >> IPv4 network filter in CIDR (e.g., "192.168.1.0/24")
     #[arg(short = 'F', long = "net-filter")]
     pub net_filter: Option<String>,
 
-    /// Disable DNS hostname resolution
+    /// >> Kill DNS hostname resolution
     #[arg(short = 'n', long = "no-dns")]
     pub no_dns: bool,
 
-    /// Disable port-to-service resolution
+    /// >> Kill port-to-service name resolution
     #[arg(short = 'N', long = "no-port-names")]
     pub no_port_names: bool,
 
-    /// Enable promiscuous mode
+    /// >> Enable promiscuous mode ── sniff all traffic on segment
     #[arg(short = 'p', long)]
     pub promiscuous: bool,
 
-    /// Disable bar graph display
+    /// >> Flatline the bar graph display
     #[arg(short = 'b', long = "no-bars")]
     pub no_bars: bool,
 
-    /// Display bandwidth in bytes (instead of bits)
+    /// >> Display bandwidth in bytes instead of bits
     #[arg(short = 'B', long = "bytes")]
     pub bytes: bool,
 
-    /// Hide ports alongside hosts (ports shown by default)
+    /// >> Ghost the port numbers from host display
     #[arg(short = 'P', long = "hide-ports")]
     pub hide_ports: bool,
 
-    /// Show owning process for each flow
+    /// >> Expose owning process for each flow
     #[arg(short = 'Z', long = "show-processes")]
     pub show_processes: bool,
 
-    /// Set bandwidth scale ceiling (e.g., "10M", "1G")
-    #[arg(short = 'm', long = "max-bandwidth")]
-    pub max_bandwidth: Option<String>,
-
-    /// List available interfaces and exit
+    /// >> Enumerate available interfaces and disconnect
     #[arg(short = 'l', long = "list-interfaces")]
     pub list_interfaces: bool,
 }
@@ -68,23 +103,4 @@ impl Args {
         Some((addr, prefix))
     }
 
-    /// Parse max bandwidth string like "10M", "1G", "500K" into bytes/sec.
-    pub fn parse_max_bandwidth(&self) -> Option<f64> {
-        let s = self.max_bandwidth.as_ref()?;
-        let s = s.trim();
-        if s.is_empty() {
-            return None;
-        }
-        let (num_str, multiplier) = if s.ends_with('G') || s.ends_with('g') {
-            (&s[..s.len() - 1], 1_000_000_000.0)
-        } else if s.ends_with('M') || s.ends_with('m') {
-            (&s[..s.len() - 1], 1_000_000.0)
-        } else if s.ends_with('K') || s.ends_with('k') {
-            (&s[..s.len() - 1], 1_000.0)
-        } else {
-            (s, 1.0)
-        };
-        let num: f64 = num_str.parse().ok()?;
-        Some(num * multiplier)
-    }
 }

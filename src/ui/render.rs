@@ -267,14 +267,17 @@ fn write_over_bar(
         }
         let cell = &mut buf[(cx, y)];
         cell.set_char(ch);
-        cell.set_fg(style.fg.unwrap_or(Color::Reset));
         if cx < area_x + bar_len {
+            // On the bar: black text on colored background
+            cell.set_fg(Color::Black);
             cell.set_bg(bar_color);
         } else {
+            // Outside bar: normal colored text
+            cell.set_fg(style.fg.unwrap_or(Color::Reset));
             cell.set_bg(Color::Reset);
-        }
-        if style.add_modifier.contains(Modifier::BOLD) {
-            cell.set_style(cell.style().add_modifier(Modifier::BOLD));
+            if style.add_modifier.contains(Modifier::BOLD) {
+                cell.set_style(cell.style().add_modifier(Modifier::BOLD));
+            }
         }
     }
 }

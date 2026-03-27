@@ -32,8 +32,6 @@ pub fn start_capture(
             .context("No default device found")?
     };
 
-    let iface_name = device.name.clone();
-
     let mut cap = Capture::from_device(device)
         .context("Failed to open device")?
         .promisc(promiscuous)
@@ -91,13 +89,11 @@ pub fn start_capture(
         .context("Failed to spawn capture thread")?;
 
     Ok(CaptureHandle {
-        interface_name: iface_name,
         _thread: handle,
     })
 }
 
 pub struct CaptureHandle {
-    pub interface_name: String,
     _thread: std::thread::JoinHandle<()>,
 }
 
