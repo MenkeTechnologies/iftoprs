@@ -974,4 +974,62 @@ mod tests {
         assert_eq!(app.flows[1].key.src_port, 3);
         assert_eq!(app.flows[2].key.src_port, 5);
     }
+
+    // ── Border ──
+
+    #[test]
+    fn show_border_default_true() {
+        let app = make_app();
+        assert!(app.show_border);
+    }
+
+    #[test]
+    fn show_border_toggles() {
+        let mut app = make_app();
+        assert!(app.show_border);
+        app.show_border = false;
+        assert!(!app.show_border);
+        app.show_border = true;
+        assert!(app.show_border);
+    }
+
+    // ── Pause ──
+
+    #[test]
+    fn paused_default_false() {
+        let app = make_app();
+        assert!(!app.paused);
+    }
+
+    #[test]
+    fn paused_blocks_snapshot() {
+        let mut app = make_app();
+        app.update_snapshot(vec![make_flow(1)], zero_totals());
+        assert_eq!(app.flows.len(), 1);
+        app.paused = true;
+        app.update_snapshot(vec![make_flow(1), make_flow(2), make_flow(3)], zero_totals());
+        assert_eq!(app.flows.len(), 1); // unchanged because paused
+    }
+
+    // ── Prefs round-trip ──
+
+    #[test]
+    fn prefs_default_has_border() {
+        let p = Prefs::default();
+        assert!(p.show_border);
+        assert!(p.show_processes);
+        assert!(p.show_bars);
+        assert!(p.show_ports);
+    }
+
+    #[test]
+    fn prefs_serializes() {
+        let p = Prefs::default();
+        let s = toml::to_string_pretty(&p).unwrap();
+        assert!(s.contains("show_border"));
+        assert!(s.contains("show_processes"));
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.show_border, p.show_border);
+        assert_eq!(p2.show_processes, p.show_processes);
+    }
 }

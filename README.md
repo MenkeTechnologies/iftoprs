@@ -236,7 +236,8 @@ iftoprs --completions zsh              # generate zsh completions
 | `b` | Toggle bar graphs |
 | `B` | Toggle bytes/bits |
 | `T` | Toggle cumulative totals |
-| `P` | Pause / resume display |
+| `P` | Pause / resume display (shows overlay) |
+| `x` | Toggle border chrome |
 
 #### `// SORT_PROTOCOL`
 

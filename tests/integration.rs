@@ -93,3 +93,31 @@ fn version_matches_cargo_toml() {
         assert!(part.parse::<u32>().is_ok(), "non-numeric version part: {}", part);
     }
 }
+
+#[test]
+fn help_contains_border_keybind() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("border"), "help should document border toggle");
+}
+
+#[test]
+fn help_contains_filter_keybind() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("filter"), "help should document filter keybind");
+}
+
+#[test]
+fn help_contains_theme_keybind() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("themes"), "help should document theme keybind");
+}
+
+#[test]
+fn help_contains_pause_keybind() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("pause"), "help should document pause keybind");
+}
