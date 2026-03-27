@@ -78,7 +78,7 @@ impl FlowTracker {
 
     /// Record a packet into the flow table.
     pub fn record(&self, key: FlowKey, direction: Direction, bytes: u64) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let history = inner.flows.entry(key).or_default();
         match direction {
             Direction::Sent => {
@@ -96,7 +96,7 @@ impl FlowTracker {
 
     /// Set process info for a flow.
     pub fn set_process_info(&self, key: &FlowKey, pid: u32, name: String) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(history) = inner.flows.get_mut(key) {
             history.pid = Some(pid);
             history.process_name = Some(name);
@@ -105,7 +105,7 @@ impl FlowTracker {
 
     /// Rotate history slots (call once per second).
     pub fn maybe_rotate(&self) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let elapsed = inner.last_rotation.elapsed();
         if elapsed.as_secs() >= 1 {
             // Update peak from the completed second
@@ -135,7 +135,7 @@ impl FlowTracker {
 
     /// Get a snapshot of all flows for display.
     pub fn snapshot(&self) -> (Vec<FlowSnapshot>, TotalStats) {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
 
         let snapshots: Vec<FlowSnapshot> = inner
             .flows
@@ -174,7 +174,7 @@ impl FlowTracker {
 
     /// Get all flow keys (for process attribution lookup).
     pub fn flow_keys(&self) -> Vec<FlowKey> {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.flows.keys().cloned().collect()
     }
 }
@@ -251,5 +251,154 @@ mod tests {
         let (flows, _) = t.snapshot();
         assert_eq!(flows[0].pid, Some(1234));
         assert_eq!(flows[0].process_name.as_deref(), Some("curl"));
+    }
+
+    #[test]
+    fn set_process_info_nonexistent_key_no_panic() {
+        let t = FlowTracker::new();
+        let key = test_key(9999);
+        // Should silently do nothing
+        t.set_process_info(&key, 1234, "ghost".to_string());
+        let (flows, _) = t.snapshot();
+        assert!(flows.is_empty());
+    }
+
+    #[test]
+    fn default_trait() {
+        let t = FlowTracker::default();
+        let (flows, totals) = t.snapshot();
+        assert!(flows.is_empty());
+        assert_eq!(totals.cumulative_sent, 0);
+    }
+
+    #[test]
+    fn record_both_directions() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key.clone(), Direction::Sent, 100);
+        t.record(key, Direction::Received, 200);
+        let (flows, totals) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+        assert_eq!(totals.cumulative_sent, 100);
+        assert_eq!(totals.cumulative_recv, 200);
+    }
+
+    #[test]
+    fn record_same_flow_accumulates() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key.clone(), Direction::Sent, 100);
+        t.record(key.clone(), Direction::Sent, 200);
+        t.record(key, Direction::Sent, 300);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 600);
+    }
+
+    #[test]
+    fn flow_keys_empty_tracker() {
+        let t = FlowTracker::new();
+        assert!(t.flow_keys().is_empty());
+    }
+
+    #[test]
+    fn snapshot_totals_sum_flow_rates() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 100);
+        t.record(test_key(2), Direction::Sent, 200);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 300);
+        assert_eq!(totals.cumulative_recv, 0);
+    }
+
+    #[test]
+    fn maybe_rotate_does_not_panic_empty() {
+        let t = FlowTracker::new();
+        t.maybe_rotate(); // should not panic on empty flows
+    }
+
+    #[test]
+    fn clone_shares_state() {
+        let t = FlowTracker::new();
+        let t2 = t.clone();
+        t.record(test_key(5000), Direction::Sent, 100);
+        let (flows, _) = t2.snapshot();
+        assert_eq!(flows.len(), 1);
+    }
+
+    #[test]
+    fn concurrent_access_no_panic() {
+        let t = FlowTracker::new();
+        let handles: Vec<_> = (0..10).map(|i| {
+            let t = t.clone();
+            std::thread::spawn(move || {
+                for j in 0..100 {
+                    t.record(test_key(i * 100 + j), Direction::Sent, 10);
+                }
+            })
+        }).collect();
+        for h in handles { h.join().unwrap(); }
+        let (flows, totals) = t.snapshot();
+        assert_eq!(flows.len(), 1000);
+        assert_eq!(totals.cumulative_sent, 10_000);
+    }
+
+    #[test]
+    fn mutex_poison_recovery() {
+        let t = FlowTracker::new();
+        // Poison the mutex by panicking inside a thread holding the lock
+        let t2 = t.clone();
+        let h = std::thread::spawn(move || {
+            let _inner = t2.inner.lock().unwrap();
+            panic!("intentional poison");
+        });
+        let _ = h.join(); // thread panicked, mutex now poisoned
+
+        // These should all still work due to unwrap_or_else recovery
+        t.record(test_key(1), Direction::Sent, 42);
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+        assert_eq!(t.flow_keys().len(), 1);
+        t.set_process_info(&test_key(1), 99, "recovered".into());
+        t.maybe_rotate();
+    }
+
+    #[test]
+    fn peak_tracking_works() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 5000);
+        t.record(test_key(1), Direction::Received, 3000);
+        // Force rotation to capture peaks
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            // Fake last_rotation to force rotation
+            inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        let (_, totals) = t.snapshot();
+        assert!(totals.peak_sent >= 5000.0);
+        assert!(totals.peak_recv >= 3000.0);
+    }
+
+    #[test]
+    fn process_info_overwrites() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key.clone(), Direction::Sent, 100);
+        t.set_process_info(&key, 1, "old".into());
+        t.set_process_info(&key, 2, "new".into());
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows[0].pid, Some(2));
+        assert_eq!(flows[0].process_name.as_deref(), Some("new"));
+    }
+
+    #[test]
+    fn snapshot_includes_total_sent_recv_per_flow() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key.clone(), Direction::Sent, 100);
+        t.record(key, Direction::Received, 50);
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows[0].total_sent, 100);
+        assert_eq!(flows[0].total_recv, 50);
     }
 }

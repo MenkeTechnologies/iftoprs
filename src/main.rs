@@ -273,6 +273,100 @@ fn run_app(
                     continue;
                 }
 
+                // Theme editor mode
+                if app.theme_edit.active {
+                    if app.theme_edit.naming {
+                        match key.code {
+                            KeyCode::Enter => {
+                                let name = app.theme_edit.name.trim().to_string();
+                                if !name.is_empty() {
+                                    let c = app.theme_edit.colors;
+                                    app.custom_themes.insert(name.clone(), config::theme::CustomThemeColors {
+                                        c1: c[0], c2: c[1], c3: c[2], c4: c[3], c5: c[4], c6: c[5],
+                                    });
+                                    app.active_custom_theme = Some(name.clone());
+                                    app.save_prefs();
+                                    app.set_status(format!("Saved theme: {}", name));
+                                }
+                                app.theme_edit.active = false;
+                                app.theme_edit.naming = false;
+                                app.theme_edit.name.clear();
+                                app.theme_edit.cursor = 0;
+                            }
+                            KeyCode::Esc => {
+                                app.theme_edit.naming = false;
+                                app.theme_edit.name.clear();
+                                app.theme_edit.cursor = 0;
+                            }
+                            KeyCode::Backspace => {
+                                if app.theme_edit.cursor > 0 {
+                                    app.theme_edit.cursor -= 1;
+                                    app.theme_edit.name.remove(app.theme_edit.cursor);
+                                }
+                            }
+                            KeyCode::Left => {
+                                app.theme_edit.cursor = app.theme_edit.cursor.saturating_sub(1);
+                            }
+                            KeyCode::Right => {
+                                app.theme_edit.cursor = (app.theme_edit.cursor + 1).min(app.theme_edit.name.len());
+                            }
+                            KeyCode::Char(c) => {
+                                if app.theme_edit.name.len() < 20 {
+                                    app.theme_edit.name.insert(app.theme_edit.cursor, c);
+                                    app.theme_edit.cursor += 1;
+                                }
+                            }
+                            _ => {}
+                        }
+                    } else {
+                        match key.code {
+                            KeyCode::Esc | KeyCode::Char('q') => {
+                                app.theme_edit.active = false;
+                                // Restore original theme
+                                if let Some(ref name) = app.active_custom_theme
+                                    && let Some(ct) = app.custom_themes.get(name) {
+                                    app.apply_custom_palette([ct.c1, ct.c2, ct.c3, ct.c4, ct.c5, ct.c6]);
+                                } else {
+                                    app.set_theme(app.theme_name);
+                                }
+                            }
+                            KeyCode::Char('j') | KeyCode::Down => {
+                                app.theme_edit.slot = (app.theme_edit.slot + 1).min(5);
+                            }
+                            KeyCode::Char('k') | KeyCode::Up => {
+                                app.theme_edit.slot = app.theme_edit.slot.saturating_sub(1);
+                            }
+                            KeyCode::Char('l') | KeyCode::Right => {
+                                app.theme_edit.colors[app.theme_edit.slot] =
+                                    app.theme_edit.colors[app.theme_edit.slot].wrapping_add(1);
+                                app.apply_custom_palette(app.theme_edit.colors);
+                            }
+                            KeyCode::Char('h') | KeyCode::Left => {
+                                app.theme_edit.colors[app.theme_edit.slot] =
+                                    app.theme_edit.colors[app.theme_edit.slot].wrapping_sub(1);
+                                app.apply_custom_palette(app.theme_edit.colors);
+                            }
+                            KeyCode::Char('L') => {
+                                app.theme_edit.colors[app.theme_edit.slot] =
+                                    app.theme_edit.colors[app.theme_edit.slot].wrapping_add(10);
+                                app.apply_custom_palette(app.theme_edit.colors);
+                            }
+                            KeyCode::Char('H') => {
+                                app.theme_edit.colors[app.theme_edit.slot] =
+                                    app.theme_edit.colors[app.theme_edit.slot].wrapping_sub(10);
+                                app.apply_custom_palette(app.theme_edit.colors);
+                            }
+                            KeyCode::Enter | KeyCode::Char('s') | KeyCode::Char('S') => {
+                                app.theme_edit.naming = true;
+                                app.theme_edit.name.clear();
+                                app.theme_edit.cursor = 0;
+                            }
+                            _ => {}
+                        }
+                    }
+                    continue;
+                }
+
                 // Interface chooser mode
                 if app.interface_chooser.active {
                     match key.code {
@@ -323,6 +417,16 @@ fn run_app(
                     KeyCode::Char('c') => {
                         app.show_help = false;
                         app.theme_chooser.open(app.theme_name);
+                    }
+                    KeyCode::Char('C') => {
+                        app.show_help = false;
+                        let palette = if let Some(ref name) = app.active_custom_theme
+                            && let Some(ct) = app.custom_themes.get(name) {
+                            [ct.c1, ct.c2, ct.c3, ct.c4, ct.c5, ct.c6]
+                        } else {
+                            config::theme::Theme::palette_values(app.theme_name)
+                        };
+                        app.theme_edit.open(palette);
                     }
                     KeyCode::Char('i') => {
                         app.show_help = false;

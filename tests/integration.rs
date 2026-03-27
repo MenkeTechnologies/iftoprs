@@ -164,3 +164,131 @@ fn help_contains_interface_keybind() {
     // -h help mentions interface flag
     assert!(stdout.contains("--interface"), "help should show --interface flag");
 }
+
+#[test]
+fn help_contains_config_flag() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--config"), "help should show --config flag");
+    assert!(stdout.contains("-c"), "help should show -c short flag");
+}
+
+#[test]
+fn completions_fish_generates_valid_output() {
+    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("iftoprs"), "fish completions should reference iftoprs");
+    assert!(stdout.contains("interface"), "fish completions should include interface");
+}
+
+#[test]
+fn completions_zsh_includes_config_flag() {
+    let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--config"), "zsh completions should include --config");
+}
+
+#[test]
+fn completions_bash_includes_config_flag() {
+    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("config"), "bash completions should include config");
+}
+
+#[test]
+fn help_exit_code_zero() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    assert!(output.status.success(), "-h should exit with code 0");
+}
+
+#[test]
+fn version_exit_code_zero() {
+    let output = cargo_bin().arg("-V").output().unwrap();
+    assert!(output.status.success(), "-V should exit with code 0");
+}
+
+#[test]
+fn list_colors_exit_code_zero() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    assert!(output.status.success(), "--list-colors should exit with code 0");
+}
+
+#[test]
+fn completions_exit_code_zero() {
+    let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
+    assert!(output.status.success(), "--completions zsh should exit with code 0");
+}
+
+#[test]
+fn help_banner_has_ascii_art() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("██"), "help banner should have block characters");
+}
+
+#[test]
+fn help_shows_version_number() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // The banner contains the version like "v2.4.0"
+    assert!(stdout.contains('v'), "help banner should show version");
+}
+
+#[test]
+fn list_colors_shows_usage_hint() {
+    let output = cargo_bin().arg("--list-colors").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Usage"), "list-colors should show usage hint");
+    assert!(stdout.contains("Cycle"), "list-colors should show cycle hint");
+}
+
+#[test]
+fn help_contains_header_keybind() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("header"), "help should document header toggle");
+}
+
+#[test]
+fn help_contains_refresh_keybind() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("refresh"), "help should document refresh rate keybind");
+}
+
+#[test]
+fn help_contains_sort_keybinds() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("sort"), "help should document sort keybinds");
+    assert!(stdout.contains("freeze"), "help should document freeze order keybind");
+}
+
+#[test]
+fn help_contains_processes_flag() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--no-processes"), "help should show --no-processes");
+    assert!(stdout.contains("-Z"), "help should show -Z short flag");
+}
+
+#[test]
+fn default_config_has_all_fields() {
+    let path = std::path::Path::new("iftoprs.default.conf");
+    let content = std::fs::read_to_string(path).unwrap();
+    let expected_fields = [
+        "theme", "show_border", "show_ports", "show_bars",
+        "show_processes", "show_header", "refresh_rate",
+        "alert_threshold", "pinned",
+    ];
+    for field in &expected_fields {
+        assert!(content.contains(field), "default config missing field: {}", field);
+    }
+}
+
+#[test]
+fn help_mentions_capture_section() {
+    let output = cargo_bin().arg("-h").output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("CAPTURE"), "help should have CAPTURE section");
+}

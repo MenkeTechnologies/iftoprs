@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
-use super::theme::ThemeName;
+use super::theme::{CustomThemeColors, ThemeName};
 use crate::ui::app::{BarStyle, PinnedFlow};
 
 /// Persistent preferences saved to ~/.iftoprs.conf
@@ -36,6 +38,10 @@ pub struct Prefs {
     pub alert_threshold: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interface: Option<String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub custom_themes: HashMap<String, CustomThemeColors>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_custom_theme: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -64,6 +70,8 @@ impl Default for Prefs {
             refresh_rate: 1,
             alert_threshold: 0.0,
             interface: None,
+            custom_themes: HashMap::new(),
+            active_custom_theme: None,
         }
     }
 }

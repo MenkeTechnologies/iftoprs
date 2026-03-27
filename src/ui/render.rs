@@ -116,6 +116,7 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
 
     // Overlays
     if state.theme_chooser.active { draw_theme_chooser(frame, size, state); }
+    if state.theme_edit.active { draw_theme_editor(frame, size, state); }
     if state.interface_chooser.active { draw_interface_chooser(frame, size, state); }
     if state.filter_state.active { draw_filter_popup(frame, size, state); }
     if state.tooltip.active { draw_tooltip(frame, size, state); }
@@ -226,10 +227,10 @@ fn draw_scale_ticks(frame: &mut Frame, area: Rect, state: &AppState) {
 // ─── Flows ────────────────────────────────────────────────────────────────────
 
 fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool) {
-    if area.height < 1 || area.width < 30 { return; }
+    if area.height < 1 || area.width < 30 || state.flows.is_empty() { return; }
     let t = &state.theme;
     let w = area.width;
-    let start = state.scroll_offset.min(state.flows.len().saturating_sub(1));
+    let start = state.scroll_offset.min(state.flows.len() - 1);
     let vis = &state.flows[start..];
     let vis = &vis[..vis.len().min(area.height as usize)];
 
@@ -513,7 +514,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
         ("NAV", &[("j/↓","Select next"),("k/↑","Select prev"),("^D","Half-page dn"),("^U","Half-page up"),("G/End","Jump last"),("Home","Jump first"),("Esc","Deselect")]),
         ("FILTER", &[("/","Search flows"),("0","Clear filter")]),
         ("ACTIONS", &[("e","Export flows"),("y","Copy selected"),("F","Pin/unpin ★")]),
-        ("DISPLAY", &[("c","Theme chooser"),("i","Interface"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
+        ("DISPLAY", &[("c","Theme chooser"),("C","Theme editor"),("i","Interface"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
         ("", &[]),
     ];
 
@@ -542,6 +543,106 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
         &tl, Style::default().fg(t.help_val).bg(bg), bw - 4);
     set_str(buf, x0 + (bw.saturating_sub(16)) / 2, y0 + bh - 2,
         "press h to close", Style::default().fg(Color::Indexed(240)).bg(bg), bw - 4);
+}
+
+// ─── Theme editor ─────────────────────────────────────────────────────────────
+
+fn draw_theme_editor(frame: &mut Frame, area: Rect, state: &AppState) {
+    let t = &state.theme;
+    let te = &state.theme_edit;
+    let buf = frame.buffer_mut();
+    let bw = 56u16.min(area.width.saturating_sub(4));
+    let bh: u16 = if te.naming { 16 } else { 15 };
+    let bh = bh.min(area.height.saturating_sub(4));
+    let bg = t.help_bg;
+    let bs = Style::default().fg(t.help_border);
+    let bgs = Style::default().fg(Color::White).bg(bg);
+    let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
+    let hint_s = Style::default().fg(Color::Indexed(240)).bg(bg);
+    let sel_s = Style::default().fg(Color::White).bg(Color::Indexed(237));
+
+    let (x0, y0) = draw_box(buf, area, bw, bh, bg, bs);
+
+    // Title
+    let title = "\u{1F3A8} THEME EDITOR";
+    let tlen = title.chars().count() as u16;
+    set_str(buf, x0 + (bw.saturating_sub(tlen)) / 2, y0 + 1, title, ts, bw - 2);
+
+    // Color channel labels
+    let labels = ["primary", "accent", "c3", "c4", "c5", "c6"];
+    let colors = te.colors;
+
+    for (i, label) in labels.iter().enumerate() {
+        let row_y = y0 + 3 + i as u16;
+        if row_y >= y0 + bh - 2 { break; }
+        let is_sel = i == te.slot;
+
+        let row_style = if is_sel { sel_s } else { bgs };
+        if is_sel {
+            for x in x0 + 1..x0 + bw - 1 {
+                set_cell(buf, x, row_y, " ", sel_s);
+            }
+        }
+
+        let marker = if is_sel { "\u{25B8} " } else { "  " };
+        set_str(buf, x0 + 2, row_y, marker, row_style, 2);
+
+        let label_str = format!("{:<10}", label);
+        set_str(buf, x0 + 4, row_y, &label_str, row_style, 10);
+
+        let val_str = format!("{:>3}", colors[i]);
+        set_str(buf, x0 + 15, row_y, &val_str, row_style, 3);
+
+        // Color swatch
+        let swatch_s = Style::default().fg(Color::Indexed(colors[i])).bg(bg);
+        set_str(buf, x0 + 20, row_y, "\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}", swatch_s, 5);
+
+        // Arrow preview
+        let arrow_s = Style::default().fg(Color::Indexed(colors[i])).bg(bg);
+        set_str(buf, x0 + 26, row_y, " \u{25C0}\u{2500}\u{2500}\u{25B6}", arrow_s, 5);
+    }
+
+    // Preview bar using the full palette
+    let preview_y = y0 + 10;
+    if preview_y < y0 + bh - 2 {
+        set_str(buf, x0 + 2, preview_y, "preview:", hint_s, 8);
+        let preview_w = (bw as usize).saturating_sub(13);
+        for j in 0..preview_w {
+            let frac = j as f64 / preview_w as f64;
+            let c = if frac < 0.20 {
+                Color::Indexed(colors[0]) // primary
+            } else if frac < 0.40 {
+                Color::Indexed(colors[1]) // accent
+            } else if frac < 0.55 {
+                Color::Indexed(colors[2]) // c3
+            } else if frac < 0.70 {
+                Color::Indexed(colors[3]) // c4
+            } else if frac < 0.85 {
+                Color::Indexed(colors[4]) // c5
+            } else {
+                Color::Indexed(colors[5]) // c6
+            };
+            set_cell(buf, x0 + 11 + j as u16, preview_y, "\u{2588}", Style::default().fg(c).bg(bg));
+        }
+    }
+
+    // Naming prompt or keybind hints
+    if te.naming {
+        let name_y = y0 + 12;
+        if name_y < y0 + bh - 1 {
+            let input_s = Style::default().fg(Color::Indexed(48)).bg(Color::Indexed(235));
+            set_str(buf, x0 + 2, name_y, "Theme name:", bgs, 11);
+            let name_display = format!("{}_", te.name);
+            set_str(buf, x0 + 14, name_y, &name_display, input_s, bw - 16);
+            set_str(buf, x0 + 2, name_y + 1, "Enter:save  Esc:back", hint_s, bw - 4);
+        }
+    } else {
+        let hint_y = y0 + 12;
+        if hint_y < y0 + bh - 1 {
+            set_str(buf, x0 + 2, hint_y, "j/k:select  h/l:\u{00B1}1  H/L:\u{00B1}10", hint_s, bw - 4);
+            set_str(buf, x0 + 2, hint_y + 1, "Enter/s:save  Esc/q:cancel", hint_s, bw - 4);
+        }
+    }
 }
 
 // ─── Theme chooser ────────────────────────────────────────────────────────────
@@ -841,5 +942,122 @@ fn draw_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
             set_str(buf, x0 + 2, ey, label, label_s, max_label as u16 + 1);
             set_str(buf, x0 + 2 + max_label as u16 + 2, ey, value, val_s, max_val as u16 + 1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── rate_to_frac ──
+
+    #[test]
+    fn rate_to_frac_zero() {
+        assert_eq!(rate_to_frac(0.0), 0.0);
+    }
+
+    #[test]
+    fn rate_to_frac_negative() {
+        assert_eq!(rate_to_frac(-100.0), 0.0);
+    }
+
+    #[test]
+    fn rate_to_frac_clamps_at_one() {
+        // Huge rate should clamp to 1.0
+        let f = rate_to_frac(1e30);
+        assert!((f - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn rate_to_frac_mid_value() {
+        // 1 byte/s = 8 bits/s, log10(8) ~ 0.9, /9.0 ~ 0.1
+        let f = rate_to_frac(1.0);
+        assert!(f > 0.0 && f < 1.0);
+    }
+
+    #[test]
+    fn rate_to_frac_monotonic() {
+        let a = rate_to_frac(100.0);
+        let b = rate_to_frac(1000.0);
+        let c = rate_to_frac(10000.0);
+        assert!(a < b);
+        assert!(b < c);
+    }
+
+    // ── bar_length ──
+
+    #[test]
+    fn bar_length_zero_rate() {
+        assert_eq!(bar_length(0.0, 80), 0);
+    }
+
+    #[test]
+    fn bar_length_positive_rate() {
+        let bl = bar_length(1_000_000.0, 100);
+        assert!(bl > 0 && bl <= 100);
+    }
+
+    #[test]
+    fn bar_length_zero_cols() {
+        assert_eq!(bar_length(1000.0, 0), 0);
+    }
+
+    // ── draw_flows empty guard ──
+
+    #[test]
+    fn draw_flows_empty_flows_no_panic() {
+        use crate::ui::app::AppState;
+        use crate::util::resolver::Resolver;
+        use crate::config::prefs::Prefs;
+        use crate::ui::app::CliOverrides;
+
+        let mut app = AppState::new(
+            Resolver::new(false), true, true, false, true,
+            &Prefs::default(), CliOverrides::default(),
+        );
+        // Simulate: scroll_offset > 0 but flows is empty
+        app.scroll_offset = 10;
+        assert!(app.flows.is_empty());
+
+        // Render into a small terminal — should not panic
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| {
+            draw(frame, &mut app);
+        }).unwrap();
+    }
+
+    #[test]
+    fn draw_flows_scroll_offset_beyond_flows_no_panic() {
+        use crate::ui::app::AppState;
+        use crate::util::resolver::Resolver;
+        use crate::config::prefs::Prefs;
+        use crate::ui::app::CliOverrides;
+        use crate::data::tracker::FlowSnapshot;
+        use crate::data::flow::{FlowKey, Protocol};
+
+        let mut app = AppState::new(
+            Resolver::new(false), true, true, false, true,
+            &Prefs::default(), CliOverrides::default(),
+        );
+        app.flows = vec![FlowSnapshot {
+            key: FlowKey {
+                src: "10.0.0.1".parse().unwrap(),
+                dst: "10.0.0.2".parse().unwrap(),
+                src_port: 5000, dst_port: 80,
+                protocol: Protocol::Tcp,
+            },
+            sent_2s: 100.0, sent_10s: 0.0, sent_40s: 0.0,
+            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
+            total_sent: 100, total_recv: 0,
+            process_name: None, pid: None,
+        }];
+        app.scroll_offset = 100; // way beyond
+
+        let backend = ratatui::backend::TestBackend::new(80, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| {
+            draw(frame, &mut app);
+        }).unwrap();
     }
 }

@@ -153,9 +153,24 @@ pub struct Theme {
     pub help_val: Color,
 }
 
+/// Custom theme colors stored in config.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CustomThemeColors {
+    pub c1: u8,
+    pub c2: u8,
+    pub c3: u8,
+    pub c4: u8,
+    pub c5: u8,
+    pub c6: u8,
+}
+
 impl Theme {
     pub fn from_name(name: ThemeName) -> Self {
         let (c1, c2, c3, c4, c5, c6) = palette(name);
+        Self::from_palette_raw(c1, c2, c3, c4, c5, c6)
+    }
+
+    pub fn from_palette_raw(c1: u8, c2: u8, c3: u8, c4: u8, c5: u8, c6: u8) -> Self {
         Theme {
             bar_color: Color::Indexed(c6),       // darkest — bar background
             bar_text: Color::Black,
@@ -178,6 +193,12 @@ impl Theme {
             help_key: Color::Indexed(c2),
             help_val: Color::Indexed(c4),
         }
+    }
+
+    /// Get the raw 6-color palette values for a built-in theme.
+    pub fn palette_values(name: ThemeName) -> [u8; 6] {
+        let (c1, c2, c3, c4, c5, c6) = palette(name);
+        [c1, c2, c3, c4, c5, c6]
     }
 
     /// Generate a 6-cell color swatch string for theme preview.

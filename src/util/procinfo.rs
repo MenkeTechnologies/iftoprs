@@ -72,7 +72,7 @@ fn refresh_proc_table_lsof() {
     }
 
     let cache = get_cache();
-    let mut table = cache.lock().unwrap();
+    let mut table = cache.lock().unwrap_or_else(|e| e.into_inner());
     table.by_port = new_table;
 }
 
@@ -146,7 +146,7 @@ fn refresh_proc_table_linux() {
     }
 
     let cache = get_cache();
-    let mut table = cache.lock().unwrap();
+    let mut table = cache.lock().unwrap_or_else(|e| e.into_inner());
     table.by_port = new_table;
 }
 
@@ -171,7 +171,7 @@ pub fn lookup_process(
     };
 
     let cache = get_cache();
-    let table = cache.lock().unwrap();
+    let table = cache.lock().unwrap_or_else(|e| e.into_inner());
 
     // Try local port (src_port first, then dst_port)
     if let Some(entry) = table.by_port.get(&(src_port, proto_num)) {
@@ -181,4 +181,137 @@ pub fn lookup_process(
         return Some(entry.clone());
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_cache_returns_same_instance() {
+        let a = get_cache() as *const _;
+        let b = get_cache() as *const _;
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn lookup_process_unknown_port() {
+        let result = lookup_process(
+            "10.0.0.1".parse().unwrap(), 60000,
+            "10.0.0.2".parse().unwrap(), 60001,
+            &Protocol::Tcp,
+        );
+        // May or may not find something depending on system state, but should not panic
+        let _ = result;
+    }
+
+    #[test]
+    fn lookup_process_unsupported_protocol() {
+        let result = lookup_process(
+            "10.0.0.1".parse().unwrap(), 80,
+            "10.0.0.2".parse().unwrap(), 80,
+            &Protocol::Other(47),
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn lookup_process_icmp_returns_none() {
+        let result = lookup_process(
+            "10.0.0.1".parse().unwrap(), 0,
+            "10.0.0.2".parse().unwrap(), 0,
+            &Protocol::Icmp,
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn lookup_process_udp_no_panic() {
+        let result = lookup_process(
+            "10.0.0.1".parse().unwrap(), 53,
+            "8.8.8.8".parse().unwrap(), 53,
+            &Protocol::Udp,
+        );
+        let _ = result;
+    }
+
+    #[test]
+    fn refresh_proc_table_no_panic() {
+        // Should not panic regardless of system state
+        refresh_proc_table();
+    }
+
+    #[test]
+    fn refresh_proc_table_twice_no_panic() {
+        refresh_proc_table();
+        refresh_proc_table();
+    }
+
+    #[test]
+    fn mutex_poison_recovery() {
+        let cache = get_cache();
+        let cache_clone = Arc::clone(cache);
+        let h = std::thread::spawn(move || {
+            let _guard = cache_clone.lock().unwrap();
+            panic!("intentional poison");
+        });
+        let _ = h.join();
+
+        // lookup_process should recover from poisoned mutex
+        let result = lookup_process(
+            "10.0.0.1".parse().unwrap(), 80,
+            "10.0.0.2".parse().unwrap(), 80,
+            &Protocol::Tcp,
+        );
+        let _ = result; // should not panic
+    }
+
+    #[cfg(target_os = "macos")]
+    mod macos_tests {
+        use super::super::*;
+
+        #[test]
+        fn extract_local_port_simple() {
+            assert_eq!(extract_local_port("*:443"), Some(443));
+        }
+
+        #[test]
+        fn extract_local_port_ipv4() {
+            assert_eq!(extract_local_port("127.0.0.1:8080"), Some(8080));
+        }
+
+        #[test]
+        fn extract_local_port_with_remote() {
+            assert_eq!(extract_local_port("10.0.0.1:5000->10.0.0.2:80"), Some(5000));
+        }
+
+        #[test]
+        fn extract_local_port_ipv6() {
+            assert_eq!(extract_local_port("[::1]:443"), Some(443));
+        }
+
+        #[test]
+        fn extract_local_port_invalid() {
+            assert_eq!(extract_local_port("no-colon"), None);
+        }
+
+        #[test]
+        fn extract_local_port_non_numeric() {
+            assert_eq!(extract_local_port("host:abc"), None);
+        }
+
+        #[test]
+        fn extract_local_port_wildcard() {
+            assert_eq!(extract_local_port("*:22"), Some(22));
+        }
+
+        #[test]
+        fn refresh_proc_table_lsof_populates() {
+            refresh_proc_table_lsof();
+            // After refresh, cache should exist (may be empty if no sockets)
+            let cache = get_cache();
+            let table = cache.lock().unwrap_or_else(|e| e.into_inner());
+            let _ = table.by_port.len(); // just verify access
+        }
+    }
 }

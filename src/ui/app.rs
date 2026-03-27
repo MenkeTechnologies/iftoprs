@@ -4,7 +4,7 @@ use std::time::Instant;
 use serde::{Deserialize, Serialize};
 
 use crate::config::prefs::{self, Prefs};
-use crate::config::theme::{Theme, ThemeName};
+use crate::config::theme::{CustomThemeColors, Theme, ThemeName};
 use crate::data::flow::{FlowKey, Protocol};
 use crate::data::tracker::{FlowSnapshot, TotalStats};
 use crate::util::resolver::Resolver;
@@ -19,6 +19,9 @@ pub struct CliOverrides {
     pub show_processes: bool,
     pub interface: bool,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ViewTab { Flows, Processes }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortColumn {
@@ -152,6 +155,29 @@ impl FilterState {
     pub fn kill_to_end(&mut self) { self.buf.truncate(self.cursor); }
 }
 
+/// Theme editor popup state.
+#[derive(Default)]
+pub struct ThemeEditState {
+    pub active: bool,
+    pub colors: [u8; 6],
+    pub slot: usize,
+    pub naming: bool,
+    pub name: String,
+    pub cursor: usize,
+}
+
+impl ThemeEditState {
+    pub fn new() -> Self { Self::default() }
+    pub fn open(&mut self, current_palette: [u8; 6]) {
+        self.active = true;
+        self.colors = current_palette;
+        self.slot = 0;
+        self.naming = false;
+        self.name.clear();
+        self.cursor = 0;
+    }
+}
+
 /// Status message with auto-dismiss.
 pub struct StatusMsg { pub text: String, pub since: Instant }
 
@@ -241,6 +267,22 @@ pub struct PinnedFlow {
     pub dst: String,
 }
 
+/// Aggregated bandwidth data for a single process.
+#[derive(Debug, Clone)]
+pub struct ProcessSnapshot {
+    pub name: String,
+    pub pid: Option<u32>,
+    pub flow_count: usize,
+    pub sent_2s: f64,
+    pub sent_10s: f64,
+    pub sent_40s: f64,
+    pub recv_2s: f64,
+    pub recv_10s: f64,
+    pub recv_40s: f64,
+    pub total_sent: u64,
+    pub total_recv: u64,
+}
+
 /// Application state for the TUI.
 pub struct AppState {
     pub show_dns: bool,
@@ -263,6 +305,7 @@ pub struct AppState {
     pub theme_name: ThemeName,
     pub theme: Theme,
     pub theme_chooser: ThemeChooser,
+    pub theme_edit: ThemeEditState,
     pub filter_state: FilterState,
     pub interface_chooser: InterfaceChooser,
     pub status_msg: Option<StatusMsg>,
@@ -289,6 +332,11 @@ pub struct AppState {
     /// Original interface from config (preserved across saves)
     pub config_interface: Option<String>,
 
+    /// Custom themes created by user
+    pub custom_themes: std::collections::HashMap<String, CustomThemeColors>,
+    /// Currently active custom theme name (if any)
+    pub active_custom_theme: Option<String>,
+
     /// Original prefs loaded from config (for fields overridden by CLI)
     pub orig_prefs: Prefs,
     /// Which fields were overridden by CLI flags
@@ -310,6 +358,12 @@ impl AppState {
         cli_overrides: CliOverrides,
     ) -> Self {
         let theme_name = prefs.theme;
+        let theme = if let Some(ref name) = prefs.active_custom_theme
+            && let Some(ct) = prefs.custom_themes.get(name) {
+            Theme::from_palette_raw(ct.c1, ct.c2, ct.c3, ct.c4, ct.c5, ct.c6)
+        } else {
+            Theme::from_name(theme_name)
+        };
         AppState {
             show_dns: resolver.is_enabled(),
             show_port_names: true,
@@ -327,8 +381,9 @@ impl AppState {
             screen_filter: None,
             frozen_order: false,
             theme_name,
-            theme: Theme::from_name(theme_name),
+            theme,
             theme_chooser: ThemeChooser::new(),
+            theme_edit: ThemeEditState::new(),
             filter_state: FilterState::new(),
             interface_chooser: InterfaceChooser::new(),
             status_msg: None,
@@ -344,6 +399,8 @@ impl AppState {
             refresh_rate: prefs.refresh_rate,
             interface_name: String::new(),
             config_interface: prefs.interface.clone(),
+            custom_themes: prefs.custom_themes.clone(),
+            active_custom_theme: prefs.active_custom_theme.clone(),
             orig_prefs: prefs.clone(),
             cli_overrides,
             total_flow_count: 0,
@@ -361,6 +418,11 @@ impl AppState {
     pub fn set_theme(&mut self, name: ThemeName) {
         self.theme_name = name;
         self.theme = Theme::from_name(name);
+        self.active_custom_theme = None;
+    }
+
+    pub fn apply_custom_palette(&mut self, colors: [u8; 6]) {
+        self.theme = Theme::from_palette_raw(colors[0], colors[1], colors[2], colors[3], colors[4], colors[5]);
     }
 
     pub fn set_status(&mut self, msg: impl Into<String>) {
@@ -386,6 +448,8 @@ impl AppState {
             refresh_rate: self.refresh_rate,
             alert_threshold: self.alert_threshold,
             interface: if co.interface { op.interface.clone() } else { self.config_interface.clone() },
+            custom_themes: self.custom_themes.clone(),
+            active_custom_theme: self.active_custom_theme.clone(),
         };
         prefs::save_prefs(&p);
     }
@@ -1469,6 +1533,8 @@ mod tests {
             refresh_rate: app.refresh_rate,
             alert_threshold: app.alert_threshold,
             interface: app.config_interface.clone(),
+            custom_themes: app.custom_themes.clone(),
+            active_custom_theme: app.active_custom_theme.clone(),
         };
         assert_eq!(p.interface, Some("en0".to_string()));
         let s = toml::to_string_pretty(&p).unwrap();
