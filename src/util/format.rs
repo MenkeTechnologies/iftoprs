@@ -41,6 +41,28 @@ pub fn readable_total(bytes: u64, use_bytes: bool) -> String {
     }
 }
 
+/// Render a sparkline string from a slice of values.
+/// Uses Unicode block elements: ▁▂▃▄▅▆▇█
+pub fn sparkline(data: &[u64], max_width: usize) -> String {
+    const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+
+    if data.is_empty() { return String::new(); }
+
+    // Take the last `max_width` values
+    let start = data.len().saturating_sub(max_width);
+    let slice = &data[start..];
+
+    let max = slice.iter().copied().max().unwrap_or(1).max(1);
+
+    slice.iter().map(|&v| {
+        if v == 0 { ' ' }
+        else {
+            let idx = ((v as f64 / max as f64) * 7.0).round() as usize;
+            BLOCKS[idx.min(7)]
+        }
+    }).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,5 +208,65 @@ mod tests {
     fn readable_total_u64_max() {
         let r = readable_total(u64::MAX, false);
         assert!(!r.is_empty());
+    }
+
+    // ── Sparkline ──
+
+    #[test]
+    fn sparkline_empty() {
+        assert_eq!(sparkline(&[], 10), "");
+    }
+
+    #[test]
+    fn sparkline_single_value() {
+        let s = sparkline(&[100], 10);
+        assert_eq!(s.chars().count(), 1);
+        assert_eq!(s, "█");
+    }
+
+    #[test]
+    fn sparkline_all_zeros() {
+        let s = sparkline(&[0, 0, 0, 0], 10);
+        assert_eq!(s, "    ");
+    }
+
+    #[test]
+    fn sparkline_ascending() {
+        let s = sparkline(&[0, 25, 50, 75, 100], 10);
+        assert_eq!(s.chars().count(), 5);
+        // Last char should be the tallest block
+        assert_eq!(s.chars().last().unwrap(), '█');
+    }
+
+    #[test]
+    fn sparkline_truncates_to_max_width() {
+        let data: Vec<u64> = (0..100).collect();
+        let s = sparkline(&data, 20);
+        assert_eq!(s.chars().count(), 20);
+    }
+
+    #[test]
+    fn sparkline_uses_recent_data() {
+        let data: Vec<u64> = (0..100).collect();
+        let s = sparkline(&data, 5);
+        // Should use the last 5 values (95..100), all high
+        assert_eq!(s.chars().count(), 5);
+    }
+
+    #[test]
+    fn sparkline_uniform_values() {
+        let s = sparkline(&[50, 50, 50, 50], 10);
+        // All same value → all should be the same block (max block since v/max = 1.0)
+        let chars: Vec<char> = s.chars().collect();
+        assert!(chars.iter().all(|&c| c == chars[0]));
+    }
+
+    #[test]
+    fn sparkline_one_spike() {
+        let s = sparkline(&[0, 0, 100, 0, 0], 10);
+        let chars: Vec<char> = s.chars().collect();
+        assert_eq!(chars[2], '█');
+        assert_eq!(chars[0], ' ');
+        assert_eq!(chars[4], ' ');
     }
 }

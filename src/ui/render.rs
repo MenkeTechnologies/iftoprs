@@ -322,6 +322,16 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
                 c.set_fg(t.rate_2s);
                 c.set_style(c.style().add_modifier(Modifier::BOLD).remove_modifier(Modifier::UNDERLINED));
             }
+
+            // Sparkline on the next row for the selected flow
+            let spark_y = y + 1;
+            if spark_y < area.y + area.height && !f.history.is_empty() {
+                let spark_w = hl.min(30);
+                let spark = crate::util::format::sparkline(&f.history, spark_w);
+                let spark_label = format!(" {} ", spark);
+                let spark_s = Style::default().fg(t.rate_2s).add_modifier(Modifier::DIM);
+                set_str(buf, area.x + 1, spark_y, &spark_label, spark_s, spark_label.len() as u16);
+            }
         }
     }
 }
@@ -431,8 +441,20 @@ fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
     };
     let tab_s = Style::default().fg(state.theme.host_src).add_modifier(Modifier::BOLD);
     set_str(buf, area.x + 1, area.y, tab_indicator, tab_s, tab_indicator.len() as u16);
+    let mut hint_x = area.x + 1 + tab_indicator.len() as u16;
     let tab_hint_s = Style::default().fg(Color::Indexed(240));
-    set_str(buf, area.x + 1 + tab_indicator.len() as u16, area.y, "Tab", tab_hint_s, 3);
+    set_str(buf, hint_x, area.y, "Tab", tab_hint_s, 3);
+    hint_x += 3;
+
+    // Show process drill-down filter indicator
+    if let Some(ref pf) = state.process_filter {
+        let pf_text = format!(" \u{25B8}{} ", pf); // ▸processname
+        let pf_s = Style::default().fg(state.theme.rate_2s).add_modifier(Modifier::BOLD);
+        set_str(buf, hint_x, area.y, &pf_text, pf_s, pf_text.len() as u16);
+        hint_x += pf_text.len() as u16;
+        let esc_s = Style::default().fg(Color::Indexed(240));
+        set_str(buf, hint_x, area.y, "Esc", esc_s, 3);
+    }
 
     // Show interface name, flow count, refresh rate, and theme in separator
     let mut parts: Vec<String> = Vec::new();
@@ -618,7 +640,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
         ("NAV", &[("j/↓","Select next"),("k/↑","Select prev"),("^D","Half-page dn"),("^U","Half-page up"),("G/End","Jump last"),("Home","Jump first"),("Esc","Deselect")]),
         ("FILTER", &[("/","Search flows"),("0","Clear filter")]),
         ("ACTIONS", &[("e","Export flows"),("y","Copy selected"),("F","Pin/unpin ★")]),
-        ("DISPLAY", &[("Tab","Switch view"),("c","Theme chooser"),("C","Theme editor"),("i","Interface"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
+        ("DISPLAY", &[("Tab","Switch view"),("Enter","Drill into proc"),("c","Theme chooser"),("C","Theme editor"),("i","Interface"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
         ("", &[]),
     ];
 
@@ -1154,7 +1176,7 @@ mod tests {
             sent_2s: 100.0, sent_10s: 0.0, sent_40s: 0.0,
             recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
             total_sent: 100, total_recv: 0,
-            process_name: None, pid: None,
+            process_name: None, pid: None, history: Vec::new(),
         }];
         app.scroll_offset = 100; // way beyond
 
@@ -1182,6 +1204,7 @@ mod tests {
             sent_2s: port as f64 * 100.0, sent_10s: 50.0, sent_40s: 25.0,
             recv_2s: port as f64 * 50.0, recv_10s: 25.0, recv_40s: 10.0,
             total_sent: 1000, total_recv: 500, process_name: None, pid: None,
+            history: Vec::new(),
         }
     }
 

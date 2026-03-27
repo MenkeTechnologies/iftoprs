@@ -542,9 +542,21 @@ fn run_app(
                             ViewTab::Processes => { app.process_selected = Some(0); app.process_scroll = 0; }
                         }
                     }
+                    KeyCode::Enter => {
+                        if matches!(app.view_tab, ViewTab::Processes) {
+                            app.process_drill_down();
+                        }
+                    }
                     KeyCode::Esc => {
                         match app.view_tab {
-                            ViewTab::Flows => { app.selected = None; app.show_help = false; }
+                            ViewTab::Flows => {
+                                if app.process_filter.is_some() {
+                                    app.clear_process_filter();
+                                } else {
+                                    app.selected = None;
+                                    app.show_help = false;
+                                }
+                            }
                             ViewTab::Processes => { app.process_selected = None; app.show_help = false; }
                         }
                     }

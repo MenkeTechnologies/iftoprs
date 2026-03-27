@@ -356,6 +356,8 @@ pub struct AppState {
     pub process_selected: Option<usize>,
     /// Scroll offset in process view
     pub process_scroll: usize,
+    /// Process drill-down filter — when set, only flows for this process are shown
+    pub process_filter: Option<String>,
     pub totals: TotalStats,
     pub resolver: Resolver,
 }
@@ -418,6 +420,7 @@ impl AppState {
             process_snapshots: Vec::new(),
             process_selected: None,
             process_scroll: 0,
+            process_filter: None,
             totals: TotalStats {
                 sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
                 recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
@@ -649,6 +652,11 @@ impl AppState {
         lines.push(("RX total".into(), crate::util::format::readable_total(f.total_recv, self.use_bytes)));
         lines.push(("".into(), "".into()));
         lines.push(("Combined".into(), crate::util::format::readable_total(f.total_sent + f.total_recv, self.use_bytes)));
+        if !f.history.is_empty() {
+            lines.push(("".into(), "".into()));
+            let spark = crate::util::format::sparkline(&f.history, 30);
+            lines.push(("History".into(), spark));
+        }
         if self.is_pinned(&f.key) {
             lines.push(("Pinned".into(), "★".into()));
         }
@@ -819,6 +827,30 @@ impl AppState {
             }
     }
 
+    /// Drill down from process view: filter flows to the selected process and switch to Flows tab.
+    pub fn process_drill_down(&mut self) {
+        let idx = match self.process_selected {
+            Some(i) if i < self.process_snapshots.len() => i,
+            _ => { self.set_status("Select a process first (j/k)"); return; }
+        };
+        let name = self.process_snapshots[idx].name.clone();
+        self.process_filter = Some(name.clone());
+        self.view_tab = ViewTab::Flows;
+        self.selected = None;
+        self.scroll_offset = 0;
+        self.set_status(format!("Filtered to process: {} (Esc to clear)", name));
+    }
+
+    /// Clear process drill-down filter.
+    pub fn clear_process_filter(&mut self) {
+        if self.process_filter.is_some() {
+            self.process_filter = None;
+            self.selected = None;
+            self.scroll_offset = 0;
+            self.set_status("Process filter cleared");
+        }
+    }
+
     pub fn export(&mut self) {
         let path = dirs::home_dir()
             .map(|h| h.join(".iftoprs.export.txt"))
@@ -881,6 +913,14 @@ impl AppState {
                     re.is_match(&src) || re.is_match(&dst)
                 });
             }
+        }
+
+        // Process drill-down filter
+        if let Some(ref pf) = self.process_filter {
+            let pf = pf.clone();
+            flows.retain(|f| {
+                f.process_name.as_deref().unwrap_or("(unknown)") == pf
+            });
         }
 
         if !self.frozen_order { self.sort_flows(&mut flows); }
@@ -1019,7 +1059,7 @@ mod tests {
             sent_10s: 0.0, sent_40s: 0.0,
             recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
             total_sent: 1000, total_recv: 500,
-            process_name: None, pid: None,
+            process_name: None, pid: None, history: Vec::new(),
         }
     }
 
@@ -1695,6 +1735,7 @@ mod tests_extended {
             sent_2s: src_port as f64 * 100.0, sent_10s: 0.0, sent_40s: 0.0,
             recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
             total_sent: 1000, total_recv: 500, process_name: None, pid: None,
+            history: Vec::new(),
         }
     }
     fn zero_totals() -> TotalStats {
@@ -1937,15 +1978,15 @@ mod tests_extended {
     }
     #[test] fn sort_src_name() {
         let mut app = make_app(); app.sort_column = SortColumn::SrcName;
-        let f1 = FlowSnapshot { key: FlowKey { src: "192.168.1.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 1, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None };
-        let f2 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 2, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None };
+        let f1 = FlowSnapshot { key: FlowKey { src: "192.168.1.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 1, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None, history: Vec::new() };
+        let f2 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 2, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None, history: Vec::new() };
         app.update_snapshot(vec![f1, f2], zero_totals());
         assert_eq!(app.flows[0].key.src_port, 2);
     }
     #[test] fn sort_dst_name() {
         let mut app = make_app(); app.sort_column = SortColumn::DstName;
-        let f1 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "192.168.1.1".parse().unwrap(), src_port: 1, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None };
-        let f2 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 2, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None };
+        let f1 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "192.168.1.1".parse().unwrap(), src_port: 1, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None, history: Vec::new() };
+        let f2 = FlowSnapshot { key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 2, dst_port: 80, protocol: Protocol::Tcp }, sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0, recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0, total_sent: 0, total_recv: 0, process_name: None, pid: None, history: Vec::new() };
         app.update_snapshot(vec![f1, f2], zero_totals());
         assert_eq!(app.flows[0].key.src_port, 2);
     }
@@ -2406,6 +2447,121 @@ mod tests_extended {
         assert_eq!(app.process_snapshots.len(), 1);
         app.update_snapshot(vec![], zero_totals());
         assert!(app.process_snapshots.is_empty());
+    }
+
+    // ── Process drill-down ──
+
+    #[test]
+    fn process_filter_default_none() {
+        let app = make_app();
+        assert!(app.process_filter.is_none());
+    }
+
+    #[test]
+    fn process_drill_down_sets_filter_and_switches_tab() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1); f1.process_name = Some("curl".into());
+        let mut f2 = make_flow(2); f2.process_name = Some("firefox".into());
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        app.process_selected = Some(0);
+        app.process_drill_down();
+        assert!(app.process_filter.is_some());
+        assert_eq!(app.view_tab, ViewTab::Flows);
+        assert!(app.selected.is_none());
+        assert_eq!(app.scroll_offset, 0);
+    }
+
+    #[test]
+    fn process_drill_down_filters_flows() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1); f1.process_name = Some("curl".into());
+        let mut f2 = make_flow(2); f2.process_name = Some("firefox".into());
+        let mut f3 = make_flow(3); f3.process_name = Some("curl".into());
+        app.update_snapshot(vec![f1.clone(), f2.clone(), f3.clone()], zero_totals());
+        app.process_selected = Some(0); // "curl" is first (highest rate)
+        app.process_drill_down();
+        // Now update again with the filter active
+        app.update_snapshot(vec![f1, f2, f3], zero_totals());
+        // Only curl flows should remain
+        assert_eq!(app.flows.len(), 2);
+        for f in &app.flows {
+            assert_eq!(f.process_name.as_deref(), Some("curl"));
+        }
+    }
+
+    #[test]
+    fn process_drill_down_no_selection() {
+        let mut app = make_app();
+        app.process_drill_down();
+        assert!(app.process_filter.is_none()); // should not set filter
+        assert!(app.status_msg.unwrap().text.contains("Select a process"));
+    }
+
+    #[test]
+    fn process_drill_down_out_of_bounds() {
+        let mut app = make_app();
+        let mut f = make_flow(1); f.process_name = Some("test".into());
+        app.update_snapshot(vec![f], zero_totals());
+        app.process_selected = Some(99);
+        app.process_drill_down();
+        assert!(app.process_filter.is_none());
+    }
+
+    #[test]
+    fn clear_process_filter_resets() {
+        let mut app = make_app();
+        app.process_filter = Some("curl".into());
+        app.selected = Some(5);
+        app.scroll_offset = 10;
+        app.clear_process_filter();
+        assert!(app.process_filter.is_none());
+        assert!(app.selected.is_none());
+        assert_eq!(app.scroll_offset, 0);
+    }
+
+    #[test]
+    fn clear_process_filter_when_none_is_noop() {
+        let mut app = make_app();
+        app.clear_process_filter();
+        assert!(app.process_filter.is_none());
+        assert!(app.status_msg.is_none()); // no status set
+    }
+
+    #[test]
+    fn process_drill_down_unknown_process() {
+        let mut app = make_app();
+        let f = make_flow(1); // no process_name → "(unknown)"
+        app.update_snapshot(vec![f.clone()], zero_totals());
+        app.process_selected = Some(0);
+        app.process_drill_down();
+        assert_eq!(app.process_filter.as_deref(), Some("(unknown)"));
+        app.update_snapshot(vec![f], zero_totals());
+        assert_eq!(app.flows.len(), 1);
+    }
+
+    #[test]
+    fn process_drill_down_status_message() {
+        let mut app = make_app();
+        let mut f = make_flow(1); f.process_name = Some("nginx".into());
+        app.update_snapshot(vec![f], zero_totals());
+        app.process_selected = Some(0);
+        app.process_drill_down();
+        let msg = app.status_msg.as_ref().unwrap().text.clone();
+        assert!(msg.contains("nginx"));
+        assert!(msg.contains("Esc"));
+    }
+
+    #[test]
+    fn process_filter_combined_with_screen_filter() {
+        let mut app = make_app();
+        app.screen_filter = Some("10.0.0".into());
+        app.process_filter = Some("curl".into());
+        let mut f1 = make_flow(1); f1.process_name = Some("curl".into());
+        let mut f2 = make_flow(2); f2.process_name = Some("firefox".into());
+        app.update_snapshot(vec![f1, f2], zero_totals());
+        // Both filters apply: screen_filter matches all (10.0.0.x), process_filter keeps only curl
+        assert_eq!(app.flows.len(), 1);
+        assert_eq!(app.flows[0].process_name.as_deref(), Some("curl"));
     }
 
     #[test]

@@ -38,6 +38,8 @@ pub struct FlowSnapshot {
     pub total_recv: u64,
     pub process_name: Option<String>,
     pub pid: Option<u32>,
+    /// Per-second combined (sent+recv) history for sparkline rendering.
+    pub history: Vec<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -140,18 +142,24 @@ impl FlowTracker {
         let snapshots: Vec<FlowSnapshot> = inner
             .flows
             .iter()
-            .map(|(key, h)| FlowSnapshot {
-                key: key.clone(),
-                sent_2s: h.avg_sent_2s(),
-                sent_10s: h.avg_sent_10s(),
-                sent_40s: h.avg_sent_40s(),
-                recv_2s: h.avg_recv_2s(),
-                recv_10s: h.avg_recv_10s(),
-                recv_40s: h.avg_recv_40s(),
-                total_sent: h.total_sent,
-                total_recv: h.total_recv,
-                process_name: h.process_name.clone(),
-                pid: h.pid,
+            .map(|(key, h)| {
+                let history: Vec<u64> = h.sent.iter().zip(h.recv.iter())
+                    .map(|(&s, &r)| s + r)
+                    .collect();
+                FlowSnapshot {
+                    key: key.clone(),
+                    sent_2s: h.avg_sent_2s(),
+                    sent_10s: h.avg_sent_10s(),
+                    sent_40s: h.avg_sent_40s(),
+                    recv_2s: h.avg_recv_2s(),
+                    recv_10s: h.avg_recv_10s(),
+                    recv_40s: h.avg_recv_40s(),
+                    total_sent: h.total_sent,
+                    total_recv: h.total_recv,
+                    process_name: h.process_name.clone(),
+                    pid: h.pid,
+                    history,
+                }
             })
             .collect();
 
