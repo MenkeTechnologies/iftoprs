@@ -48,6 +48,36 @@ pub enum Direction {
     Received, // dst -> src (reversed)
 }
 
+impl FlowKey {
+    /// Canonicalize the key so that (A:pA, B:pB) and (B:pB, A:pA) hash equally.
+    /// Returns the normalized key and whether src/dst were swapped.
+    pub fn normalize(self) -> (Self, bool) {
+        let src_bytes = match self.src {
+            IpAddr::V4(v4) => v4.octets().to_vec(),
+            IpAddr::V6(v6) => v6.octets().to_vec(),
+        };
+        let dst_bytes = match self.dst {
+            IpAddr::V4(v4) => v4.octets().to_vec(),
+            IpAddr::V6(v6) => v6.octets().to_vec(),
+        };
+        let swap = (src_bytes, self.src_port) > (dst_bytes, self.dst_port);
+        if swap {
+            (
+                FlowKey {
+                    src: self.dst,
+                    dst: self.src,
+                    src_port: self.dst_port,
+                    dst_port: self.src_port,
+                    protocol: self.protocol,
+                },
+                true,
+            )
+        } else {
+            (self, false)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,5 +191,43 @@ mod tests {
         let p = Protocol::Udp;
         let p2 = p;
         assert_eq!(p, p2);
+    }
+
+    #[test]
+    fn normalize_swaps_when_src_greater() {
+        let k = FlowKey { src: "10.0.0.2".parse().unwrap(), dst: "10.0.0.1".parse().unwrap(), src_port: 80, dst_port: 443, protocol: Protocol::Tcp };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src, "10.0.0.1".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.dst, "10.0.0.2".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.src_port, 443);
+        assert_eq!(n.dst_port, 80);
+    }
+
+    #[test]
+    fn normalize_no_swap_when_already_canonical() {
+        let k = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 443, protocol: Protocol::Tcp };
+        let (n, swapped) = k.normalize();
+        assert!(!swapped);
+        assert_eq!(n.src, "10.0.0.1".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.src_port, 80);
+    }
+
+    #[test]
+    fn normalize_same_ip_sorts_by_port() {
+        let k = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.1".parse().unwrap(), src_port: 8080, dst_port: 80, protocol: Protocol::Tcp };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src_port, 80);
+        assert_eq!(n.dst_port, 8080);
+    }
+
+    #[test]
+    fn normalize_reversed_pair_equals_original() {
+        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 5000, dst_port: 443, protocol: Protocol::Tcp };
+        let k2 = FlowKey { src: "10.0.0.2".parse().unwrap(), dst: "10.0.0.1".parse().unwrap(), src_port: 443, dst_port: 5000, protocol: Protocol::Tcp };
+        let (n1, _) = k1.normalize();
+        let (n2, _) = k2.normalize();
+        assert_eq!(n1, n2);
     }
 }

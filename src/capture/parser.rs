@@ -106,14 +106,25 @@ fn parse_ipv4(data: &[u8], local_net: Option<(IpAddr, u8)>) -> Option<ParsedPack
         Direction::Received => (dst, src, dst_port, src_port),
     };
 
+    let key = FlowKey {
+        src: key_src,
+        dst: key_dst,
+        src_port: key_src_port,
+        dst_port: key_dst_port,
+        protocol,
+    };
+    let (key, swapped) = key.normalize();
+    let direction = if swapped {
+        match direction {
+            Direction::Sent => Direction::Received,
+            Direction::Received => Direction::Sent,
+        }
+    } else {
+        direction
+    };
+
     Some(ParsedPacket {
-        key: FlowKey {
-            src: key_src,
-            dst: key_dst,
-            src_port: key_src_port,
-            dst_port: key_dst_port,
-            protocol,
-        },
+        key,
         direction,
         len: total_len,
     })
@@ -144,14 +155,25 @@ fn parse_ipv6(data: &[u8], local_net: Option<(IpAddr, u8)>) -> Option<ParsedPack
         Direction::Received => (dst, src, dst_port, src_port),
     };
 
+    let key = FlowKey {
+        src: key_src,
+        dst: key_dst,
+        src_port: key_src_port,
+        dst_port: key_dst_port,
+        protocol,
+    };
+    let (key, swapped) = key.normalize();
+    let direction = if swapped {
+        match direction {
+            Direction::Sent => Direction::Received,
+            Direction::Received => Direction::Sent,
+        }
+    } else {
+        direction
+    };
+
     Some(ParsedPacket {
-        key: FlowKey {
-            src: key_src,
-            dst: key_dst,
-            src_port: key_src_port,
-            dst_port: key_dst_port,
-            protocol,
-        },
+        key,
         direction,
         len: total_len,
     })
@@ -268,8 +290,10 @@ mod tests {
         raw[22] = 0x00; raw[23] = 0x35; // dst port 53
         let result = parse_raw(&raw, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
-        assert_eq!(result.key.src_port, 8080);
-        assert_eq!(result.key.dst_port, 53);
+        // Normalized: 8.8.8.8:53 < 192.168.1.1:8080
+        assert_eq!(result.key.src, "8.8.8.8".parse::<IpAddr>().unwrap());
+        assert_eq!(result.key.src_port, 53);
+        assert_eq!(result.key.dst_port, 8080);
     }
 
     #[test]
@@ -327,7 +351,10 @@ mod tests {
         let local: IpAddr = "192.168.1.0".parse().unwrap();
         let pkt = make_ipv4_tcp_packet([192, 168, 1, 5], [8, 8, 8, 8], 5000, 443);
         let result = parse_ethernet(&pkt, Some((local, 24))).unwrap();
-        assert_eq!(result.direction, Direction::Sent);
+        // After normalization, 8.8.8.8:443 < 192.168.1.5:5000 so key is canonical
+        assert_eq!(result.key.src, "8.8.8.8".parse::<IpAddr>().unwrap());
+        assert_eq!(result.key.dst, "192.168.1.5".parse::<IpAddr>().unwrap());
+        assert_eq!(result.direction, Direction::Received);
     }
 
     #[test]
@@ -335,7 +362,10 @@ mod tests {
         let local: IpAddr = "192.168.1.0".parse().unwrap();
         let pkt = make_ipv4_tcp_packet([8, 8, 8, 8], [192, 168, 1, 5], 443, 5000);
         let result = parse_ethernet(&pkt, Some((local, 24))).unwrap();
-        assert_eq!(result.direction, Direction::Received);
+        // Same canonical key as direction_with_local_net
+        assert_eq!(result.key.src, "8.8.8.8".parse::<IpAddr>().unwrap());
+        assert_eq!(result.key.dst, "192.168.1.5".parse::<IpAddr>().unwrap());
+        assert_eq!(result.direction, Direction::Sent);
     }
 
     // ── VLAN parsing ──
@@ -465,8 +495,9 @@ mod tests {
         pkt[26] = 0x00; pkt[27] = 0x50; // dst 80
         let result = parse_loopback(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Tcp);
-        assert_eq!(result.key.src_port, 8080);
-        assert_eq!(result.key.dst_port, 80);
+        // Same IP, so normalized by port: 80 < 8080
+        assert_eq!(result.key.src_port, 80);
+        assert_eq!(result.key.dst_port, 8080);
     }
 
     #[test]
@@ -520,7 +551,9 @@ mod tests {
         // Both src and dst outside local net
         let pkt = make_ipv4_tcp_packet([8, 8, 8, 8], [1, 1, 1, 1], 443, 80);
         let result = parse_ethernet(&pkt, Some((local, 24))).unwrap();
-        assert_eq!(result.direction, Direction::Sent);
+        // Normalized: 1.1.1.1:80 < 8.8.8.8:443, so swapped, direction flips
+        assert_eq!(result.key.src, "1.1.1.1".parse::<IpAddr>().unwrap());
+        assert_eq!(result.direction, Direction::Received);
     }
 
     #[test]
@@ -610,22 +643,26 @@ mod tests {
         pkt[36] = 0x00; pkt[37] = 0x35; // dst port 53
         let result = parse_ethernet(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
-        assert_eq!(result.key.src_port, 49152);
-        assert_eq!(result.key.dst_port, 53);
+        // Normalized: 8.8.8.8:53 < 10.0.0.1:49152
+        assert_eq!(result.key.src_port, 53);
+        assert_eq!(result.key.dst_port, 49152);
     }
 
-    // ── Received direction key reversal ──
+    // ── Normalized key: both directions produce same canonical key ──
 
     #[test]
-    fn received_direction_reverses_key() {
+    fn both_directions_same_canonical_key() {
         let local: IpAddr = "192.168.1.0".parse().unwrap();
-        let pkt = make_ipv4_tcp_packet([8, 8, 8, 8], [192, 168, 1, 5], 443, 5000);
-        let result = parse_ethernet(&pkt, Some((local, 24))).unwrap();
-        // When received, key should have local as src
-        assert_eq!(result.key.src, "192.168.1.5".parse::<IpAddr>().unwrap());
-        assert_eq!(result.key.dst, "8.8.8.8".parse::<IpAddr>().unwrap());
-        assert_eq!(result.key.src_port, 5000);
-        assert_eq!(result.key.dst_port, 443);
+        let sent_pkt = make_ipv4_tcp_packet([192, 168, 1, 5], [8, 8, 8, 8], 5000, 443);
+        let recv_pkt = make_ipv4_tcp_packet([8, 8, 8, 8], [192, 168, 1, 5], 443, 5000);
+        let sent = parse_ethernet(&sent_pkt, Some((local, 24))).unwrap();
+        let recv = parse_ethernet(&recv_pkt, Some((local, 24))).unwrap();
+        // Both produce the same canonical key
+        assert_eq!(sent.key, recv.key);
+        assert_eq!(sent.key.src, "8.8.8.8".parse::<IpAddr>().unwrap());
+        assert_eq!(sent.key.dst, "192.168.1.5".parse::<IpAddr>().unwrap());
+        assert_eq!(sent.key.src_port, 443);
+        assert_eq!(sent.key.dst_port, 5000);
     }
 
     // ── VLAN with IPv6 ──
