@@ -111,11 +111,6 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
     draw_totals(frame, c[4], state);
     if state.show_header { draw_header(frame, c[5], state); }
 
-    // Pause overlay
-    if state.paused {
-        draw_pause_overlay(frame, size, state);
-    }
-
     // Overlays
     if state.theme_chooser.active { draw_theme_chooser(frame, size, state); }
     if state.theme_edit.active { draw_theme_editor(frame, size, state); }
@@ -172,9 +167,7 @@ fn draw_header(frame: &mut Frame, area: Rect, state: &AppState) {
         state.refresh_rate,
         state.theme_name.display_name(),
     );
-    if state.paused {
-        title.push_str(&format!("{s}⏸ PAUSED"));
-    }
+    title.push_str(&format!("{s}paused:{}", if state.paused { "yes" } else { "no" }));
     if let Some(ref filter) = state.screen_filter {
         title.push_str(&format!("{s}filter:{filter}"));
     }
@@ -899,30 +892,6 @@ fn draw_filter_popup(frame: &mut Frame, area: Rect, state: &AppState) {
     let hints3 = "0=clear filter (from main view)";
     let h3x = x0 + (bw.saturating_sub(hints3.len() as u16)) / 2;
     set_str(buf, h3x, y0 + 7, hints3, hint_s, bw.saturating_sub(2));
-}
-
-// ─── Pause overlay ───────────────────────────────────────────────────────────
-
-fn draw_pause_overlay(frame: &mut Frame, area: Rect, _state: &AppState) {
-    let bw = 40u16.min(area.width.saturating_sub(4));
-    let bh = 7u16;
-    let bg = Color::Indexed(236);
-    let bs = Style::default().fg(Color::Indexed(196));
-    let buf = frame.buffer_mut();
-    let (x0, y0) = draw_box(buf, area, bw, bh, bg, bs);
-
-    let ts = Style::default().fg(Color::Indexed(196)).bg(bg).add_modifier(Modifier::BOLD);
-    let title = "⏸  PAUSED";
-    let title_cw = title.chars().count() as u16;
-    set_str(buf, x0 + (bw.saturating_sub(title_cw)) / 2, y0 + 2, title, ts, bw - 4);
-
-    let info_s = Style::default().fg(Color::White).bg(bg);
-    let info = "Data refresh is frozen";
-    set_str(buf, x0 + (bw.saturating_sub(info.len() as u16)) / 2, y0 + 3, info, info_s, bw - 4);
-
-    let hint_s = Style::default().fg(DIM_BORDER).bg(bg);
-    let hint = "press P to resume";
-    set_str(buf, x0 + (bw.saturating_sub(hint.len() as u16)) / 2, y0 + 5, hint, hint_s, bw - 4);
 }
 
 // ─── Status message ───────────────────────────────────────────────────────────

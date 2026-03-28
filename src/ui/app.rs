@@ -561,11 +561,18 @@ impl AppState {
                 ("  Clear".into(), "0 to reset".into()),
             ]
         } else if seg.contains("paused") {
-            vec![
-                ("▶ Paused".into(), "Data refresh is frozen".into()),
-                ("  Resume".into(), "P to toggle".into()),
-                ("  Display".into(), "Showing last captured state".into()),
-            ]
+            if self.paused {
+                vec![
+                    ("▶ Paused".into(), "yes — data refresh is frozen".into()),
+                    ("  Resume".into(), "P to toggle".into()),
+                    ("  Display".into(), "Showing last captured state".into()),
+                ]
+            } else {
+                vec![
+                    ("▶ Paused".into(), "no — live updates active".into()),
+                    ("  Toggle".into(), "P to pause".into()),
+                ]
+            }
         } else if seg.starts_with("h=help") {
             vec![
                 ("▶ Help".into(), "Press h or ? for keybinds".into()),
@@ -1930,8 +1937,13 @@ mod tests_extended {
         assert!(l.iter().any(|(_, v)| v.contains("(none)")));
     }
     #[test] fn hdr_paused() {
-        let l = make_app().header_segment_tooltip("PAUSED");
+        let mut app = make_app(); app.paused = true;
+        let l = app.header_segment_tooltip("paused:yes");
         assert!(l.iter().any(|(_, v)| v.contains("frozen")));
+    }
+    #[test] fn hdr_not_paused() {
+        let l = make_app().header_segment_tooltip("paused:no");
+        assert!(l.iter().any(|(_, v)| v.contains("live")));
     }
     #[test] fn hdr_help() {
         let l = make_app().header_segment_tooltip("h=help");
