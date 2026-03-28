@@ -2,7 +2,7 @@ use std::fmt;
 use std::net::IpAddr;
 
 /// Uniquely identifies a network flow (bidirectional).
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct FlowKey {
     pub src: IpAddr,
     pub dst: IpAddr,
