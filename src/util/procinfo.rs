@@ -84,6 +84,7 @@ fn refresh_proc_table_lsof() {
     table.by_port = new_table;
 }
 
+#[cfg(target_os = "macos")]
 fn extract_local_port(n_field: &str) -> Option<u16> {
     // Strip the connection part (->remote) if present
     let local = n_field.split("->").next()?;
@@ -114,12 +115,11 @@ fn refresh_proc_table_linux() {
                     continue;
                 }
                 // fields[1] = local_address:port (hex)
-                if let Some(port) = parse_proc_net_port(fields[1]) {
-                    if let Ok(inode) = fields[9].parse::<u64>() {
-                        if inode > 0 {
-                            inode_to_port.insert(inode, (port, proto));
-                        }
-                    }
+                if let Some(port) = parse_proc_net_port(fields[1])
+                    && let Ok(inode) = fields[9].parse::<u64>()
+                    && inode > 0
+                {
+                    inode_to_port.insert(inode, (port, proto));
                 }
             }
         }
@@ -150,14 +150,12 @@ fn refresh_proc_table_linux() {
                         if let Some(inode_str) = link_str
                             .strip_prefix("socket:[")
                             .and_then(|s| s.strip_suffix(']'))
+                            && let Ok(inode) = inode_str.parse::<u64>()
+                            && let Some(&(port, proto)) = inode_to_port.get(&inode)
                         {
-                            if let Ok(inode) = inode_str.parse::<u64>() {
-                                if let Some(&(port, proto)) = inode_to_port.get(&inode) {
-                                    new_table
-                                        .entry((port, proto))
-                                        .or_insert((pid, name.clone()));
-                                }
-                            }
+                            new_table
+                                .entry((port, proto))
+                                .or_insert((pid, name.clone()));
                         }
                     }
                 }
