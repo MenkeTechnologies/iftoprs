@@ -222,16 +222,16 @@ impl Theme {
     fn shift_color_darker(c: u8) -> u8 {
         if c >= 232 {
             // Grayscale ramp (232..=255): bump down
-            c.saturating_sub(2).max(232)
+            c.saturating_sub(4).max(232)
         } else if c >= 16 {
             // 6x6x6 color cube (16..=231)
             let idx = c - 16;
             let b = idx % 6;
             let g = (idx / 6) % 6;
             let r = idx / 36;
-            let r2 = r.saturating_sub(1);
-            let g2 = g.saturating_sub(1);
-            let b2 = b.saturating_sub(1);
+            let r2 = r.saturating_sub(2);
+            let g2 = g.saturating_sub(2);
+            let b2 = b.saturating_sub(2);
             16 + r2 * 36 + g2 * 6 + b2
         } else {
             // Basic 16 colors — use darker variant if possible
