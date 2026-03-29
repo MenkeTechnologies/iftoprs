@@ -1,6 +1,6 @@
 [package]
 name = "iftoprs"
-version = "2.15.0"
+version = "2.16.0"
 edition = "2024"
 description = "Real-time bandwidth monitor — iftop clone in Rust with ratatui TUI, 31 themes, process attribution, mouse support"
 license = "MIT"
