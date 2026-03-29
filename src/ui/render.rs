@@ -742,9 +742,10 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
     ];
 
     let bs = state.bar_style;
-    for &(y, label, cum, peak, r2, r10, r40) in &rows {
+    for (i, &(y, label, cum, peak, r2, r10, r40)) in rows.iter().enumerate() {
+        let bar_bg = if i == 1 { th.bar_color_mid } else { th.bar_color };
         let bl = bar_length(r2, w);
-        paint_bar_styled(buf, area.x, y, bl, w, th.bar_color, bs);
+        paint_bar_styled(buf, area.x, y, bl, w, bar_bg, bs);
 
         write_bar_styled(
             buf,
@@ -754,7 +755,7 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
             th.total_label,
             area.x,
             bl,
-            th.bar_color,
+            bar_bg,
             th.bar_text,
             bs,
         );
@@ -767,7 +768,7 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
             th.cum_label,
             area.x,
             bl,
-            th.bar_color,
+            bar_bg,
             th.bar_text,
             bs,
         );
@@ -780,7 +781,7 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
             th.peak_label,
             area.x,
             bl,
-            th.bar_color,
+            bar_bg,
             th.bar_text,
             bs,
         );
@@ -794,7 +795,7 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
             th.total_label,
             area.x,
             bl,
-            th.bar_color,
+            bar_bg,
             th.bar_text,
             bs,
         );
@@ -806,7 +807,7 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
             th.rate_2s,
             area.x,
             bl,
-            th.bar_color,
+            bar_bg,
             th.bar_text,
             bs,
         );
@@ -818,7 +819,7 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
             th.rate_10s,
             area.x,
             bl,
-            th.bar_color,
+            bar_bg,
             th.bar_text,
             bs,
         );
@@ -830,7 +831,7 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
             th.rate_40s,
             area.x,
             bl,
-            th.bar_color,
+            bar_bg,
             th.bar_text,
             bs,
         );
