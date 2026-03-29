@@ -11,6 +11,7 @@
   <a href="https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml"><img src="https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://crates.io/crates/iftoprs"><img src="https://img.shields.io/crates/v/iftoprs.svg" alt="crates.io"></a>
   <a href="https://crates.io/crates/iftoprs"><img src="https://img.shields.io/crates/d/iftoprs.svg" alt="downloads"></a>
+  <a href="https://docs.rs/iftoprs"><img src="https://docs.rs/iftoprs/badge.svg" alt="docs.rs"></a>
   <a href="https://github.com/MenkeTechnologies/iftoprs/blob/main/LICENSE"><img src="https://img.shields.io/crates/l/iftoprs.svg" alt="license"></a>
 </p>
 
