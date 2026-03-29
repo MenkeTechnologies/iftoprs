@@ -194,7 +194,7 @@ impl Theme {
     pub fn from_palette_raw(c1: u8, c2: u8, c3: u8, c4: u8, c5: u8, c6: u8) -> Self {
         Theme {
             bar_color: Color::Indexed(c6), // darkest — bar background
-            bar_color_mid: Color::Indexed(Self::shift_color_darker(c6)),
+            bar_color_mid: Color::Indexed(Self::shift_color_lighter(c6)),
             bar_text: Color::Black,
             host_src: Color::Indexed(c2), // accent — bright
             host_dst: Color::Indexed(c2),
@@ -218,24 +218,24 @@ impl Theme {
         }
     }
 
-    /// Shift an indexed 256-color one step darker in the color cube or grayscale ramp.
-    fn shift_color_darker(c: u8) -> u8 {
+    /// Shift an indexed 256-color one step lighter in the color cube or grayscale ramp.
+    fn shift_color_lighter(c: u8) -> u8 {
         if c >= 232 {
-            // Grayscale ramp (232..=255): bump down
-            c.saturating_sub(4).max(232)
+            // Grayscale ramp (232..=255): bump up
+            c + 2
         } else if c >= 16 {
             // 6x6x6 color cube (16..=231)
             let idx = c - 16;
             let b = idx % 6;
             let g = (idx / 6) % 6;
             let r = idx / 36;
-            let r2 = r.saturating_sub(2);
-            let g2 = g.saturating_sub(2);
-            let b2 = b.saturating_sub(2);
+            let r2 = (r + 1).min(5);
+            let g2 = (g + 1).min(5);
+            let b2 = (b + 1).min(5);
             16 + r2 * 36 + g2 * 6 + b2
         } else {
-            // Basic 16 colors — use darker variant if possible
-            if c >= 8 { c - 8 } else { c }
+            // Basic 16 colors — bump to a lighter variant if possible
+            (c + 8).min(15)
         }
     }
 
