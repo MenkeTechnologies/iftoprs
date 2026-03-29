@@ -9,11 +9,16 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use crossterm::event::{self, Event, KeyCode, KeyModifiers, MouseEvent, MouseEventKind, MouseButton, EnableMouseCapture, DisableMouseCapture};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::event::{
+    self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers, MouseButton,
+    MouseEvent, MouseEventKind,
+};
 use crossterm::execute;
-use ratatui::backend::CrosstermBackend;
+use crossterm::terminal::{
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
+};
 use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
 use tokio::sync::mpsc;
 
 use config::cli::Args;
@@ -68,9 +73,9 @@ fn main() -> Result<()> {
     // CLI -i overrides config interface
     let effective_interface = args.interface.clone().or(prefs.interface.clone());
 
-    let local_net = args.parse_net_filter().or_else(|| {
-        auto_detect_local_net(effective_interface.as_deref())
-    });
+    let local_net = args
+        .parse_net_filter()
+        .or_else(|| auto_detect_local_net(effective_interface.as_deref()));
     let resolver = Resolver::new(!args.no_dns);
     let tracker = FlowTracker::new();
 
@@ -115,7 +120,8 @@ fn main() -> Result<()> {
     // Setup terminal
     enable_raw_mode().context("Failed to enable raw mode")?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).context("Failed to enter alternate screen")?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)
+        .context("Failed to enter alternate screen")?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).context("Failed to create terminal")?;
 
@@ -147,7 +153,12 @@ fn main() -> Result<()> {
 
     // Restore terminal
     disable_raw_mode().ok();
-    execute!(terminal.backend_mut(), DisableMouseCapture, LeaveAlternateScreen).ok();
+    execute!(
+        terminal.backend_mut(),
+        DisableMouseCapture,
+        LeaveAlternateScreen
+    )
+    .ok();
     terminal.show_cursor().ok();
 
     result
@@ -166,11 +177,7 @@ fn run_app(
     loop {
         // Drain packet events (non-blocking)
         while let Ok(event) = rx.try_recv() {
-            tracker.record(
-                event.parsed.key,
-                event.parsed.direction,
-                event.parsed.len,
-            );
+            tracker.record(event.parsed.key, event.parsed.direction, event.parsed.len);
         }
 
         // Periodic rotation
@@ -204,367 +211,431 @@ fn run_app(
             }
 
             // Keyboard events
-            let Event::Key(key) = ev else { continue; };
+            let Event::Key(key) = ev else {
+                continue;
+            };
 
-                // Ctrl+C always quits
-                if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c')
-                {
-                    return Ok(());
+            // Ctrl+C always quits
+            if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+                return Ok(());
+            }
+
+            // Filter input mode
+            if app.filter_state.active {
+                match key.code {
+                    KeyCode::Enter => {
+                        app.filter_state.active = false;
+                        let f = app.filter_state.buf.clone();
+                        app.screen_filter = if f.is_empty() { None } else { Some(f) };
+                    }
+                    KeyCode::Esc => {
+                        app.filter_state.active = false;
+                        app.screen_filter = app.filter_state.prev.clone();
+                    }
+                    KeyCode::Backspace => app.filter_state.backspace(),
+                    KeyCode::Left => app.filter_state.left(),
+                    KeyCode::Right => app.filter_state.right(),
+                    KeyCode::Home => app.filter_state.home(),
+                    KeyCode::End => app.filter_state.end(),
+                    KeyCode::Char(ch) => {
+                        if key.modifiers.contains(KeyModifiers::CONTROL) {
+                            match ch {
+                                'w' => app.filter_state.delete_word(),
+                                'a' => app.filter_state.home(),
+                                'e' => app.filter_state.end(),
+                                'k' => app.filter_state.kill_to_end(),
+                                'u' => {
+                                    app.filter_state.buf.clear();
+                                    app.filter_state.cursor = 0;
+                                }
+                                _ => {}
+                            }
+                        } else {
+                            app.filter_state.insert(ch);
+                        }
+                        // Live filter preview
+                        let f = app.filter_state.buf.clone();
+                        app.screen_filter = if f.is_empty() { None } else { Some(f) };
+                    }
+                    _ => {}
                 }
+                continue;
+            }
 
-                // Filter input mode
-                if app.filter_state.active {
+            // Theme chooser mode
+            if app.theme_chooser.active {
+                match key.code {
+                    KeyCode::Char('j') | KeyCode::Down => {
+                        let len = config::theme::ThemeName::ALL.len();
+                        app.theme_chooser.selected = (app.theme_chooser.selected + 1) % len;
+                        let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
+                        app.set_theme(name);
+                    }
+                    KeyCode::Char('k') | KeyCode::Up => {
+                        let len = config::theme::ThemeName::ALL.len();
+                        app.theme_chooser.selected = (app.theme_chooser.selected + len - 1) % len;
+                        let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
+                        app.set_theme(name);
+                    }
+                    KeyCode::Enter => {
+                        app.theme_chooser.active = false;
+                        app.save_prefs();
+                    }
+                    KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('c') => {
+                        app.theme_chooser.active = false;
+                    }
+                    _ => {}
+                }
+                continue;
+            }
+
+            // Theme editor mode
+            if app.theme_edit.active {
+                if app.theme_edit.naming {
                     match key.code {
                         KeyCode::Enter => {
-                            app.filter_state.active = false;
-                            let f = app.filter_state.buf.clone();
-                            app.screen_filter = if f.is_empty() { None } else { Some(f) };
+                            let name = app.theme_edit.name.trim().to_string();
+                            if !name.is_empty() {
+                                let c = app.theme_edit.colors;
+                                app.custom_themes.insert(
+                                    name.clone(),
+                                    config::theme::CustomThemeColors {
+                                        c1: c[0],
+                                        c2: c[1],
+                                        c3: c[2],
+                                        c4: c[3],
+                                        c5: c[4],
+                                        c6: c[5],
+                                    },
+                                );
+                                app.active_custom_theme = Some(name.clone());
+                                app.save_prefs();
+                                app.set_status(format!("Saved theme: {}", name));
+                            }
+                            app.theme_edit.active = false;
+                            app.theme_edit.naming = false;
+                            app.theme_edit.name.clear();
+                            app.theme_edit.cursor = 0;
                         }
                         KeyCode::Esc => {
-                            app.filter_state.active = false;
-                            app.screen_filter = app.filter_state.prev.clone();
+                            app.theme_edit.naming = false;
+                            app.theme_edit.name.clear();
+                            app.theme_edit.cursor = 0;
                         }
-                        KeyCode::Backspace => app.filter_state.backspace(),
-                        KeyCode::Left => app.filter_state.left(),
-                        KeyCode::Right => app.filter_state.right(),
-                        KeyCode::Home => app.filter_state.home(),
-                        KeyCode::End => app.filter_state.end(),
-                        KeyCode::Char(ch) => {
-                            if key.modifiers.contains(KeyModifiers::CONTROL) {
-                                match ch {
-                                    'w' => app.filter_state.delete_word(),
-                                    'a' => app.filter_state.home(),
-                                    'e' => app.filter_state.end(),
-                                    'k' => app.filter_state.kill_to_end(),
-                                    'u' => { app.filter_state.buf.clear(); app.filter_state.cursor = 0; }
-                                    _ => {}
-                                }
-                            } else {
-                                app.filter_state.insert(ch);
+                        KeyCode::Backspace => {
+                            if app.theme_edit.cursor > 0 {
+                                app.theme_edit.cursor -= 1;
+                                app.theme_edit.name.remove(app.theme_edit.cursor);
                             }
-                            // Live filter preview
-                            let f = app.filter_state.buf.clone();
-                            app.screen_filter = if f.is_empty() { None } else { Some(f) };
+                        }
+                        KeyCode::Left => {
+                            app.theme_edit.cursor = app.theme_edit.cursor.saturating_sub(1);
+                        }
+                        KeyCode::Right => {
+                            app.theme_edit.cursor =
+                                (app.theme_edit.cursor + 1).min(app.theme_edit.name.len());
+                        }
+                        KeyCode::Char(c) => {
+                            if app.theme_edit.name.len() < 20 {
+                                app.theme_edit.name.insert(app.theme_edit.cursor, c);
+                                app.theme_edit.cursor += 1;
+                            }
                         }
                         _ => {}
                     }
-                    continue;
-                }
-
-                // Theme chooser mode
-                if app.theme_chooser.active {
+                } else {
                     match key.code {
-                        KeyCode::Char('j') | KeyCode::Down => {
-                            let len = config::theme::ThemeName::ALL.len();
-                            app.theme_chooser.selected = (app.theme_chooser.selected + 1) % len;
-                            let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
-                            app.set_theme(name);
-                        }
-                        KeyCode::Char('k') | KeyCode::Up => {
-                            let len = config::theme::ThemeName::ALL.len();
-                            app.theme_chooser.selected = (app.theme_chooser.selected + len - 1) % len;
-                            let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
-                            app.set_theme(name);
-                        }
-                        KeyCode::Enter => {
-                            app.theme_chooser.active = false;
-                            app.save_prefs();
-                        }
-                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('c') => {
-                            app.theme_chooser.active = false;
-                        }
-                        _ => {}
-                    }
-                    continue;
-                }
-
-                // Theme editor mode
-                if app.theme_edit.active {
-                    if app.theme_edit.naming {
-                        match key.code {
-                            KeyCode::Enter => {
-                                let name = app.theme_edit.name.trim().to_string();
-                                if !name.is_empty() {
-                                    let c = app.theme_edit.colors;
-                                    app.custom_themes.insert(name.clone(), config::theme::CustomThemeColors {
-                                        c1: c[0], c2: c[1], c3: c[2], c4: c[3], c5: c[4], c6: c[5],
-                                    });
-                                    app.active_custom_theme = Some(name.clone());
-                                    app.save_prefs();
-                                    app.set_status(format!("Saved theme: {}", name));
-                                }
-                                app.theme_edit.active = false;
-                                app.theme_edit.naming = false;
-                                app.theme_edit.name.clear();
-                                app.theme_edit.cursor = 0;
-                            }
-                            KeyCode::Esc => {
-                                app.theme_edit.naming = false;
-                                app.theme_edit.name.clear();
-                                app.theme_edit.cursor = 0;
-                            }
-                            KeyCode::Backspace => {
-                                if app.theme_edit.cursor > 0 {
-                                    app.theme_edit.cursor -= 1;
-                                    app.theme_edit.name.remove(app.theme_edit.cursor);
-                                }
-                            }
-                            KeyCode::Left => {
-                                app.theme_edit.cursor = app.theme_edit.cursor.saturating_sub(1);
-                            }
-                            KeyCode::Right => {
-                                app.theme_edit.cursor = (app.theme_edit.cursor + 1).min(app.theme_edit.name.len());
-                            }
-                            KeyCode::Char(c) => {
-                                if app.theme_edit.name.len() < 20 {
-                                    app.theme_edit.name.insert(app.theme_edit.cursor, c);
-                                    app.theme_edit.cursor += 1;
-                                }
-                            }
-                            _ => {}
-                        }
-                    } else {
-                        match key.code {
-                            KeyCode::Esc | KeyCode::Char('q') => {
-                                app.theme_edit.active = false;
-                                // Restore original theme
-                                if let Some(ref name) = app.active_custom_theme
-                                    && let Some(ct) = app.custom_themes.get(name) {
-                                    app.apply_custom_palette([ct.c1, ct.c2, ct.c3, ct.c4, ct.c5, ct.c6]);
-                                } else {
-                                    app.set_theme(app.theme_name);
-                                }
-                            }
-                            KeyCode::Char('j') | KeyCode::Down => {
-                                app.theme_edit.slot = (app.theme_edit.slot + 1).min(5);
-                            }
-                            KeyCode::Char('k') | KeyCode::Up => {
-                                app.theme_edit.slot = app.theme_edit.slot.saturating_sub(1);
-                            }
-                            KeyCode::Char('l') | KeyCode::Right => {
-                                app.theme_edit.colors[app.theme_edit.slot] =
-                                    app.theme_edit.colors[app.theme_edit.slot].wrapping_add(1);
-                                app.apply_custom_palette(app.theme_edit.colors);
-                            }
-                            KeyCode::Char('h') | KeyCode::Left => {
-                                app.theme_edit.colors[app.theme_edit.slot] =
-                                    app.theme_edit.colors[app.theme_edit.slot].wrapping_sub(1);
-                                app.apply_custom_palette(app.theme_edit.colors);
-                            }
-                            KeyCode::Char('L') => {
-                                app.theme_edit.colors[app.theme_edit.slot] =
-                                    app.theme_edit.colors[app.theme_edit.slot].wrapping_add(10);
-                                app.apply_custom_palette(app.theme_edit.colors);
-                            }
-                            KeyCode::Char('H') => {
-                                app.theme_edit.colors[app.theme_edit.slot] =
-                                    app.theme_edit.colors[app.theme_edit.slot].wrapping_sub(10);
-                                app.apply_custom_palette(app.theme_edit.colors);
-                            }
-                            KeyCode::Enter | KeyCode::Char('s') | KeyCode::Char('S') => {
-                                app.theme_edit.naming = true;
-                                app.theme_edit.name.clear();
-                                app.theme_edit.cursor = 0;
-                            }
-                            _ => {}
-                        }
-                    }
-                    continue;
-                }
-
-                // Interface chooser mode
-                if app.interface_chooser.active {
-                    match key.code {
-                        KeyCode::Char('j') | KeyCode::Down | KeyCode::Char('i') => {
-                            let len = app.interface_chooser.interfaces.len();
-                            if len > 0 {
-                                app.interface_chooser.selected = (app.interface_chooser.selected + 1) % len;
-                            }
-                        }
-                        KeyCode::Char('k') | KeyCode::Up => {
-                            let len = app.interface_chooser.interfaces.len();
-                            if len > 0 {
-                                app.interface_chooser.selected = (app.interface_chooser.selected + len - 1) % len;
-                            }
-                        }
-                        KeyCode::Enter => {
-                            let name = app.interface_chooser.interfaces[app.interface_chooser.selected].clone();
-                            app.interface_chooser.active = false;
-                            app.interface_name = name.clone();
-                            app.config_interface = Some(name.clone());
-                            app.save_prefs();
-                            app.set_status(format!("Interface: {} (restart to apply)", name));
-                        }
                         KeyCode::Esc | KeyCode::Char('q') => {
-                            app.interface_chooser.active = false;
+                            app.theme_edit.active = false;
+                            // Restore original theme
+                            if let Some(ref name) = app.active_custom_theme
+                                && let Some(ct) = app.custom_themes.get(name)
+                            {
+                                app.apply_custom_palette([
+                                    ct.c1, ct.c2, ct.c3, ct.c4, ct.c5, ct.c6,
+                                ]);
+                            } else {
+                                app.set_theme(app.theme_name);
+                            }
+                        }
+                        KeyCode::Char('j') | KeyCode::Down => {
+                            app.theme_edit.slot = (app.theme_edit.slot + 1).min(5);
+                        }
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            app.theme_edit.slot = app.theme_edit.slot.saturating_sub(1);
+                        }
+                        KeyCode::Char('l') | KeyCode::Right => {
+                            app.theme_edit.colors[app.theme_edit.slot] =
+                                app.theme_edit.colors[app.theme_edit.slot].wrapping_add(1);
+                            app.apply_custom_palette(app.theme_edit.colors);
+                        }
+                        KeyCode::Char('h') | KeyCode::Left => {
+                            app.theme_edit.colors[app.theme_edit.slot] =
+                                app.theme_edit.colors[app.theme_edit.slot].wrapping_sub(1);
+                            app.apply_custom_palette(app.theme_edit.colors);
+                        }
+                        KeyCode::Char('L') => {
+                            app.theme_edit.colors[app.theme_edit.slot] =
+                                app.theme_edit.colors[app.theme_edit.slot].wrapping_add(10);
+                            app.apply_custom_palette(app.theme_edit.colors);
+                        }
+                        KeyCode::Char('H') => {
+                            app.theme_edit.colors[app.theme_edit.slot] =
+                                app.theme_edit.colors[app.theme_edit.slot].wrapping_sub(10);
+                            app.apply_custom_palette(app.theme_edit.colors);
+                        }
+                        KeyCode::Enter | KeyCode::Char('s') | KeyCode::Char('S') => {
+                            app.theme_edit.naming = true;
+                            app.theme_edit.name.clear();
+                            app.theme_edit.cursor = 0;
                         }
                         _ => {}
                     }
-                    continue;
                 }
+                continue;
+            }
 
-                // Ctrl+key combos
-                if key.modifiers.contains(KeyModifiers::CONTROL) {
-                    match key.code {
-                        KeyCode::Char('d') => match app.view_tab {
-                            ViewTab::Flows => app.page_down(),
-                            ViewTab::Processes => app.process_page_down(),
-                        },
-                        KeyCode::Char('u') => match app.view_tab {
-                            ViewTab::Flows => app.page_up(),
-                            ViewTab::Processes => app.process_page_up(),
-                        },
-                        _ => {}
-                    }
-                    continue;
-                }
-
+            // Interface chooser mode
+            if app.interface_chooser.active {
                 match key.code {
-                    // ── Tab: switch view ──
-                    KeyCode::Tab | KeyCode::BackTab => {
-                        app.view_tab = match app.view_tab {
-                            ViewTab::Flows => ViewTab::Processes,
-                            ViewTab::Processes => ViewTab::Flows,
-                        };
-                        app.set_status(match app.view_tab {
-                            ViewTab::Flows => "View: Flows",
-                            ViewTab::Processes => "View: Processes",
-                        });
-                    }
-
-                    // ── Quit ──
-                    KeyCode::Char('q') => { app.save_prefs(); return Ok(()); }
-
-                    // ── Help / overlays ──
-                    KeyCode::Char('h') | KeyCode::Char('?') => app.show_help = !app.show_help,
-                    KeyCode::Char('c') => {
-                        app.show_help = false;
-                        app.theme_chooser.open(app.theme_name);
-                    }
-                    KeyCode::Char('C') => {
-                        app.show_help = false;
-                        let palette = if let Some(ref name) = app.active_custom_theme
-                            && let Some(ct) = app.custom_themes.get(name) {
-                            [ct.c1, ct.c2, ct.c3, ct.c4, ct.c5, ct.c6]
-                        } else {
-                            config::theme::Theme::palette_values(app.theme_name)
-                        };
-                        app.theme_edit.open(palette);
-                    }
-                    KeyCode::Char('i') => {
-                        app.show_help = false;
-                        app.interface_chooser.open(&app.interface_name);
-                    }
-
-                    // ── Filter ──
-                    KeyCode::Char('/') => {
-                        app.show_help = false;
-                        app.filter_state.open(&app.screen_filter);
-                    }
-                    KeyCode::Char('0') => {
-                        app.screen_filter = None;
-                        app.set_status("Filter cleared");
-                    }
-
-                    // ── Actions ──
-                    KeyCode::Char('e') => app.export(),
-                    KeyCode::Char('y') => app.copy_selected(),
-                    KeyCode::Char('F') => app.toggle_pin(),
-
-                    // ── Display toggles (all auto-saved) ──
-                    KeyCode::Char('n') => {
-                        app.resolver.toggle();
-                        app.show_dns = app.resolver.is_enabled();
-                        app.save_prefs();
-                    }
-                    KeyCode::Char('N') => { app.show_port_names = !app.show_port_names; app.save_prefs(); }
-                    KeyCode::Char('p') => { app.show_ports = !app.show_ports; app.save_prefs(); }
-                    KeyCode::Char('b') => {
-                        app.bar_style = app.bar_style.next();
-                        app.set_status(format!("Bar style: {}", app.bar_style.name()));
-                        app.save_prefs();
-                    }
-                    KeyCode::Char('B') => { app.use_bytes = !app.use_bytes; app.save_prefs(); }
-                    KeyCode::Char('t') => { app.line_display = app.line_display.next(); app.save_prefs(); }
-                    KeyCode::Char('T') => { app.show_cumulative = !app.show_cumulative; app.save_prefs(); }
-                    KeyCode::Char('Z') => { app.show_processes = !app.show_processes; app.save_prefs(); }
-                    KeyCode::Char('P') => app.paused = !app.paused,
-                    KeyCode::Char('x') => {
-                        app.show_border = !app.show_border;
-                        app.set_status(if app.show_border { "Border: on" } else { "Border: off" });
-                        app.save_prefs();
-                    }
-                    KeyCode::Char('g') => {
-                        app.show_header = !app.show_header;
-                        app.set_status(if app.show_header { "Header: on" } else { "Header: off" });
-                        app.save_prefs();
-                    }
-                    KeyCode::Char('f') => app.cycle_refresh_rate(),
-
-                    // ── Sort ──
-                    KeyCode::Char('1') => { app.sort_column = SortColumn::Avg2s; app.frozen_order = false; }
-                    KeyCode::Char('2') => { app.sort_column = SortColumn::Avg10s; app.frozen_order = false; }
-                    KeyCode::Char('3') => { app.sort_column = SortColumn::Avg40s; app.frozen_order = false; }
-                    KeyCode::Char('<') => { app.sort_column = SortColumn::SrcName; app.frozen_order = false; }
-                    KeyCode::Char('>') => { app.sort_column = SortColumn::DstName; app.frozen_order = false; }
-                    KeyCode::Char('r') => {
-                        app.sort_reverse = !app.sort_reverse;
-                        app.set_status(if app.sort_reverse { "Sort: reversed" } else { "Sort: normal" });
-                    }
-                    KeyCode::Char('o') => app.frozen_order = !app.frozen_order,
-
-                    // ── Navigation ──
-                    KeyCode::Char('j') | KeyCode::Down => {
-                        match app.view_tab {
-                            ViewTab::Flows => app.select_next(),
-                            ViewTab::Processes => app.process_select_next(),
+                    KeyCode::Char('j') | KeyCode::Down | KeyCode::Char('i') => {
+                        let len = app.interface_chooser.interfaces.len();
+                        if len > 0 {
+                            app.interface_chooser.selected =
+                                (app.interface_chooser.selected + 1) % len;
                         }
                     }
                     KeyCode::Char('k') | KeyCode::Up => {
-                        match app.view_tab {
-                            ViewTab::Flows => app.select_prev(),
-                            ViewTab::Processes => app.process_select_prev(),
-                        }
-                    }
-                    KeyCode::Char('G') | KeyCode::End => {
-                        match app.view_tab {
-                            ViewTab::Flows => app.jump_bottom(),
-                            ViewTab::Processes => {
-                                let last = app.process_snapshots.len().saturating_sub(1);
-                                app.process_selected = Some(last);
-                                app.process_scroll = last.saturating_sub(19);
-                            }
-                        }
-                    }
-                    KeyCode::Home => {
-                        match app.view_tab {
-                            ViewTab::Flows => app.jump_top(),
-                            ViewTab::Processes => { app.process_selected = Some(0); app.process_scroll = 0; }
+                        let len = app.interface_chooser.interfaces.len();
+                        if len > 0 {
+                            app.interface_chooser.selected =
+                                (app.interface_chooser.selected + len - 1) % len;
                         }
                     }
                     KeyCode::Enter => {
-                        if matches!(app.view_tab, ViewTab::Processes) {
-                            app.process_drill_down();
-                        }
+                        let name = app.interface_chooser.interfaces[app.interface_chooser.selected]
+                            .clone();
+                        app.interface_chooser.active = false;
+                        app.interface_name = name.clone();
+                        app.config_interface = Some(name.clone());
+                        app.save_prefs();
+                        app.set_status(format!("Interface: {} (restart to apply)", name));
                     }
-                    KeyCode::Esc => {
-                        match app.view_tab {
-                            ViewTab::Flows => {
-                                if app.process_filter.is_some() {
-                                    app.clear_process_filter();
-                                } else {
-                                    app.selected = None;
-                                    app.show_help = false;
-                                }
-                            }
-                            ViewTab::Processes => { app.process_selected = None; app.show_help = false; }
-                        }
+                    KeyCode::Esc | KeyCode::Char('q') => {
+                        app.interface_chooser.active = false;
                     }
-
-                    // ── Mouse scroll ──
                     _ => {}
                 }
+                continue;
             }
+
+            // Ctrl+key combos
+            if key.modifiers.contains(KeyModifiers::CONTROL) {
+                match key.code {
+                    KeyCode::Char('d') => match app.view_tab {
+                        ViewTab::Flows => app.page_down(),
+                        ViewTab::Processes => app.process_page_down(),
+                    },
+                    KeyCode::Char('u') => match app.view_tab {
+                        ViewTab::Flows => app.page_up(),
+                        ViewTab::Processes => app.process_page_up(),
+                    },
+                    _ => {}
+                }
+                continue;
+            }
+
+            match key.code {
+                // ── Tab: switch view ──
+                KeyCode::Tab | KeyCode::BackTab => {
+                    app.view_tab = match app.view_tab {
+                        ViewTab::Flows => ViewTab::Processes,
+                        ViewTab::Processes => ViewTab::Flows,
+                    };
+                    app.set_status(match app.view_tab {
+                        ViewTab::Flows => "View: Flows",
+                        ViewTab::Processes => "View: Processes",
+                    });
+                }
+
+                // ── Quit ──
+                KeyCode::Char('q') => {
+                    app.save_prefs();
+                    return Ok(());
+                }
+
+                // ── Help / overlays ──
+                KeyCode::Char('h') | KeyCode::Char('?') => app.show_help = !app.show_help,
+                KeyCode::Char('c') => {
+                    app.show_help = false;
+                    app.theme_chooser.open(app.theme_name);
+                }
+                KeyCode::Char('C') => {
+                    app.show_help = false;
+                    let palette = if let Some(ref name) = app.active_custom_theme
+                        && let Some(ct) = app.custom_themes.get(name)
+                    {
+                        [ct.c1, ct.c2, ct.c3, ct.c4, ct.c5, ct.c6]
+                    } else {
+                        config::theme::Theme::palette_values(app.theme_name)
+                    };
+                    app.theme_edit.open(palette);
+                }
+                KeyCode::Char('i') => {
+                    app.show_help = false;
+                    app.interface_chooser.open(&app.interface_name);
+                }
+
+                // ── Filter ──
+                KeyCode::Char('/') => {
+                    app.show_help = false;
+                    app.filter_state.open(&app.screen_filter);
+                }
+                KeyCode::Char('0') => {
+                    app.screen_filter = None;
+                    app.set_status("Filter cleared");
+                }
+
+                // ── Actions ──
+                KeyCode::Char('e') => app.export(),
+                KeyCode::Char('y') => app.copy_selected(),
+                KeyCode::Char('F') => app.toggle_pin(),
+
+                // ── Display toggles (all auto-saved) ──
+                KeyCode::Char('n') => {
+                    app.resolver.toggle();
+                    app.show_dns = app.resolver.is_enabled();
+                    app.save_prefs();
+                }
+                KeyCode::Char('N') => {
+                    app.show_port_names = !app.show_port_names;
+                    app.save_prefs();
+                }
+                KeyCode::Char('p') => {
+                    app.show_ports = !app.show_ports;
+                    app.save_prefs();
+                }
+                KeyCode::Char('b') => {
+                    app.bar_style = app.bar_style.next();
+                    app.set_status(format!("Bar style: {}", app.bar_style.name()));
+                    app.save_prefs();
+                }
+                KeyCode::Char('B') => {
+                    app.use_bytes = !app.use_bytes;
+                    app.save_prefs();
+                }
+                KeyCode::Char('t') => {
+                    app.line_display = app.line_display.next();
+                    app.save_prefs();
+                }
+                KeyCode::Char('T') => {
+                    app.show_cumulative = !app.show_cumulative;
+                    app.save_prefs();
+                }
+                KeyCode::Char('Z') => {
+                    app.show_processes = !app.show_processes;
+                    app.save_prefs();
+                }
+                KeyCode::Char('P') => app.paused = !app.paused,
+                KeyCode::Char('x') => {
+                    app.show_border = !app.show_border;
+                    app.set_status(if app.show_border {
+                        "Border: on"
+                    } else {
+                        "Border: off"
+                    });
+                    app.save_prefs();
+                }
+                KeyCode::Char('g') => {
+                    app.show_header = !app.show_header;
+                    app.set_status(if app.show_header {
+                        "Header: on"
+                    } else {
+                        "Header: off"
+                    });
+                    app.save_prefs();
+                }
+                KeyCode::Char('f') => app.cycle_refresh_rate(),
+
+                // ── Sort ──
+                KeyCode::Char('1') => {
+                    app.sort_column = SortColumn::Avg2s;
+                    app.frozen_order = false;
+                }
+                KeyCode::Char('2') => {
+                    app.sort_column = SortColumn::Avg10s;
+                    app.frozen_order = false;
+                }
+                KeyCode::Char('3') => {
+                    app.sort_column = SortColumn::Avg40s;
+                    app.frozen_order = false;
+                }
+                KeyCode::Char('<') => {
+                    app.sort_column = SortColumn::SrcName;
+                    app.frozen_order = false;
+                }
+                KeyCode::Char('>') => {
+                    app.sort_column = SortColumn::DstName;
+                    app.frozen_order = false;
+                }
+                KeyCode::Char('r') => {
+                    app.sort_reverse = !app.sort_reverse;
+                    app.set_status(if app.sort_reverse {
+                        "Sort: reversed"
+                    } else {
+                        "Sort: normal"
+                    });
+                }
+                KeyCode::Char('o') => app.frozen_order = !app.frozen_order,
+
+                // ── Navigation ──
+                KeyCode::Char('j') | KeyCode::Down => match app.view_tab {
+                    ViewTab::Flows => app.select_next(),
+                    ViewTab::Processes => app.process_select_next(),
+                },
+                KeyCode::Char('k') | KeyCode::Up => match app.view_tab {
+                    ViewTab::Flows => app.select_prev(),
+                    ViewTab::Processes => app.process_select_prev(),
+                },
+                KeyCode::Char('G') | KeyCode::End => match app.view_tab {
+                    ViewTab::Flows => app.jump_bottom(),
+                    ViewTab::Processes => {
+                        let last = app.process_snapshots.len().saturating_sub(1);
+                        app.process_selected = Some(last);
+                        app.process_scroll = last.saturating_sub(19);
+                    }
+                },
+                KeyCode::Home => match app.view_tab {
+                    ViewTab::Flows => app.jump_top(),
+                    ViewTab::Processes => {
+                        app.process_selected = Some(0);
+                        app.process_scroll = 0;
+                    }
+                },
+                KeyCode::Enter => {
+                    if matches!(app.view_tab, ViewTab::Processes) {
+                        app.process_drill_down();
+                    }
+                }
+                KeyCode::Esc => match app.view_tab {
+                    ViewTab::Flows => {
+                        if app.process_filter.is_some() {
+                            app.clear_process_filter();
+                        } else {
+                            app.selected = None;
+                            app.show_help = false;
+                        }
+                    }
+                    ViewTab::Processes => {
+                        app.process_selected = None;
+                        app.show_help = false;
+                    }
+                },
+
+                // ── Mouse scroll ──
+                _ => {}
+            }
+        }
 
         if last_tick.elapsed() >= tick_rate {
             last_tick = Instant::now();
@@ -591,7 +662,8 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
                     }
                     ViewTab::Processes => {
                         // +1 for header row in process view
-                        let idx = app.process_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
+                        let idx =
+                            app.process_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
                         if idx < app.process_snapshots.len() {
                             app.process_selected = Some(idx);
                         }
@@ -613,7 +685,8 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
                         }
                     }
                     ViewTab::Processes => {
-                        let idx = app.process_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
+                        let idx =
+                            app.process_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
                         if idx < app.process_snapshots.len() {
                             app.process_selected = Some(idx);
                         }
@@ -659,9 +732,9 @@ fn run_json_mode(args: &Args) -> Result<()> {
     }
     let prefs = config::prefs::load_prefs();
     let effective_interface = args.interface.clone().or(prefs.interface.clone());
-    let local_net = args.parse_net_filter().or_else(|| {
-        auto_detect_local_net(effective_interface.as_deref())
-    });
+    let local_net = args
+        .parse_net_filter()
+        .or_else(|| auto_detect_local_net(effective_interface.as_deref()));
     let resolver = Resolver::new(!args.no_dns);
     let tracker = FlowTracker::new();
 
@@ -685,7 +758,11 @@ fn run_json_mode(args: &Args) -> Result<()> {
                 let keys = tracker_proc.flow_keys();
                 for key in keys {
                     if let Some((pid, name)) = util::lookup_process(
-                        key.src, key.src_port, key.dst, key.dst_port, &key.protocol,
+                        key.src,
+                        key.src_port,
+                        key.dst,
+                        key.dst_port,
+                        &key.protocol,
                     ) {
                         tracker_proc.set_process_info(&key, pid, name);
                     }
@@ -738,27 +815,62 @@ fn run_json_mode(args: &Args) -> Result<()> {
 
         let (flows, totals) = tracker.snapshot();
 
-        let json_flows: Vec<JsonFlow> = flows.iter().map(|f| {
-            let src_host = resolver.resolve(f.key.src);
-            let dst_host = resolver.resolve(f.key.dst);
-            JsonFlow {
-                src: if f.key.src_port > 0 { format!("{}:{}", src_host, f.key.src_port) } else { src_host },
-                dst: if f.key.dst_port > 0 { format!("{}:{}", dst_host, f.key.dst_port) } else { dst_host },
-                src_port: f.key.src_port,
-                dst_port: f.key.dst_port,
-                protocol: format!("{}", f.key.protocol),
-                sent_2s: if use_bytes { f.sent_2s } else { f.sent_2s * 8.0 },
-                recv_2s: if use_bytes { f.recv_2s } else { f.recv_2s * 8.0 },
-                sent_10s: if use_bytes { f.sent_10s } else { f.sent_10s * 8.0 },
-                recv_10s: if use_bytes { f.recv_10s } else { f.recv_10s * 8.0 },
-                sent_40s: if use_bytes { f.sent_40s } else { f.sent_40s * 8.0 },
-                recv_40s: if use_bytes { f.recv_40s } else { f.recv_40s * 8.0 },
-                total_sent: f.total_sent,
-                total_recv: f.total_recv,
-                process_name: f.process_name.clone(),
-                pid: f.pid,
-            }
-        }).collect();
+        let json_flows: Vec<JsonFlow> = flows
+            .iter()
+            .map(|f| {
+                let src_host = resolver.resolve(f.key.src);
+                let dst_host = resolver.resolve(f.key.dst);
+                JsonFlow {
+                    src: if f.key.src_port > 0 {
+                        format!("{}:{}", src_host, f.key.src_port)
+                    } else {
+                        src_host
+                    },
+                    dst: if f.key.dst_port > 0 {
+                        format!("{}:{}", dst_host, f.key.dst_port)
+                    } else {
+                        dst_host
+                    },
+                    src_port: f.key.src_port,
+                    dst_port: f.key.dst_port,
+                    protocol: format!("{}", f.key.protocol),
+                    sent_2s: if use_bytes {
+                        f.sent_2s
+                    } else {
+                        f.sent_2s * 8.0
+                    },
+                    recv_2s: if use_bytes {
+                        f.recv_2s
+                    } else {
+                        f.recv_2s * 8.0
+                    },
+                    sent_10s: if use_bytes {
+                        f.sent_10s
+                    } else {
+                        f.sent_10s * 8.0
+                    },
+                    recv_10s: if use_bytes {
+                        f.recv_10s
+                    } else {
+                        f.recv_10s * 8.0
+                    },
+                    sent_40s: if use_bytes {
+                        f.sent_40s
+                    } else {
+                        f.sent_40s * 8.0
+                    },
+                    recv_40s: if use_bytes {
+                        f.recv_40s
+                    } else {
+                        f.recv_40s * 8.0
+                    },
+                    total_sent: f.total_sent,
+                    total_recv: f.total_recv,
+                    process_name: f.process_name.clone(),
+                    pid: f.pid,
+                }
+            })
+            .collect();
 
         let snapshot = JsonSnapshot {
             timestamp: chrono::Local::now().to_rfc3339(),
@@ -797,9 +909,7 @@ fn auto_detect_local_net(interface: Option<&str>) -> Option<(std::net::IpAddr, u
             let prefix = addr
                 .netmask
                 .and_then(|m| match m {
-                    std::net::IpAddr::V4(mask) => {
-                        Some(u32::from(mask).count_ones() as u8)
-                    }
+                    std::net::IpAddr::V4(mask) => Some(u32::from(mask).count_ones() as u8),
                     _ => None,
                 })
                 .unwrap_or(24); // default /24

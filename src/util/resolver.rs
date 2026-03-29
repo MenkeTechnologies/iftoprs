@@ -80,7 +80,13 @@ impl Resolver {
 
         // Start background resolution
         let now = Instant::now();
-        cache.entries.insert(addr, CacheEntry { state: ResolveState::Pending, last_used: now });
+        cache.entries.insert(
+            addr,
+            CacheEntry {
+                state: ResolveState::Pending,
+                last_used: now,
+            },
+        );
         cache.pending_count += 1;
         let cache_ref = Arc::clone(&self.cache);
         std::thread::spawn(move || {
@@ -351,15 +357,30 @@ mod tests {
 
     #[test]
     fn evict_stale_removes_old_entries() {
-        let mut cache = ResolverCache { entries: HashMap::new(), pending_count: 0 };
+        let mut cache = ResolverCache {
+            entries: HashMap::new(),
+            pending_count: 0,
+        };
         let old = Instant::now() - std::time::Duration::from_secs(CACHE_TTL_SECS + 10);
         let recent = Instant::now();
 
         let old_ip: IpAddr = "10.0.0.1".parse().unwrap();
         let new_ip: IpAddr = "10.0.0.2".parse().unwrap();
 
-        cache.entries.insert(old_ip, CacheEntry { state: ResolveState::Failed, last_used: old });
-        cache.entries.insert(new_ip, CacheEntry { state: ResolveState::Resolved("host".into()), last_used: recent });
+        cache.entries.insert(
+            old_ip,
+            CacheEntry {
+                state: ResolveState::Failed,
+                last_used: old,
+            },
+        );
+        cache.entries.insert(
+            new_ip,
+            CacheEntry {
+                state: ResolveState::Resolved("host".into()),
+                last_used: recent,
+            },
+        );
 
         evict_stale(&mut cache);
         assert!(!cache.entries.contains_key(&old_ip));
@@ -368,16 +389,24 @@ mod tests {
 
     #[test]
     fn evict_stale_halves_when_all_recent() {
-        let mut cache = ResolverCache { entries: HashMap::new(), pending_count: 0 };
+        let mut cache = ResolverCache {
+            entries: HashMap::new(),
+            pending_count: 0,
+        };
         let now = Instant::now();
 
         // Fill to high-water mark with recent entries
         for i in 0..CACHE_HIGH_WATER {
-            let ip: IpAddr = format!("10.{}.{}.{}", (i >> 16) & 0xFF, (i >> 8) & 0xFF, i & 0xFF).parse().unwrap();
-            cache.entries.insert(ip, CacheEntry {
-                state: ResolveState::Resolved(format!("host{}", i)),
-                last_used: now,
-            });
+            let ip: IpAddr = format!("10.{}.{}.{}", (i >> 16) & 0xFF, (i >> 8) & 0xFF, i & 0xFF)
+                .parse()
+                .unwrap();
+            cache.entries.insert(
+                ip,
+                CacheEntry {
+                    state: ResolveState::Resolved(format!("host{}", i)),
+                    last_used: now,
+                },
+            );
         }
 
         evict_stale(&mut cache);

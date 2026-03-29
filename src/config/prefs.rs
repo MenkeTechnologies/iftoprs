@@ -110,13 +110,16 @@ pub fn load_prefs() -> Prefs {
 
 pub fn save_prefs(prefs: &Prefs) {
     #[cfg(test)]
-    { let _ = prefs; return; }
+    {
+        let _ = prefs;
+    }
 
     #[cfg(not(test))]
     if let Some(path) = prefs_path()
-        && let Ok(s) = toml::to_string_pretty(prefs) {
-            let _ = std::fs::write(path, s);
-        }
+        && let Ok(s) = toml::to_string_pretty(prefs)
+    {
+        let _ = std::fs::write(path, s);
+    }
 }
 
 #[cfg(test)]
@@ -181,16 +184,20 @@ mod tests {
 
     #[test]
     fn prefs_interface_some_included() {
-        let mut p = Prefs::default();
-        p.interface = Some("en0".into());
+        let p = Prefs {
+            interface: Some("en0".into()),
+            ..Default::default()
+        };
         let s = toml::to_string_pretty(&p).unwrap();
         assert!(s.contains("interface = \"en0\""));
     }
 
     #[test]
     fn prefs_interface_roundtrip() {
-        let mut p = Prefs::default();
-        p.interface = Some("eth0".into());
+        let p = Prefs {
+            interface: Some("eth0".into()),
+            ..Default::default()
+        };
         let s = toml::to_string_pretty(&p).unwrap();
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert_eq!(p2.interface, Some("eth0".into()));
@@ -199,7 +206,10 @@ mod tests {
     #[test]
     fn prefs_pinned_roundtrip() {
         let mut p = Prefs::default();
-        p.pinned.push(crate::ui::app::PinnedFlow { src: "10.0.0.1".into(), dst: "10.0.0.2".into() });
+        p.pinned.push(crate::ui::app::PinnedFlow {
+            src: "10.0.0.1".into(),
+            dst: "10.0.0.2".into(),
+        });
         let s = toml::to_string_pretty(&p).unwrap();
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert_eq!(p2.pinned.len(), 1);
@@ -208,13 +218,15 @@ mod tests {
 
     #[test]
     fn prefs_custom_values_roundtrip() {
-        let mut p = Prefs::default();
-        p.theme = ThemeName::GlitchPop;
-        p.use_bytes = true;
-        p.show_border = false;
-        p.refresh_rate = 5;
-        p.alert_threshold = 1000.0;
-        p.bar_style = BarStyle::Thin;
+        let p = Prefs {
+            theme: ThemeName::GlitchPop,
+            use_bytes: true,
+            show_border: false,
+            refresh_rate: 5,
+            alert_threshold: 1000.0,
+            bar_style: BarStyle::Thin,
+            ..Default::default()
+        };
         let s = toml::to_string_pretty(&p).unwrap();
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert_eq!(p2.theme, ThemeName::GlitchPop);

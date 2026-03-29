@@ -124,36 +124,78 @@ mod tests {
             dst_port: 80,
             protocol: Protocol::Tcp,
         };
-        let k2 = k1.clone();
+        let k2 = k1;
         assert_eq!(k1, k2);
     }
 
     #[test]
     fn flow_key_inequality_port() {
-        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Tcp };
-        let k2 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 81, dst_port: 80, protocol: Protocol::Tcp };
+        let k1 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let k2 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 81,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn flow_key_inequality_protocol() {
-        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Tcp };
-        let k2 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Udp };
+        let k1 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let k2 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 80,
+            protocol: Protocol::Udp,
+        };
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn flow_key_inequality_ip() {
-        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Tcp };
-        let k2 = FlowKey { src: "10.0.0.3".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 80, protocol: Protocol::Tcp };
+        let k1 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let k2 = FlowKey {
+            src: "10.0.0.3".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn flow_key_hash_consistency() {
         use std::collections::HashMap;
-        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 443, protocol: Protocol::Tcp };
-        let k2 = k1.clone();
+        let k1 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        let k2 = k1;
         let mut map = HashMap::new();
         map.insert(k1, 42);
         assert_eq!(map.get(&k2), Some(&42));
@@ -161,8 +203,14 @@ mod tests {
 
     #[test]
     fn flow_key_ipv6() {
-        let k = FlowKey { src: "::1".parse().unwrap(), dst: "::2".parse().unwrap(), src_port: 80, dst_port: 443, protocol: Protocol::Tcp };
-        let k2 = k.clone();
+        let k = FlowKey {
+            src: "::1".parse().unwrap(),
+            dst: "::2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        let k2 = k;
         assert_eq!(k, k2);
     }
 
@@ -195,7 +243,13 @@ mod tests {
 
     #[test]
     fn normalize_swaps_when_src_greater() {
-        let k = FlowKey { src: "10.0.0.2".parse().unwrap(), dst: "10.0.0.1".parse().unwrap(), src_port: 80, dst_port: 443, protocol: Protocol::Tcp };
+        let k = FlowKey {
+            src: "10.0.0.2".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 80,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
         let (n, swapped) = k.normalize();
         assert!(swapped);
         assert_eq!(n.src, "10.0.0.1".parse::<std::net::IpAddr>().unwrap());
@@ -206,7 +260,13 @@ mod tests {
 
     #[test]
     fn normalize_no_swap_when_already_canonical() {
-        let k = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 80, dst_port: 443, protocol: Protocol::Tcp };
+        let k = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
         let (n, swapped) = k.normalize();
         assert!(!swapped);
         assert_eq!(n.src, "10.0.0.1".parse::<std::net::IpAddr>().unwrap());
@@ -215,7 +275,13 @@ mod tests {
 
     #[test]
     fn normalize_same_ip_sorts_by_port() {
-        let k = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.1".parse().unwrap(), src_port: 8080, dst_port: 80, protocol: Protocol::Tcp };
+        let k = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 8080,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
         let (n, swapped) = k.normalize();
         assert!(swapped);
         assert_eq!(n.src_port, 80);
@@ -224,8 +290,20 @@ mod tests {
 
     #[test]
     fn normalize_reversed_pair_equals_original() {
-        let k1 = FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(), src_port: 5000, dst_port: 443, protocol: Protocol::Tcp };
-        let k2 = FlowKey { src: "10.0.0.2".parse().unwrap(), dst: "10.0.0.1".parse().unwrap(), src_port: 443, dst_port: 5000, protocol: Protocol::Tcp };
+        let k1 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 5000,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        let k2 = FlowKey {
+            src: "10.0.0.2".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 443,
+            dst_port: 5000,
+            protocol: Protocol::Tcp,
+        };
         let (n1, _) = k1.normalize();
         let (n2, _) = k2.normalize();
         assert_eq!(n1, n2);

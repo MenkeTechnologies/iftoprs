@@ -143,11 +143,14 @@ impl FlowTracker {
             .flows
             .iter()
             .map(|(key, h)| {
-                let history: Vec<u64> = h.sent.iter().zip(h.recv.iter())
+                let history: Vec<u64> = h
+                    .sent
+                    .iter()
+                    .zip(h.recv.iter())
                     .map(|(&s, &r)| s + r)
                     .collect();
                 FlowSnapshot {
-                    key: key.clone(),
+                    key: *key,
                     sent_2s: h.avg_sent_2s(),
                     sent_10s: h.avg_sent_10s(),
                     sent_40s: h.avg_sent_40s(),
@@ -254,7 +257,7 @@ mod tests {
     fn set_process_info() {
         let t = FlowTracker::new();
         let key = test_key(5000);
-        t.record(key.clone(), Direction::Sent, 100);
+        t.record(key, Direction::Sent, 100);
         t.set_process_info(&key, 1234, "curl".to_string());
         let (flows, _) = t.snapshot();
         assert_eq!(flows[0].pid, Some(1234));
@@ -283,7 +286,7 @@ mod tests {
     fn record_both_directions() {
         let t = FlowTracker::new();
         let key = test_key(5000);
-        t.record(key.clone(), Direction::Sent, 100);
+        t.record(key, Direction::Sent, 100);
         t.record(key, Direction::Received, 200);
         let (flows, totals) = t.snapshot();
         assert_eq!(flows.len(), 1);
@@ -295,8 +298,8 @@ mod tests {
     fn record_same_flow_accumulates() {
         let t = FlowTracker::new();
         let key = test_key(5000);
-        t.record(key.clone(), Direction::Sent, 100);
-        t.record(key.clone(), Direction::Sent, 200);
+        t.record(key, Direction::Sent, 100);
+        t.record(key, Direction::Sent, 200);
         t.record(key, Direction::Sent, 300);
         let (_, totals) = t.snapshot();
         assert_eq!(totals.cumulative_sent, 600);
@@ -336,15 +339,19 @@ mod tests {
     #[test]
     fn concurrent_access_no_panic() {
         let t = FlowTracker::new();
-        let handles: Vec<_> = (0..10).map(|i| {
-            let t = t.clone();
-            std::thread::spawn(move || {
-                for j in 0..100 {
-                    t.record(test_key(i * 100 + j), Direction::Sent, 10);
-                }
+        let handles: Vec<_> = (0..10)
+            .map(|i| {
+                let t = t.clone();
+                std::thread::spawn(move || {
+                    for j in 0..100 {
+                        t.record(test_key(i * 100 + j), Direction::Sent, 10);
+                    }
+                })
             })
-        }).collect();
-        for h in handles { h.join().unwrap(); }
+            .collect();
+        for h in handles {
+            h.join().unwrap();
+        }
         let (flows, totals) = t.snapshot();
         assert_eq!(flows.len(), 1000);
         assert_eq!(totals.cumulative_sent, 10_000);
@@ -391,7 +398,7 @@ mod tests {
     fn process_info_overwrites() {
         let t = FlowTracker::new();
         let key = test_key(5000);
-        t.record(key.clone(), Direction::Sent, 100);
+        t.record(key, Direction::Sent, 100);
         t.set_process_info(&key, 1, "old".into());
         t.set_process_info(&key, 2, "new".into());
         let (flows, _) = t.snapshot();
@@ -403,7 +410,7 @@ mod tests {
     fn snapshot_includes_total_sent_recv_per_flow() {
         let t = FlowTracker::new();
         let key = test_key(5000);
-        t.record(key.clone(), Direction::Sent, 100);
+        t.record(key, Direction::Sent, 100);
         t.record(key, Direction::Received, 50);
         let (flows, _) = t.snapshot();
         assert_eq!(flows[0].total_sent, 100);

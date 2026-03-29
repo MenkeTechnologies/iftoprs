@@ -10,18 +10,33 @@ fn cargo_bin() -> Command {
 fn help_flag_shows_banner() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should contain banner tagline");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should contain banner tagline"
+    );
     assert!(stdout.contains("USAGE"), "help should contain USAGE");
-    assert!(stdout.contains("--interface"), "help should list --interface flag");
-    assert!(stdout.contains("--no-dns"), "help should list --no-dns flag");
-    assert!(stdout.contains("KEYBINDS"), "help should contain KEYBINDS section");
+    assert!(
+        stdout.contains("--interface"),
+        "help should list --interface flag"
+    );
+    assert!(
+        stdout.contains("--no-dns"),
+        "help should list --no-dns flag"
+    );
+    assert!(
+        stdout.contains("KEYBINDS"),
+        "help should contain KEYBINDS section"
+    );
 }
 
 #[test]
 fn version_flag_shows_version() {
     let output = cargo_bin().arg("-V").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.starts_with("iftoprs "), "should start with 'iftoprs '");
+    assert!(
+        stdout.starts_with("iftoprs "),
+        "should start with 'iftoprs '"
+    );
     assert!(stdout.contains('.'), "version should contain a dot");
 }
 
@@ -29,18 +44,39 @@ fn version_flag_shows_version() {
 fn completions_zsh_generates_valid_output() {
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("#compdef iftoprs"), "should contain compdef header");
-    assert!(stdout.contains("--interface"), "completions should include --interface");
-    assert!(stdout.contains("--no-dns"), "completions should include --no-dns");
-    assert!(stdout.contains("--completions"), "completions should include --completions");
-    assert!(stdout.contains("--no-processes"), "completions should include --no-processes");
+    assert!(
+        stdout.contains("#compdef iftoprs"),
+        "should contain compdef header"
+    );
+    assert!(
+        stdout.contains("--interface"),
+        "completions should include --interface"
+    );
+    assert!(
+        stdout.contains("--no-dns"),
+        "completions should include --no-dns"
+    );
+    assert!(
+        stdout.contains("--completions"),
+        "completions should include --completions"
+    );
+    assert!(
+        stdout.contains("--no-processes"),
+        "completions should include --no-processes"
+    );
 }
 
 #[test]
 fn completions_bash_generates_valid_output() {
-    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "bash"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("_iftoprs"), "should contain completion function");
+    assert!(
+        stdout.contains("_iftoprs"),
+        "should contain completion function"
+    );
     assert!(stdout.contains("COMPREPLY"), "should contain COMPREPLY");
 }
 
@@ -49,9 +85,17 @@ fn help_contains_all_flags() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let flags = [
-        "--interface", "--filter", "--net-filter", "--no-dns",
-        "--no-port-names", "--promiscuous", "--no-bars", "--bytes",
-        "--hide-ports", "--no-processes", "--list-interfaces",
+        "--interface",
+        "--filter",
+        "--net-filter",
+        "--no-dns",
+        "--no-port-names",
+        "--promiscuous",
+        "--no-bars",
+        "--bytes",
+        "--hide-ports",
+        "--no-processes",
+        "--list-interfaces",
     ];
     for flag in &flags {
         assert!(stdout.contains(flag), "help missing flag: {}", flag);
@@ -62,23 +106,38 @@ fn help_contains_all_flags() {
 fn help_contains_ansi_colors() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\x1b["), "help should contain ANSI escape codes");
+    assert!(
+        stdout.contains("\x1b["),
+        "help should contain ANSI escape codes"
+    );
 }
 
 #[test]
 fn help_contains_new_keybinds() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("scroll"), "help should document scroll keybinds");
-    assert!(stdout.contains("disconnect"), "help should document quit keybind");
+    assert!(
+        stdout.contains("scroll"),
+        "help should document scroll keybinds"
+    );
+    assert!(
+        stdout.contains("disconnect"),
+        "help should document quit keybind"
+    );
 }
 
 #[test]
 fn help_shows_system_section() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("SYSTEM"), "help should contain SYSTEM section");
-    assert!(stdout.contains("MenkeTechnologies"), "help should credit author");
+    assert!(
+        stdout.contains("SYSTEM"),
+        "help should contain SYSTEM section"
+    );
+    assert!(
+        stdout.contains("MenkeTechnologies"),
+        "help should credit author"
+    );
 }
 
 #[test]
@@ -90,7 +149,11 @@ fn version_matches_cargo_toml() {
     let parts: Vec<&str> = version.split('.').collect();
     assert_eq!(parts.len(), 3, "version should be semver: {}", version);
     for part in &parts {
-        assert!(part.parse::<u32>().is_ok(), "non-numeric version part: {}", part);
+        assert!(
+            part.parse::<u32>().is_ok(),
+            "non-numeric version part: {}",
+            part
+        );
     }
 }
 
@@ -98,63 +161,108 @@ fn version_matches_cargo_toml() {
 fn help_contains_border_keybind() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("border"), "help should document border toggle");
+    assert!(
+        stdout.contains("border"),
+        "help should document border toggle"
+    );
 }
 
 #[test]
 fn help_contains_filter_keybind() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("filter"), "help should document filter keybind");
+    assert!(
+        stdout.contains("filter"),
+        "help should document filter keybind"
+    );
 }
 
 #[test]
 fn help_contains_theme_keybind() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("themes"), "help should document theme keybind");
+    assert!(
+        stdout.contains("themes"),
+        "help should document theme keybind"
+    );
 }
 
 #[test]
 fn help_contains_pause_keybind() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("pause"), "help should document pause keybind");
+    assert!(
+        stdout.contains("pause"),
+        "help should document pause keybind"
+    );
 }
 
 #[test]
 fn list_colors_shows_all_themes() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Neon Sprawl"), "should list Neon Sprawl theme");
-    assert!(stdout.contains("Blade Runner"), "should list Blade Runner theme");
-    assert!(stdout.contains("iftopcolor"), "should list iftopcolor theme");
+    assert!(
+        stdout.contains("Neon Sprawl"),
+        "should list Neon Sprawl theme"
+    );
+    assert!(
+        stdout.contains("Blade Runner"),
+        "should list Blade Runner theme"
+    );
+    assert!(
+        stdout.contains("iftopcolor"),
+        "should list iftopcolor theme"
+    );
 }
 
 #[test]
 fn default_config_file_exists() {
     let path = std::path::Path::new("iftoprs.default.conf");
-    assert!(path.exists(), "iftoprs.default.conf should exist in project root");
+    assert!(
+        path.exists(),
+        "iftoprs.default.conf should exist in project root"
+    );
     let content = std::fs::read_to_string(path).unwrap();
-    assert!(content.contains("theme"), "default config should contain theme");
-    assert!(content.contains("show_border"), "default config should contain show_border");
-    assert!(content.contains("refresh_rate"), "default config should contain refresh_rate");
-    assert!(content.contains("alert_threshold"), "default config should contain alert_threshold");
-    assert!(content.contains("pinned"), "default config should contain pinned");
+    assert!(
+        content.contains("theme"),
+        "default config should contain theme"
+    );
+    assert!(
+        content.contains("show_border"),
+        "default config should contain show_border"
+    );
+    assert!(
+        content.contains("refresh_rate"),
+        "default config should contain refresh_rate"
+    );
+    assert!(
+        content.contains("alert_threshold"),
+        "default config should contain alert_threshold"
+    );
+    assert!(
+        content.contains("pinned"),
+        "default config should contain pinned"
+    );
 }
 
 #[test]
 fn completions_zsh_includes_list_colors() {
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("--list-colors"), "zsh completions should include --list-colors");
+    assert!(
+        stdout.contains("--list-colors"),
+        "zsh completions should include --list-colors"
+    );
 }
 
 #[test]
 fn default_config_has_interface_docs() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
-    assert!(content.contains("interface"), "default config should document interface field");
+    assert!(
+        content.contains("interface"),
+        "default config should document interface field"
+    );
 }
 
 #[test]
@@ -162,37 +270,61 @@ fn help_contains_interface_keybind() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // -h help mentions interface flag
-    assert!(stdout.contains("--interface"), "help should show --interface flag");
+    assert!(
+        stdout.contains("--interface"),
+        "help should show --interface flag"
+    );
 }
 
 #[test]
 fn help_contains_config_flag() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("--config"), "help should show --config flag");
+    assert!(
+        stdout.contains("--config"),
+        "help should show --config flag"
+    );
     assert!(stdout.contains("-c"), "help should show -c short flag");
 }
 
 #[test]
 fn completions_fish_generates_valid_output() {
-    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "fish"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("iftoprs"), "fish completions should reference iftoprs");
-    assert!(stdout.contains("interface"), "fish completions should include interface");
+    assert!(
+        stdout.contains("iftoprs"),
+        "fish completions should reference iftoprs"
+    );
+    assert!(
+        stdout.contains("interface"),
+        "fish completions should include interface"
+    );
 }
 
 #[test]
 fn completions_zsh_includes_config_flag() {
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("--config"), "zsh completions should include --config");
+    assert!(
+        stdout.contains("--config"),
+        "zsh completions should include --config"
+    );
 }
 
 #[test]
 fn completions_bash_includes_config_flag() {
-    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "bash"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("config"), "bash completions should include config");
+    assert!(
+        stdout.contains("config"),
+        "bash completions should include config"
+    );
 }
 
 #[test]
@@ -210,20 +342,29 @@ fn version_exit_code_zero() {
 #[test]
 fn list_colors_exit_code_zero() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
-    assert!(output.status.success(), "--list-colors should exit with code 0");
+    assert!(
+        output.status.success(),
+        "--list-colors should exit with code 0"
+    );
 }
 
 #[test]
 fn completions_exit_code_zero() {
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
-    assert!(output.status.success(), "--completions zsh should exit with code 0");
+    assert!(
+        output.status.success(),
+        "--completions zsh should exit with code 0"
+    );
 }
 
 #[test]
 fn help_banner_has_ascii_art() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("██"), "help banner should have block characters");
+    assert!(
+        stdout.contains("██"),
+        "help banner should have block characters"
+    );
 }
 
 #[test]
@@ -238,37 +379,58 @@ fn help_shows_version_number() {
 fn list_colors_shows_usage_hint() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Usage"), "list-colors should show usage hint");
-    assert!(stdout.contains("Cycle"), "list-colors should show cycle hint");
+    assert!(
+        stdout.contains("Usage"),
+        "list-colors should show usage hint"
+    );
+    assert!(
+        stdout.contains("Cycle"),
+        "list-colors should show cycle hint"
+    );
 }
 
 #[test]
 fn help_contains_header_keybind() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("header"), "help should document header toggle");
+    assert!(
+        stdout.contains("header"),
+        "help should document header toggle"
+    );
 }
 
 #[test]
 fn help_contains_refresh_keybind() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("refresh"), "help should document refresh rate keybind");
+    assert!(
+        stdout.contains("refresh"),
+        "help should document refresh rate keybind"
+    );
 }
 
 #[test]
 fn help_contains_sort_keybinds() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("sort"), "help should document sort keybinds");
-    assert!(stdout.contains("freeze"), "help should document freeze order keybind");
+    assert!(
+        stdout.contains("sort"),
+        "help should document sort keybinds"
+    );
+    assert!(
+        stdout.contains("freeze"),
+        "help should document freeze order keybind"
+    );
 }
 
 #[test]
 fn help_contains_processes_flag() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("--no-processes"), "help should show --no-processes");
+    assert!(
+        stdout.contains("--no-processes"),
+        "help should show --no-processes"
+    );
     assert!(stdout.contains("-Z"), "help should show -Z short flag");
 }
 
@@ -277,12 +439,22 @@ fn default_config_has_all_fields() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
     let expected_fields = [
-        "theme", "show_border", "show_ports", "show_bars",
-        "show_processes", "show_header", "refresh_rate",
-        "alert_threshold", "pinned",
+        "theme",
+        "show_border",
+        "show_ports",
+        "show_bars",
+        "show_processes",
+        "show_header",
+        "refresh_rate",
+        "alert_threshold",
+        "pinned",
     ];
     for field in &expected_fields {
-        assert!(content.contains(field), "default config missing field: {}", field);
+        assert!(
+            content.contains(field),
+            "default config missing field: {}",
+            field
+        );
     }
 }
 
@@ -290,7 +462,10 @@ fn default_config_has_all_fields() {
 fn help_mentions_capture_section() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("CAPTURE"), "help should have CAPTURE section");
+    assert!(
+        stdout.contains("CAPTURE"),
+        "help should have CAPTURE section"
+    );
 }
 
 #[test]
@@ -298,47 +473,71 @@ fn help_contains_json_flag() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("--json"), "help should show --json flag");
-    assert!(stdout.contains("NDJSON"), "help should describe NDJSON output");
+    assert!(
+        stdout.contains("NDJSON"),
+        "help should describe NDJSON output"
+    );
 }
 
 #[test]
 fn help_contains_tab_keybind() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Tab"), "help should document Tab key for switching views");
-    assert!(stdout.contains("switch view"), "help should explain Tab switches views");
+    assert!(
+        stdout.contains("Tab"),
+        "help should document Tab key for switching views"
+    );
+    assert!(
+        stdout.contains("switch view"),
+        "help should explain Tab switches views"
+    );
 }
 
 #[test]
 fn completions_zsh_includes_json_flag() {
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("--json"), "zsh completions should include --json");
+    assert!(
+        stdout.contains("--json"),
+        "zsh completions should include --json"
+    );
 }
 
 // ── Exit codes ──
 
 #[test]
 fn completions_bash_exit_code_zero() {
-    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "bash"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
 #[test]
 fn completions_fish_exit_code_zero() {
-    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "fish"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
 #[test]
 fn completions_elvish_exit_code_zero() {
-    let output = cargo_bin().args(["--completions", "elvish"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "elvish"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
 #[test]
 fn completions_powershell_exit_code_zero() {
-    let output = cargo_bin().args(["--completions", "powershell"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "powershell"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
@@ -346,18 +545,33 @@ fn completions_powershell_exit_code_zero() {
 
 #[test]
 fn completions_elvish_generates_valid_output() {
-    let output = cargo_bin().args(["--completions", "elvish"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "elvish"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(!stdout.is_empty(), "elvish completions should not be empty");
-    assert!(stdout.contains("iftoprs"), "elvish completions should reference iftoprs");
+    assert!(
+        stdout.contains("iftoprs"),
+        "elvish completions should reference iftoprs"
+    );
 }
 
 #[test]
 fn completions_powershell_generates_valid_output() {
-    let output = cargo_bin().args(["--completions", "powershell"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "powershell"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(!stdout.is_empty(), "powershell completions should not be empty");
-    assert!(stdout.contains("iftoprs"), "powershell completions should reference iftoprs");
+    assert!(
+        !stdout.is_empty(),
+        "powershell completions should not be empty"
+    );
+    assert!(
+        stdout.contains("iftoprs"),
+        "powershell completions should reference iftoprs"
+    );
 }
 
 // ── Completions include all flags ──
@@ -366,29 +580,78 @@ fn completions_powershell_generates_valid_output() {
 fn completions_zsh_includes_all_flags() {
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    for flag in ["--interface", "--filter", "--net-filter", "--no-dns", "--no-port-names",
-                 "--promiscuous", "--no-bars", "--bytes", "--hide-ports", "--no-processes",
-                 "--json", "--list-interfaces", "--list-colors", "--config", "--help", "--version"] {
-        assert!(stdout.contains(flag), "zsh completions missing flag: {}", flag);
+    for flag in [
+        "--interface",
+        "--filter",
+        "--net-filter",
+        "--no-dns",
+        "--no-port-names",
+        "--promiscuous",
+        "--no-bars",
+        "--bytes",
+        "--hide-ports",
+        "--no-processes",
+        "--json",
+        "--list-interfaces",
+        "--list-colors",
+        "--config",
+        "--help",
+        "--version",
+    ] {
+        assert!(
+            stdout.contains(flag),
+            "zsh completions missing flag: {}",
+            flag
+        );
     }
 }
 
 #[test]
 fn completions_bash_includes_all_flags() {
-    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "bash"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    for flag in ["interface", "filter", "no-dns", "no-bars", "bytes",
-                 "hide-ports", "no-processes", "json", "list-colors"] {
-        assert!(stdout.contains(flag), "bash completions missing flag: {}", flag);
+    for flag in [
+        "interface",
+        "filter",
+        "no-dns",
+        "no-bars",
+        "bytes",
+        "hide-ports",
+        "no-processes",
+        "json",
+        "list-colors",
+    ] {
+        assert!(
+            stdout.contains(flag),
+            "bash completions missing flag: {}",
+            flag
+        );
     }
 }
 
 #[test]
 fn completions_fish_includes_all_flags() {
-    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "fish"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    for flag in ["interface", "filter", "no-dns", "bytes", "json", "list-colors"] {
-        assert!(stdout.contains(flag), "fish completions missing flag: {}", flag);
+    for flag in [
+        "interface",
+        "filter",
+        "no-dns",
+        "bytes",
+        "json",
+        "list-colors",
+    ] {
+        assert!(
+            stdout.contains(flag),
+            "fish completions missing flag: {}",
+            flag
+        );
     }
 }
 
@@ -407,7 +670,9 @@ fn help_has_three_sections() {
 fn help_shows_short_flags() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    for flag in ["-i", "-f", "-F", "-n", "-N", "-p", "-b", "-B", "-P", "-Z", "-l", "-h", "-V", "-c"] {
+    for flag in [
+        "-i", "-f", "-F", "-n", "-N", "-p", "-b", "-B", "-P", "-Z", "-l", "-h", "-V", "-c",
+    ] {
         assert!(stdout.contains(flag), "help missing short flag: {}", flag);
     }
 }
@@ -416,21 +681,30 @@ fn help_shows_short_flags() {
 fn help_contains_bpf_example() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("tcp port 80"), "help should show BPF filter example");
+    assert!(
+        stdout.contains("tcp port 80"),
+        "help should show BPF filter example"
+    );
 }
 
 #[test]
 fn help_contains_cidr_example() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("192.168.1.0/24"), "help should show CIDR example");
+    assert!(
+        stdout.contains("192.168.1.0/24"),
+        "help should show CIDR example"
+    );
 }
 
 #[test]
 fn help_contains_promiscuous_description() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("promiscuous"), "help should describe promiscuous mode");
+    assert!(
+        stdout.contains("promiscuous"),
+        "help should describe promiscuous mode"
+    );
 }
 
 // ── Keybind documentation ──
@@ -440,10 +714,25 @@ fn help_documents_all_keybinds() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let keybinds = [
-        "help HUD", "toggle DNS", "bars", "bytes/bits", "ports", "processes",
-        "line mode", "cumulative", "pause", "border", "themes", "filter",
-        "header bar", "refresh rate", "switch view",
-        "sort by", "freeze order", "scroll", "disconnect",
+        "help HUD",
+        "toggle DNS",
+        "bars",
+        "bytes/bits",
+        "ports",
+        "processes",
+        "line mode",
+        "cumulative",
+        "pause",
+        "border",
+        "themes",
+        "filter",
+        "header bar",
+        "refresh rate",
+        "switch view",
+        "sort by",
+        "freeze order",
+        "scroll",
+        "disconnect",
     ];
     for kb in &keybinds {
         assert!(stdout.contains(kb), "help missing keybind: {}", kb);
@@ -463,8 +752,14 @@ fn help_documents_navigation_keys() {
 fn help_shows_tagline() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("JACK IN"), "help should show cyberpunk tagline");
-    assert!(stdout.contains("neon rain"), "help should show neon rain quote");
+    assert!(
+        stdout.contains("JACK IN"),
+        "help should show cyberpunk tagline"
+    );
+    assert!(
+        stdout.contains("neon rain"),
+        "help should show neon rain quote"
+    );
 }
 
 // ── Version output format ──
@@ -484,7 +779,10 @@ fn version_and_help_show_same_version() {
 
     let h_output = cargo_bin().arg("-h").output().unwrap();
     let h_str = String::from_utf8_lossy(&h_output.stdout);
-    assert!(h_str.contains(version), "help banner should show same version as -V");
+    assert!(
+        h_str.contains(version),
+        "help banner should show same version as -V"
+    );
 }
 
 // ── List colors output ──
@@ -493,7 +791,10 @@ fn version_and_help_show_same_version() {
 fn list_colors_contains_ansi() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\x1b["), "list-colors should contain ANSI escape codes");
+    assert!(
+        stdout.contains("\x1b["),
+        "list-colors should contain ANSI escape codes"
+    );
 }
 
 #[test]
@@ -501,15 +802,44 @@ fn list_colors_shows_all_31_themes() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let themes = [
-        "Neon Sprawl", "Acid Rain", "Ice Breaker", "Synth Wave", "Rust Belt",
-        "Ghost Wire", "Red Sector", "Sakura Den", "Data Stream", "Solar Flare",
-        "Neon Noir", "Chrome Heart", "Blade Runner", "Void Walker", "Toxic Waste",
-        "Cyber Frost", "Plasma Core", "Steel Nerve", "Dark Signal", "Glitch Pop",
-        "Holo Shift", "Night City", "Deep Net", "Laser Grid", "Quantum Flux",
-        "Bio Hazard", "Darkwave", "Overlock", "Megacorp", "Zaibatsu", "iftopcolor",
+        "Neon Sprawl",
+        "Acid Rain",
+        "Ice Breaker",
+        "Synth Wave",
+        "Rust Belt",
+        "Ghost Wire",
+        "Red Sector",
+        "Sakura Den",
+        "Data Stream",
+        "Solar Flare",
+        "Neon Noir",
+        "Chrome Heart",
+        "Blade Runner",
+        "Void Walker",
+        "Toxic Waste",
+        "Cyber Frost",
+        "Plasma Core",
+        "Steel Nerve",
+        "Dark Signal",
+        "Glitch Pop",
+        "Holo Shift",
+        "Night City",
+        "Deep Net",
+        "Laser Grid",
+        "Quantum Flux",
+        "Bio Hazard",
+        "Darkwave",
+        "Overlock",
+        "Megacorp",
+        "Zaibatsu",
+        "iftopcolor",
     ];
     for theme in &themes {
-        assert!(stdout.contains(theme), "list-colors missing theme: {}", theme);
+        assert!(
+            stdout.contains(theme),
+            "list-colors missing theme: {}",
+            theme
+        );
     }
 }
 
@@ -518,14 +848,20 @@ fn list_colors_shows_color_swatches() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Color swatches use 48;5;N escape codes for background
-    assert!(stdout.contains("48;5;"), "list-colors should contain 256-color escapes");
+    assert!(
+        stdout.contains("48;5;"),
+        "list-colors should contain 256-color escapes"
+    );
 }
 
 #[test]
 fn list_colors_has_section_header() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BUILTIN COLOR SCHEMES"), "should have section header");
+    assert!(
+        stdout.contains("BUILTIN COLOR SCHEMES"),
+        "should have section header"
+    );
 }
 
 // ── Default config file ──
@@ -535,9 +871,11 @@ fn default_config_is_valid_toml() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
     // Filter out comment lines and parse as TOML
-    let filtered: String = content.lines()
+    let filtered: String = content
+        .lines()
         .filter(|l| !l.trim_start().starts_with('#') || l.contains('='))
-        .collect::<Vec<_>>().join("\n");
+        .collect::<Vec<_>>()
+        .join("\n");
     let parsed: toml::Value = toml::from_str(&filtered).unwrap();
     assert!(parsed.is_table());
 }
@@ -546,43 +884,64 @@ fn default_config_is_valid_toml() {
 fn default_config_theme_is_neon_sprawl() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
-    assert!(content.contains("theme = \"NeonSprawl\""), "default theme should be NeonSprawl");
+    assert!(
+        content.contains("theme = \"NeonSprawl\""),
+        "default theme should be NeonSprawl"
+    );
 }
 
 #[test]
 fn default_config_dns_enabled() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
-    assert!(content.contains("dns_resolution = true"), "dns should be enabled by default");
+    assert!(
+        content.contains("dns_resolution = true"),
+        "dns should be enabled by default"
+    );
 }
 
 #[test]
 fn default_config_refresh_rate_one() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
-    assert!(content.contains("refresh_rate = 1"), "default refresh rate should be 1");
+    assert!(
+        content.contains("refresh_rate = 1"),
+        "default refresh rate should be 1"
+    );
 }
 
 #[test]
 fn default_config_alert_disabled() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
-    assert!(content.contains("alert_threshold = 0.0"), "alerts should be disabled by default");
+    assert!(
+        content.contains("alert_threshold = 0.0"),
+        "alerts should be disabled by default"
+    );
 }
 
 #[test]
 fn default_config_has_comments() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
-    let comment_count = content.lines().filter(|l| l.trim_start().starts_with('#')).count();
-    assert!(comment_count >= 5, "default config should have documentation comments");
+    let comment_count = content
+        .lines()
+        .filter(|l| l.trim_start().starts_with('#'))
+        .count();
+    assert!(
+        comment_count >= 5,
+        "default config should have documentation comments"
+    );
 }
 
 #[test]
 fn default_config_documents_bar_styles() {
     let path = std::path::Path::new("iftoprs.default.conf");
     let content = std::fs::read_to_string(path).unwrap();
-    assert!(content.contains("Gradient"), "should document Gradient bar style");
+    assert!(
+        content.contains("Gradient"),
+        "should document Gradient bar style"
+    );
     assert!(content.contains("Solid"), "should document Solid bar style");
     assert!(content.contains("Thin"), "should document Thin bar style");
     assert!(content.contains("Ascii"), "should document Ascii bar style");
@@ -607,22 +966,43 @@ fn zsh_completion_file_exists() {
 #[test]
 fn zsh_completion_file_has_compdef() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
-    assert!(content.starts_with("#compdef iftoprs"), "should start with #compdef");
+    assert!(
+        content.starts_with("#compdef iftoprs"),
+        "should start with #compdef"
+    );
 }
 
 #[test]
 fn zsh_completion_file_has_function() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
-    assert!(content.contains("_iftoprs()"), "should define _iftoprs function");
+    assert!(
+        content.contains("_iftoprs()"),
+        "should define _iftoprs function"
+    );
 }
 
 #[test]
 fn zsh_completion_file_includes_all_flags() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
-    for flag in ["--config", "--interface", "--filter", "--net-filter", "--no-dns",
-                 "--no-port-names", "--promiscuous", "--no-bars", "--bytes",
-                 "--hide-ports", "--no-processes", "--json", "--list-interfaces",
-                 "--list-colors", "--help", "--version", "--completions"] {
+    for flag in [
+        "--config",
+        "--interface",
+        "--filter",
+        "--net-filter",
+        "--no-dns",
+        "--no-port-names",
+        "--promiscuous",
+        "--no-bars",
+        "--bytes",
+        "--hide-ports",
+        "--no-processes",
+        "--json",
+        "--list-interfaces",
+        "--list-colors",
+        "--help",
+        "--version",
+        "--completions",
+    ] {
         assert!(content.contains(flag), "_iftoprs missing flag: {}", flag);
     }
 }
@@ -632,19 +1012,33 @@ fn zsh_completion_file_includes_short_flags() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
     // Flags with values use '-X+[' or '-X[', boolean flags use '-X['
     for flag in ["-i", "-f", "-F", "-c"] {
-        assert!(content.contains(&format!("'{flag}+")), "missing short flag with value: {}", flag);
+        assert!(
+            content.contains(&format!("'{flag}+")),
+            "missing short flag with value: {}",
+            flag
+        );
     }
     for flag in ["-n", "-N", "-p", "-b", "-B", "-P", "-Z", "-l", "-h", "-V"] {
-        assert!(content.contains(&format!("'{flag}[")), "missing short boolean flag: {}", flag);
+        assert!(
+            content.contains(&format!("'{flag}[")),
+            "missing short boolean flag: {}",
+            flag
+        );
     }
 }
 
 #[test]
 fn zsh_completion_file_has_shell_completions_values() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
-    assert!(content.contains("bash"), "completions should list bash shell");
+    assert!(
+        content.contains("bash"),
+        "completions should list bash shell"
+    );
     assert!(content.contains("zsh"), "completions should list zsh shell");
-    assert!(content.contains("fish"), "completions should list fish shell");
+    assert!(
+        content.contains("fish"),
+        "completions should list fish shell"
+    );
 }
 
 // ── Stderr output ──
@@ -654,42 +1048,66 @@ fn help_stderr_is_empty() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
     // Filter out compiler warnings that may appear with `cargo run`
-    let app_stderr: String = stderr.lines()
-        .filter(|l| !l.trim().is_empty()
-            && !l.contains("warning:")
-            && !l.contains("-->")
-            && !l.contains("= note:")
-            && !l.starts_with("  "))
-        .collect::<Vec<_>>().join("\n");
-    assert!(app_stderr.is_empty(), "help should not write to stderr: {}", app_stderr);
+    let app_stderr: String = stderr
+        .lines()
+        .filter(|l| {
+            !l.trim().is_empty()
+                && !l.contains("warning:")
+                && !l.contains("-->")
+                && !l.contains("= note:")
+                && !l.starts_with("  ")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        app_stderr.is_empty(),
+        "help should not write to stderr: {}",
+        app_stderr
+    );
 }
 
 #[test]
 fn version_stderr_is_empty() {
     let output = cargo_bin().arg("-V").output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let app_stderr: String = stderr.lines()
-        .filter(|l| !l.trim().is_empty()
-            && !l.contains("warning:")
-            && !l.contains("-->")
-            && !l.contains("= note:")
-            && !l.starts_with("  "))
-        .collect::<Vec<_>>().join("\n");
-    assert!(app_stderr.is_empty(), "version should not write to stderr: {}", app_stderr);
+    let app_stderr: String = stderr
+        .lines()
+        .filter(|l| {
+            !l.trim().is_empty()
+                && !l.contains("warning:")
+                && !l.contains("-->")
+                && !l.contains("= note:")
+                && !l.starts_with("  ")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        app_stderr.is_empty(),
+        "version should not write to stderr: {}",
+        app_stderr
+    );
 }
 
 #[test]
 fn list_colors_stderr_is_empty() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
-    let app_stderr: String = stderr.lines()
-        .filter(|l| !l.trim().is_empty()
-            && !l.contains("warning:")
-            && !l.contains("-->")
-            && !l.contains("= note:")
-            && !l.starts_with("  "))
-        .collect::<Vec<_>>().join("\n");
-    assert!(app_stderr.is_empty(), "list-colors should not write to stderr: {}", app_stderr);
+    let app_stderr: String = stderr
+        .lines()
+        .filter(|l| {
+            !l.trim().is_empty()
+                && !l.contains("warning:")
+                && !l.contains("-->")
+                && !l.contains("= note:")
+                && !l.starts_with("  ")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        app_stderr.is_empty(),
+        "list-colors should not write to stderr: {}",
+        app_stderr
+    );
 }
 
 // ── Custom config flag ──
@@ -697,11 +1115,16 @@ fn list_colors_stderr_is_empty() {
 #[test]
 fn config_flag_with_nonexistent_file_shows_help() {
     // -c takes a path argument, then -h is parsed as a separate flag
-    let output = cargo_bin().args(["-c", "/tmp/nonexistent_iftoprs_test_12345.conf", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["-c", "/tmp/nonexistent_iftoprs_test_12345.conf", "-h"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Should show help output (the -h flag takes priority over needing a valid config)
-    assert!(stdout.contains("BANDWIDTH MONITOR") || stdout.contains("IFTOPRS"),
-        "should still show help with nonexistent config");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR") || stdout.contains("IFTOPRS"),
+        "should still show help with nonexistent config"
+    );
 }
 
 // ── Output consistency ──
@@ -710,21 +1133,30 @@ fn config_flag_with_nonexistent_file_shows_help() {
 fn help_output_is_deterministic() {
     let out1 = cargo_bin().arg("-h").output().unwrap();
     let out2 = cargo_bin().arg("-h").output().unwrap();
-    assert_eq!(out1.stdout, out2.stdout, "help output should be deterministic");
+    assert_eq!(
+        out1.stdout, out2.stdout,
+        "help output should be deterministic"
+    );
 }
 
 #[test]
 fn version_output_is_deterministic() {
     let out1 = cargo_bin().arg("-V").output().unwrap();
     let out2 = cargo_bin().arg("-V").output().unwrap();
-    assert_eq!(out1.stdout, out2.stdout, "version output should be deterministic");
+    assert_eq!(
+        out1.stdout, out2.stdout,
+        "version output should be deterministic"
+    );
 }
 
 #[test]
 fn completions_output_is_deterministic() {
     let out1 = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
     let out2 = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
-    assert_eq!(out1.stdout, out2.stdout, "completions output should be deterministic");
+    assert_eq!(
+        out1.stdout, out2.stdout,
+        "completions output should be deterministic"
+    );
 }
 
 // ── Help output size ──
@@ -733,9 +1165,17 @@ fn completions_output_is_deterministic() {
 fn help_output_is_substantial() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.len() > 1000, "help should be at least 1000 bytes, got {}", stdout.len());
+    assert!(
+        stdout.len() > 1000,
+        "help should be at least 1000 bytes, got {}",
+        stdout.len()
+    );
     let lines = stdout.lines().count();
-    assert!(lines >= 30, "help should have at least 30 lines, got {}", lines);
+    assert!(
+        lines >= 30,
+        "help should have at least 30 lines, got {}",
+        lines
+    );
 }
 
 #[test]
@@ -743,7 +1183,11 @@ fn list_colors_output_is_substantial() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let lines = stdout.lines().count();
-    assert!(lines >= 33, "list-colors should have at least 33 lines (31 themes + header/footer), got {}", lines);
+    assert!(
+        lines >= 33,
+        "list-colors should have at least 33 lines (31 themes + header/footer), got {}",
+        lines
+    );
 }
 
 // ── Completions generated match static file ──
@@ -753,15 +1197,21 @@ fn generated_zsh_completions_match_static_file() {
     let generated = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
     let gen_str = String::from_utf8_lossy(&generated.stdout);
     let static_file = std::fs::read_to_string("completions/_iftoprs").unwrap();
-    assert_eq!(gen_str.trim(), static_file.trim(),
-        "generated zsh completions should match completions/_iftoprs");
+    assert_eq!(
+        gen_str.trim(),
+        static_file.trim(),
+        "generated zsh completions should match completions/_iftoprs"
+    );
 }
 
 // ── Invalid argument handling ──
 
 #[test]
 fn invalid_completions_shell_fails() {
-    let output = cargo_bin().args(["--completions", "invalid_shell"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "invalid_shell"])
+        .output()
+        .unwrap();
     assert!(!output.status.success(), "invalid shell name should fail");
 }
 
@@ -771,15 +1221,24 @@ fn invalid_completions_shell_fails() {
 fn help_banner_has_signal_bar() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("SIGNAL"), "banner should have SIGNAL indicator");
-    assert!(stdout.contains("ONLINE"), "banner should show ONLINE status");
+    assert!(
+        stdout.contains("SIGNAL"),
+        "banner should have SIGNAL indicator"
+    );
+    assert!(
+        stdout.contains("ONLINE"),
+        "banner should show ONLINE status"
+    );
 }
 
 #[test]
 fn help_shows_iftop_clone_description() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("iftop clone"), "should describe as iftop clone");
+    assert!(
+        stdout.contains("iftop clone"),
+        "should describe as iftop clone"
+    );
     assert!(stdout.contains("Rust"), "should mention Rust");
 }
 
@@ -788,8 +1247,18 @@ fn help_shows_iftop_clone_description() {
 #[test]
 fn default_config_lists_all_theme_names() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    for theme in ["NeonSprawl", "BladeRunner", "Iftopcolor", "GlitchPop", "Zaibatsu"] {
-        assert!(content.contains(theme), "default config should list theme: {}", theme);
+    for theme in [
+        "NeonSprawl",
+        "BladeRunner",
+        "Iftopcolor",
+        "GlitchPop",
+        "Zaibatsu",
+    ] {
+        assert!(
+            content.contains(theme),
+            "default config should list theme: {}",
+            theme
+        );
     }
 }
 
@@ -826,22 +1295,37 @@ fn help_json_flag_description() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("--json"), "help should list --json flag");
-    assert!(stdout.contains("NDJSON"), "help should describe NDJSON output");
+    assert!(
+        stdout.contains("NDJSON"),
+        "help should describe NDJSON output"
+    );
     assert!(stdout.contains("no TUI"), "help should mention no TUI");
 }
 
 #[test]
 fn completions_bash_includes_json() {
-    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "bash"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("json"), "bash completions should include json");
+    assert!(
+        stdout.contains("json"),
+        "bash completions should include json"
+    );
 }
 
 #[test]
 fn completions_fish_includes_json() {
-    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "fish"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("json"), "fish completions should include json");
+    assert!(
+        stdout.contains("json"),
+        "fish completions should include json"
+    );
 }
 
 #[test]
@@ -857,7 +1341,10 @@ fn help_tab_keybind_description() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Tab"), "help should document Tab keybind");
-    assert!(stdout.contains("switch view"), "help should describe Tab as switching views");
+    assert!(
+        stdout.contains("switch view"),
+        "help should describe Tab as switching views"
+    );
 }
 
 // ── Cargo.toml dependencies ──
@@ -865,7 +1352,10 @@ fn help_tab_keybind_description() {
 #[test]
 fn cargo_toml_has_serde_json() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("serde_json"), "Cargo.toml should include serde_json dependency");
+    assert!(
+        content.contains("serde_json"),
+        "Cargo.toml should include serde_json dependency"
+    );
 }
 
 // ── README features ──
@@ -873,7 +1363,10 @@ fn cargo_toml_has_serde_json() {
 #[test]
 fn readme_documents_json_streaming() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("--json"), "README should document --json flag");
+    assert!(
+        content.contains("--json"),
+        "README should document --json flag"
+    );
     assert!(content.contains("NDJSON"), "README should mention NDJSON");
 }
 
@@ -881,13 +1374,19 @@ fn readme_documents_json_streaming() {
 fn readme_documents_process_view() {
     let content = std::fs::read_to_string("README.md").unwrap();
     assert!(content.contains("Tab"), "README should document Tab key");
-    assert!(content.contains("process"), "README should mention process aggregation");
+    assert!(
+        content.contains("process"),
+        "README should mention process aggregation"
+    );
 }
 
 #[test]
 fn readme_documents_jq_example() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("jq"), "README should show jq piping example");
+    assert!(
+        content.contains("jq"),
+        "README should show jq piping example"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -898,7 +1397,10 @@ fn readme_documents_jq_example() {
 fn help_with_no_dns_flag_still_shows_help() {
     let output = cargo_bin().args(["-n", "-h"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should work with -n");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should work with -n"
+    );
     assert!(output.status.success());
 }
 
@@ -906,7 +1408,10 @@ fn help_with_no_dns_flag_still_shows_help() {
 fn help_with_bytes_flag_still_shows_help() {
     let output = cargo_bin().args(["-B", "-h"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should work with -B");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should work with -B"
+    );
     assert!(output.status.success());
 }
 
@@ -914,7 +1419,10 @@ fn help_with_bytes_flag_still_shows_help() {
 fn help_with_no_bars_flag_still_shows_help() {
     let output = cargo_bin().args(["-b", "-h"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should work with -b");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should work with -b"
+    );
     assert!(output.status.success());
 }
 
@@ -944,9 +1452,15 @@ fn help_with_promiscuous_flag_still_shows_help() {
 
 #[test]
 fn help_with_all_display_flags() {
-    let output = cargo_bin().args(["-n", "-N", "-b", "-B", "-P", "-Z", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["-n", "-N", "-b", "-B", "-P", "-Z", "-h"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should work with all display flags");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should work with all display flags"
+    );
     assert!(output.status.success());
 }
 
@@ -968,7 +1482,10 @@ fn list_colors_with_no_dns_flag() {
 
 #[test]
 fn completions_with_extra_flags() {
-    let output = cargo_bin().args(["-n", "--completions", "zsh"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["-n", "--completions", "zsh"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("#compdef iftoprs"));
     assert!(output.status.success());
@@ -1017,7 +1534,10 @@ fn config_flag_without_value_fails() {
 #[test]
 fn completions_without_shell_name_fails() {
     let output = cargo_bin().args(["--completions"]).output().unwrap();
-    assert!(!output.status.success(), "--completions without shell name should fail");
+    assert!(
+        !output.status.success(),
+        "--completions without shell name should fail"
+    );
 }
 
 #[test]
@@ -1029,21 +1549,33 @@ fn double_dash_unknown_flag_fails() {
 #[test]
 fn positional_argument_fails() {
     let output = cargo_bin().arg("some_positional").output().unwrap();
-    assert!(!output.status.success(), "positional args should not be accepted");
+    assert!(
+        !output.status.success(),
+        "positional args should not be accepted"
+    );
 }
 
 #[test]
 fn invalid_flag_writes_to_stderr() {
     let output = cargo_bin().arg("--nonexistent").output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(!stderr.is_empty(), "invalid flag should produce stderr output");
+    assert!(
+        !stderr.is_empty(),
+        "invalid flag should produce stderr output"
+    );
 }
 
 #[test]
 fn invalid_completions_shell_writes_stderr() {
-    let output = cargo_bin().args(["--completions", "nosuchshell"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "nosuchshell"])
+        .output()
+        .unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(!stderr.is_empty(), "invalid shell should produce stderr output");
+    assert!(
+        !stderr.is_empty(),
+        "invalid shell should produce stderr output"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1055,10 +1587,22 @@ fn help_contains_all_long_flags() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let flags = [
-        "--interface", "--filter", "--net-filter", "--no-dns",
-        "--no-port-names", "--promiscuous", "--no-bars", "--bytes",
-        "--hide-ports", "--no-processes", "--json", "--list-interfaces",
-        "--list-colors", "--help", "--version", "--config",
+        "--interface",
+        "--filter",
+        "--net-filter",
+        "--no-dns",
+        "--no-port-names",
+        "--promiscuous",
+        "--no-bars",
+        "--bytes",
+        "--hide-ports",
+        "--no-processes",
+        "--json",
+        "--list-interfaces",
+        "--list-colors",
+        "--help",
+        "--version",
+        "--config",
     ];
     for flag in &flags {
         assert!(stdout.contains(flag), "help missing long flag: {}", flag);
@@ -1070,7 +1614,9 @@ fn help_contains_all_keybind_keys() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // All single-key keybinds from the help
-    for key in ["h", "n", "b", "B", "t", "T", "P", "x", "c", "g", "f", "o", "q"] {
+    for key in [
+        "h", "n", "b", "B", "t", "T", "P", "x", "c", "g", "f", "o", "q",
+    ] {
         assert!(stdout.contains(key), "help missing keybind key: {}", key);
     }
 }
@@ -1079,63 +1625,90 @@ fn help_contains_all_keybind_keys() {
 fn help_keybind_section_has_help_hud() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("help HUD"), "help should document help HUD keybind");
+    assert!(
+        stdout.contains("help HUD"),
+        "help should document help HUD keybind"
+    );
 }
 
 #[test]
 fn help_keybind_section_has_disconnect() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("disconnect"), "help should document disconnect keybind");
+    assert!(
+        stdout.contains("disconnect"),
+        "help should document disconnect keybind"
+    );
 }
 
 #[test]
 fn help_keybind_section_has_cumulative() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("cumulative"), "help should document cumulative toggle");
+    assert!(
+        stdout.contains("cumulative"),
+        "help should document cumulative toggle"
+    );
 }
 
 #[test]
 fn help_keybind_section_has_line_mode() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("line mode"), "help should document line mode");
+    assert!(
+        stdout.contains("line mode"),
+        "help should document line mode"
+    );
 }
 
 #[test]
 fn help_contains_jack_in() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("JACK IN"), "help should have JACK IN tagline");
+    assert!(
+        stdout.contains("JACK IN"),
+        "help should have JACK IN tagline"
+    );
 }
 
 #[test]
 fn help_contains_sniff_the_stream() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("SNIFF THE STREAM"), "help should have SNIFF THE STREAM");
+    assert!(
+        stdout.contains("SNIFF THE STREAM"),
+        "help should have SNIFF THE STREAM"
+    );
 }
 
 #[test]
 fn help_contains_own_your_network() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("OWN YOUR NETWORK"), "help should have OWN YOUR NETWORK");
+    assert!(
+        stdout.contains("OWN YOUR NETWORK"),
+        "help should have OWN YOUR NETWORK"
+    );
 }
 
 #[test]
 fn help_has_usage_line() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("iftoprs [OPTIONS]"), "help should show usage with OPTIONS");
+    assert!(
+        stdout.contains("iftoprs [OPTIONS]"),
+        "help should show usage with OPTIONS"
+    );
 }
 
 #[test]
 fn help_has_generate_completions_via_flag() {
     // The --completions flag is functional even though custom help doesn't list it
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
-    assert!(output.status.success(), "--completions flag should be functional");
+    assert!(
+        output.status.success(),
+        "--completions flag should be functional"
+    );
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(!stdout.is_empty(), "completions should produce output");
 }
@@ -1159,14 +1732,20 @@ fn help_describes_config_file() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("config"), "help should mention config file");
-    assert!(stdout.contains(".iftoprs.conf"), "help should reference .iftoprs.conf");
+    assert!(
+        stdout.contains(".iftoprs.conf"),
+        "help should reference .iftoprs.conf"
+    );
 }
 
 #[test]
 fn help_shows_no_port_names_description() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("port-to-service"), "help should describe port-to-service resolution");
+    assert!(
+        stdout.contains("port-to-service"),
+        "help should describe port-to-service resolution"
+    );
 }
 
 #[test]
@@ -1191,7 +1770,10 @@ fn help_banner_status_section() {
 fn help_banner_footer_separator() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("░░░"), "help should have footer separator bar");
+    assert!(
+        stdout.contains("░░░"),
+        "help should have footer separator bar"
+    );
 }
 
 #[test]
@@ -1201,8 +1783,11 @@ fn help_has_section_separators() {
     // Cyberpunk section headers with ── prefix
     let sections = ["CAPTURE", "KEYBINDS", "SYSTEM"];
     for section in &sections {
-        assert!(stdout.contains(&format!("── {} ──", section)),
-            "help missing section separator: {}", section);
+        assert!(
+            stdout.contains(&format!("── {} ──", section)),
+            "help missing section separator: {}",
+            section
+        );
     }
 }
 
@@ -1211,7 +1796,10 @@ fn help_uses_green_comment_markers() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // The // markers are styled green: \x1b[32m//\x1b[0m
-    assert!(stdout.contains("//"), "help should use // comment markers for flag descriptions");
+    assert!(
+        stdout.contains("//"),
+        "help should use // comment markers for flag descriptions"
+    );
 }
 
 #[test]
@@ -1219,14 +1807,25 @@ fn help_line_count_range() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let lines = stdout.lines().count();
-    assert!(lines >= 30 && lines <= 200, "help should have 30-200 lines, got {}", lines);
+    assert!(
+        (30..=200).contains(&lines),
+        "help should have 30-200 lines, got {}",
+        lines
+    );
 }
 
 #[test]
 fn help_byte_count_range() {
     let output = cargo_bin().arg("-h").output().unwrap();
-    assert!(output.stdout.len() >= 1000, "help should be at least 1000 bytes");
-    assert!(output.stdout.len() <= 20_000, "help should be under 20KB, got {}", output.stdout.len());
+    assert!(
+        output.stdout.len() >= 1000,
+        "help should be at least 1000 bytes"
+    );
+    assert!(
+        output.stdout.len() <= 20_000,
+        "help should be under 20KB, got {}",
+        output.stdout.len()
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1237,7 +1836,10 @@ fn help_byte_count_range() {
 fn version_starts_with_crate_name() {
     let output = cargo_bin().arg("-V").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    assert!(stdout.starts_with("iftoprs "), "version should start with 'iftoprs '");
+    assert!(
+        stdout.starts_with("iftoprs "),
+        "version should start with 'iftoprs '"
+    );
 }
 
 #[test]
@@ -1259,7 +1861,11 @@ fn version_major_is_reasonable() {
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
     let version = stdout.strip_prefix("iftoprs ").unwrap();
     let major: u32 = version.split('.').next().unwrap().parse().unwrap();
-    assert!(major <= 100, "major version should be <= 100, got {}", major);
+    assert!(
+        major <= 100,
+        "major version should be <= 100, got {}",
+        major
+    );
 }
 
 #[test]
@@ -1269,7 +1875,11 @@ fn version_minor_is_reasonable() {
     let version = stdout.strip_prefix("iftoprs ").unwrap();
     let parts: Vec<&str> = version.split('.').collect();
     let minor: u32 = parts[1].parse().unwrap();
-    assert!(minor <= 1000, "minor version should be <= 1000, got {}", minor);
+    assert!(
+        minor <= 1000,
+        "minor version should be <= 1000, got {}",
+        minor
+    );
 }
 
 #[test]
@@ -1279,12 +1889,16 @@ fn version_matches_cargo_toml_version() {
     let cli_version = stdout.strip_prefix("iftoprs ").unwrap();
 
     let cargo_toml = std::fs::read_to_string("Cargo.toml").unwrap();
-    let toml_version = cargo_toml.lines()
+    let toml_version = cargo_toml
+        .lines()
         .find(|l| l.starts_with("version = "))
         .unwrap()
         .trim_start_matches("version = ")
         .trim_matches('"');
-    assert_eq!(cli_version, toml_version, "CLI version should match Cargo.toml");
+    assert_eq!(
+        cli_version, toml_version,
+        "CLI version should match Cargo.toml"
+    );
 }
 
 #[test]
@@ -1292,14 +1906,20 @@ fn version_no_trailing_whitespace_or_newlines() {
     let output = cargo_bin().arg("-V").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let trimmed = stdout.trim();
-    assert_eq!(stdout.trim_end_matches('\n').trim_end_matches('\r'), trimmed,
-        "version should not have extra whitespace");
+    assert_eq!(
+        stdout.trim_end_matches('\n').trim_end_matches('\r'),
+        trimmed,
+        "version should not have extra whitespace"
+    );
 }
 
 #[test]
 fn version_is_utf8() {
     let output = cargo_bin().arg("-V").output().unwrap();
-    assert!(String::from_utf8(output.stdout.clone()).is_ok(), "version should be valid UTF-8");
+    assert!(
+        String::from_utf8(output.stdout.clone()).is_ok(),
+        "version should be valid UTF-8"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1312,10 +1932,12 @@ fn list_colors_has_exactly_31_themes() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Each theme has a color swatch with 48;5; background escapes
     // Count lines that have 48;5; sequences (one per theme)
-    let theme_lines = stdout.lines()
-        .filter(|l| l.contains("48;5;"))
-        .count();
-    assert_eq!(theme_lines, 31, "should have exactly 31 theme lines, got {}", theme_lines);
+    let theme_lines = stdout.lines().filter(|l| l.contains("48;5;")).count();
+    assert_eq!(
+        theme_lines, 31,
+        "should have exactly 31 theme lines, got {}",
+        theme_lines
+    );
 }
 
 #[test]
@@ -1323,15 +1945,44 @@ fn list_colors_shows_each_theme_flag_name() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let expected = [
-        "neonsprawl", "acidrain", "icebreaker", "synthwave", "rustbelt",
-        "ghostwire", "redsector", "sakuraden", "datastream", "solarflare",
-        "neonnoir", "chromeheart", "bladerunner", "voidwalker", "toxicwaste",
-        "cyberfrost", "plasmacore", "steelnerve", "darksignal", "glitchpop",
-        "holoshift", "nightcity", "deepnet", "lasergrid", "quantumflux",
-        "biohazard", "darkwave", "overlock", "megacorp", "zaibatsu", "iftopcolor",
+        "neonsprawl",
+        "acidrain",
+        "icebreaker",
+        "synthwave",
+        "rustbelt",
+        "ghostwire",
+        "redsector",
+        "sakuraden",
+        "datastream",
+        "solarflare",
+        "neonnoir",
+        "chromeheart",
+        "bladerunner",
+        "voidwalker",
+        "toxicwaste",
+        "cyberfrost",
+        "plasmacore",
+        "steelnerve",
+        "darksignal",
+        "glitchpop",
+        "holoshift",
+        "nightcity",
+        "deepnet",
+        "lasergrid",
+        "quantumflux",
+        "biohazard",
+        "darkwave",
+        "overlock",
+        "megacorp",
+        "zaibatsu",
+        "iftopcolor",
     ];
     for name in &expected {
-        assert!(stdout.contains(name), "list-colors missing theme flag name: {}", name);
+        assert!(
+            stdout.contains(name),
+            "list-colors missing theme flag name: {}",
+            name
+        );
     }
 }
 
@@ -1339,14 +1990,20 @@ fn list_colors_shows_each_theme_flag_name() {
 fn list_colors_starts_with_newline() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.starts_with('\n'), "list-colors should start with newline for spacing");
+    assert!(
+        stdout.starts_with('\n'),
+        "list-colors should start with newline for spacing"
+    );
 }
 
 #[test]
 fn list_colors_ends_with_newline() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.ends_with('\n'), "list-colors should end with newline");
+    assert!(
+        stdout.ends_with('\n'),
+        "list-colors should end with newline"
+    );
 }
 
 #[test]
@@ -1359,7 +2016,10 @@ fn list_colors_shows_tui_hint() {
 #[test]
 fn list_colors_is_valid_utf8() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
-    assert!(String::from_utf8(output.stdout.clone()).is_ok(), "output should be valid UTF-8");
+    assert!(
+        String::from_utf8(output.stdout.clone()).is_ok(),
+        "output should be valid UTF-8"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1371,8 +2031,16 @@ fn all_completions_are_nonempty() {
     for shell in ["zsh", "bash", "fish", "elvish", "powershell"] {
         let output = cargo_bin().args(["--completions", shell]).output().unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(!stdout.is_empty(), "{} completions should not be empty", shell);
-        assert!(stdout.len() > 100, "{} completions should be substantial", shell);
+        assert!(
+            !stdout.is_empty(),
+            "{} completions should not be empty",
+            shell
+        );
+        assert!(
+            stdout.len() > 100,
+            "{} completions should be substantial",
+            shell
+        );
     }
 }
 
@@ -1381,8 +2049,11 @@ fn all_completions_reference_iftoprs() {
     for shell in ["zsh", "bash", "fish", "elvish", "powershell"] {
         let output = cargo_bin().args(["--completions", shell]).output().unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("iftoprs"),
-            "{} completions should reference iftoprs", shell);
+        assert!(
+            stdout.contains("iftoprs"),
+            "{} completions should reference iftoprs",
+            shell
+        );
     }
 }
 
@@ -1390,7 +2061,11 @@ fn all_completions_reference_iftoprs() {
 fn all_completions_exit_code_zero() {
     for shell in ["zsh", "bash", "fish", "elvish", "powershell"] {
         let output = cargo_bin().args(["--completions", shell]).output().unwrap();
-        assert!(output.status.success(), "{} completions should exit 0", shell);
+        assert!(
+            output.status.success(),
+            "{} completions should exit 0",
+            shell
+        );
     }
 }
 
@@ -1399,14 +2074,23 @@ fn all_completions_stderr_empty() {
     for shell in ["zsh", "bash", "fish", "elvish", "powershell"] {
         let output = cargo_bin().args(["--completions", shell]).output().unwrap();
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let app_stderr: String = stderr.lines()
-            .filter(|l| !l.trim().is_empty()
-                && !l.contains("warning:")
-                && !l.contains("-->")
-                && !l.contains("= note:")
-                && !l.starts_with("  "))
-            .collect::<Vec<_>>().join("\n");
-        assert!(app_stderr.is_empty(), "{} completions should not write to stderr: {}", shell, app_stderr);
+        let app_stderr: String = stderr
+            .lines()
+            .filter(|l| {
+                !l.trim().is_empty()
+                    && !l.contains("warning:")
+                    && !l.contains("-->")
+                    && !l.contains("= note:")
+                    && !l.starts_with("  ")
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(
+            app_stderr.is_empty(),
+            "{} completions should not write to stderr: {}",
+            shell,
+            app_stderr
+        );
     }
 }
 
@@ -1415,8 +2099,11 @@ fn all_completions_are_deterministic() {
     for shell in ["zsh", "bash", "fish", "elvish", "powershell"] {
         let out1 = cargo_bin().args(["--completions", shell]).output().unwrap();
         let out2 = cargo_bin().args(["--completions", shell]).output().unwrap();
-        assert_eq!(out1.stdout, out2.stdout,
-            "{} completions should be deterministic", shell);
+        assert_eq!(
+            out1.stdout, out2.stdout,
+            "{} completions should be deterministic",
+            shell
+        );
     }
 }
 
@@ -1424,8 +2111,11 @@ fn all_completions_are_deterministic() {
 fn all_completions_are_valid_utf8() {
     for shell in ["zsh", "bash", "fish", "elvish", "powershell"] {
         let output = cargo_bin().args(["--completions", shell]).output().unwrap();
-        assert!(String::from_utf8(output.stdout.clone()).is_ok(),
-            "{} completions should be valid UTF-8", shell);
+        assert!(
+            String::from_utf8(output.stdout.clone()).is_ok(),
+            "{} completions should be valid UTF-8",
+            shell
+        );
     }
 }
 
@@ -1434,8 +2124,11 @@ fn all_completions_mention_interface() {
     for shell in ["zsh", "bash", "fish", "elvish", "powershell"] {
         let output = cargo_bin().args(["--completions", shell]).output().unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("interface"),
-            "{} completions should mention interface", shell);
+        assert!(
+            stdout.contains("interface"),
+            "{} completions should mention interface",
+            shell
+        );
     }
 }
 
@@ -1452,20 +2145,31 @@ fn zsh_completion_file_is_valid_utf8() {
 #[test]
 fn zsh_completion_file_has_argument_descriptions() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
-    assert!(content.contains("Network"), "should describe network-related flags");
+    assert!(
+        content.contains("Network"),
+        "should describe network-related flags"
+    );
 }
 
 #[test]
 fn zsh_completion_file_has_no_trailing_whitespace_on_first_line() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
     let first_line = content.lines().next().unwrap();
-    assert_eq!(first_line, first_line.trim_end(), "first line should not have trailing whitespace");
+    assert_eq!(
+        first_line,
+        first_line.trim_end(),
+        "first line should not have trailing whitespace"
+    );
 }
 
 #[test]
 fn zsh_completion_file_ends_with_newline() {
     let bytes = std::fs::read("completions/_iftoprs").unwrap();
-    assert_eq!(*bytes.last().unwrap(), b'\n', "file should end with newline");
+    assert_eq!(
+        *bytes.last().unwrap(),
+        b'\n',
+        "file should end with newline"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1475,13 +2179,19 @@ fn zsh_completion_file_ends_with_newline() {
 #[test]
 fn default_config_has_dns_resolution_field() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("dns_resolution"), "should have dns_resolution field");
+    assert!(
+        content.contains("dns_resolution"),
+        "should have dns_resolution field"
+    );
 }
 
 #[test]
 fn default_config_has_port_resolution_field() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("port_resolution"), "should have port_resolution field");
+    assert!(
+        content.contains("port_resolution"),
+        "should have port_resolution field"
+    );
 }
 
 #[test]
@@ -1493,19 +2203,28 @@ fn default_config_has_use_bytes_field() {
 #[test]
 fn default_config_has_show_cumulative_field() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("show_cumulative"), "should have show_cumulative field");
+    assert!(
+        content.contains("show_cumulative"),
+        "should have show_cumulative field"
+    );
 }
 
 #[test]
 fn default_config_has_show_processes_field() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("show_processes"), "should have show_processes field");
+    assert!(
+        content.contains("show_processes"),
+        "should have show_processes field"
+    );
 }
 
 #[test]
 fn default_config_has_show_header_field() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("show_header"), "should have show_header field");
+    assert!(
+        content.contains("show_header"),
+        "should have show_header field"
+    );
 }
 
 #[test]
@@ -1517,43 +2236,64 @@ fn default_config_has_bar_style_field() {
 #[test]
 fn default_config_bar_style_default() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("bar_style = \"Gradient\""), "default bar style should be Gradient");
+    assert!(
+        content.contains("bar_style = \"Gradient\""),
+        "default bar style should be Gradient"
+    );
 }
 
 #[test]
 fn default_config_show_border_default_true() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("show_border = true"), "show_border default should be true");
+    assert!(
+        content.contains("show_border = true"),
+        "show_border default should be true"
+    );
 }
 
 #[test]
 fn default_config_show_header_default_true() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("show_header = true"), "show_header default should be true");
+    assert!(
+        content.contains("show_header = true"),
+        "show_header default should be true"
+    );
 }
 
 #[test]
 fn default_config_show_ports_default_true() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("show_ports = true"), "show_ports default should be true");
+    assert!(
+        content.contains("show_ports = true"),
+        "show_ports default should be true"
+    );
 }
 
 #[test]
 fn default_config_show_bars_default_true() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("show_bars = true"), "show_bars default should be true");
+    assert!(
+        content.contains("show_bars = true"),
+        "show_bars default should be true"
+    );
 }
 
 #[test]
 fn default_config_use_bytes_default_false() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("use_bytes = false"), "use_bytes default should be false");
+    assert!(
+        content.contains("use_bytes = false"),
+        "use_bytes default should be false"
+    );
 }
 
 #[test]
 fn default_config_show_cumulative_default_false() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("show_cumulative = false"), "show_cumulative default should be false");
+    assert!(
+        content.contains("show_cumulative = false"),
+        "show_cumulative default should be false"
+    );
 }
 
 #[test]
@@ -1565,29 +2305,53 @@ fn default_config_is_not_empty() {
 #[test]
 fn default_config_has_no_tab_characters() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(!content.contains('\t'), "default config should use spaces, not tabs");
+    assert!(
+        !content.contains('\t'),
+        "default config should use spaces, not tabs"
+    );
 }
 
 #[test]
 fn default_config_ends_with_newline() {
     let bytes = std::fs::read("iftoprs.default.conf").unwrap();
-    assert_eq!(*bytes.last().unwrap(), b'\n', "config file should end with newline");
+    assert_eq!(
+        *bytes.last().unwrap(),
+        b'\n',
+        "config file should end with newline"
+    );
 }
 
 #[test]
 fn default_config_documents_all_theme_variants() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
     // At least a representative sample
-    for theme in ["NeonSprawl", "AcidRain", "IceBreaker", "SynthWave", "BladeRunner",
-                   "NeonNoir", "GlitchPop", "NightCity", "Zaibatsu", "Iftopcolor"] {
-        assert!(content.contains(theme), "default config should list theme: {}", theme);
+    for theme in [
+        "NeonSprawl",
+        "AcidRain",
+        "IceBreaker",
+        "SynthWave",
+        "BladeRunner",
+        "NeonNoir",
+        "GlitchPop",
+        "NightCity",
+        "Zaibatsu",
+        "Iftopcolor",
+    ] {
+        assert!(
+            content.contains(theme),
+            "default config should list theme: {}",
+            theme
+        );
     }
 }
 
 #[test]
 fn default_config_documents_refresh_rate_options() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    assert!(content.contains("refresh_rate"), "should document refresh_rate");
+    assert!(
+        content.contains("refresh_rate"),
+        "should document refresh_rate"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1597,7 +2361,10 @@ fn default_config_documents_refresh_rate_options() {
 #[test]
 fn cargo_toml_has_description() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("description = "), "should have description");
+    assert!(
+        content.contains("description = "),
+        "should have description"
+    );
 }
 
 #[test]
@@ -1609,7 +2376,10 @@ fn cargo_toml_has_license() {
 #[test]
 fn cargo_toml_license_is_mit() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("license = \"MIT\""), "license should be MIT");
+    assert!(
+        content.contains("license = \"MIT\""),
+        "license should be MIT"
+    );
 }
 
 #[test]
@@ -1622,9 +2392,18 @@ fn cargo_toml_has_repository() {
 fn cargo_toml_has_keywords() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
     assert!(content.contains("keywords"), "should have keywords");
-    assert!(content.contains("network"), "keywords should include network");
-    assert!(content.contains("bandwidth"), "keywords should include bandwidth");
-    assert!(content.contains("monitor"), "keywords should include monitor");
+    assert!(
+        content.contains("network"),
+        "keywords should include network"
+    );
+    assert!(
+        content.contains("bandwidth"),
+        "keywords should include bandwidth"
+    );
+    assert!(
+        content.contains("monitor"),
+        "keywords should include monitor"
+    );
     assert!(content.contains("tui"), "keywords should include tui");
     assert!(content.contains("iftop"), "keywords should include iftop");
 }
@@ -1633,61 +2412,101 @@ fn cargo_toml_has_keywords() {
 fn cargo_toml_has_categories() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
     assert!(content.contains("categories"), "should have categories");
-    assert!(content.contains("command-line-utilities"), "should include command-line-utilities category");
-    assert!(content.contains("network-programming"), "should include network-programming category");
+    assert!(
+        content.contains("command-line-utilities"),
+        "should include command-line-utilities category"
+    );
+    assert!(
+        content.contains("network-programming"),
+        "should include network-programming category"
+    );
 }
 
 #[test]
 fn cargo_toml_has_readme() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("readme = \"README.md\""), "should reference README.md");
+    assert!(
+        content.contains("readme = \"README.md\""),
+        "should reference README.md"
+    );
 }
 
 #[test]
 fn cargo_toml_edition_2024() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("edition = \"2024\""), "should use 2024 edition");
+    assert!(
+        content.contains("edition = \"2024\""),
+        "should use 2024 edition"
+    );
 }
 
 #[test]
 fn cargo_toml_has_release_profile() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("[profile.release]"), "should have release profile");
+    assert!(
+        content.contains("[profile.release]"),
+        "should have release profile"
+    );
     assert!(content.contains("lto = true"), "release should enable LTO");
-    assert!(content.contains("strip = true"), "release should enable strip");
+    assert!(
+        content.contains("strip = true"),
+        "release should enable strip"
+    );
 }
 
 #[test]
 fn cargo_toml_has_all_dependencies() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
     let deps = [
-        "anyhow", "chrono", "clap", "crossterm", "dirs", "dns-lookup",
-        "pcap", "ratatui", "regex", "serde", "serde_json", "tokio",
-        "toml", "clap_complete",
+        "anyhow",
+        "chrono",
+        "clap",
+        "crossterm",
+        "dirs",
+        "dns-lookup",
+        "pcap",
+        "ratatui",
+        "regex",
+        "serde",
+        "serde_json",
+        "tokio",
+        "toml",
+        "clap_complete",
     ];
     for dep in &deps {
-        assert!(content.contains(dep), "Cargo.toml missing dependency: {}", dep);
+        assert!(
+            content.contains(dep),
+            "Cargo.toml missing dependency: {}",
+            dep
+        );
     }
 }
 
 #[test]
 fn cargo_toml_clap_has_derive_feature() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("derive"), "clap should have derive feature");
+    assert!(
+        content.contains("derive"),
+        "clap should have derive feature"
+    );
 }
 
 #[test]
 fn cargo_toml_serde_has_derive_feature() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("serde") && content.contains("derive"),
-        "serde should have derive feature");
+    assert!(
+        content.contains("serde") && content.contains("derive"),
+        "serde should have derive feature"
+    );
 }
 
 #[test]
 fn cargo_toml_tokio_has_full_feature() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    assert!(content.contains("tokio") && content.contains("full"),
-        "tokio should have full feature");
+    assert!(
+        content.contains("tokio") && content.contains("full"),
+        "tokio should have full feature"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1702,31 +2521,46 @@ fn readme_exists() {
 #[test]
 fn readme_has_ascii_art_banner() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("██"), "README should have ASCII art banner");
+    assert!(
+        content.contains("██"),
+        "README should have ASCII art banner"
+    );
 }
 
 #[test]
 fn readme_has_badges() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("crates.io"), "README should have crates.io badge");
+    assert!(
+        content.contains("crates.io"),
+        "README should have crates.io badge"
+    );
 }
 
 #[test]
 fn readme_documents_installation() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("cargo install iftoprs"), "README should show installation command");
+    assert!(
+        content.contains("cargo install iftoprs"),
+        "README should show installation command"
+    );
 }
 
 #[test]
 fn readme_documents_build() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("cargo build"), "README should show build command");
+    assert!(
+        content.contains("cargo build"),
+        "README should show build command"
+    );
 }
 
 #[test]
 fn readme_documents_all_keybinds() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    for key in ["Tab", "j", "k", "q", "h", "n", "b", "B", "p", "P", "t", "T", "x", "g", "f", "o", "e", "y", "F"] {
+    for key in [
+        "Tab", "j", "k", "q", "h", "n", "b", "B", "p", "P", "t", "T", "x", "g", "f", "o", "e", "y",
+        "F",
+    ] {
         assert!(content.contains(key), "README should document key: {}", key);
     }
 }
@@ -1735,12 +2569,29 @@ fn readme_documents_all_keybinds() {
 fn readme_documents_all_cli_flags() {
     let content = std::fs::read_to_string("README.md").unwrap();
     let flags = [
-        "--interface", "--filter", "--net-filter", "--no-dns", "--no-port-names",
-        "--promiscuous", "--no-bars", "--bytes", "--hide-ports", "--no-processes",
-        "--json", "--list-interfaces", "--list-colors", "--completions", "--help", "--version",
+        "--interface",
+        "--filter",
+        "--net-filter",
+        "--no-dns",
+        "--no-port-names",
+        "--promiscuous",
+        "--no-bars",
+        "--bytes",
+        "--hide-ports",
+        "--no-processes",
+        "--json",
+        "--list-interfaces",
+        "--list-colors",
+        "--completions",
+        "--help",
+        "--version",
     ];
     for flag in &flags {
-        assert!(content.contains(flag), "README should document flag: {}", flag);
+        assert!(
+            content.contains(flag),
+            "README should document flag: {}",
+            flag
+        );
     }
 }
 
@@ -1754,7 +2605,10 @@ fn readme_documents_platforms() {
 #[test]
 fn readme_documents_libpcap_requirement() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("libpcap"), "README should mention libpcap requirement");
+    assert!(
+        content.contains("libpcap"),
+        "README should mention libpcap requirement"
+    );
 }
 
 #[test]
@@ -1766,7 +2620,10 @@ fn readme_documents_theme_count() {
 #[test]
 fn readme_documents_sudo_requirement() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("sudo"), "README should mention sudo for capture");
+    assert!(
+        content.contains("sudo"),
+        "README should mention sudo for capture"
+    );
 }
 
 #[test]
@@ -1778,7 +2635,10 @@ fn readme_documents_ratatui() {
 #[test]
 fn readme_documents_crossterm() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("crossterm"), "README should mention crossterm");
+    assert!(
+        content.contains("crossterm"),
+        "README should mention crossterm"
+    );
 }
 
 #[test]
@@ -1790,53 +2650,73 @@ fn readme_documents_pcap() {
 #[test]
 fn readme_documents_filter_examples() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("tcp port"), "README should show BPF filter example");
+    assert!(
+        content.contains("tcp port"),
+        "README should show BPF filter example"
+    );
 }
 
 #[test]
 fn readme_documents_cidr_example() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("10.0.0.0/8"), "README should show CIDR example");
+    assert!(
+        content.contains("10.0.0.0/8"),
+        "README should show CIDR example"
+    );
 }
 
 #[test]
 fn readme_documents_mouse_support() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("click") || content.contains("Mouse") || content.contains("mouse"),
-        "README should mention mouse support");
+    assert!(
+        content.contains("click") || content.contains("Mouse") || content.contains("mouse"),
+        "README should mention mouse support"
+    );
 }
 
 #[test]
 fn readme_documents_config_file() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains(".iftoprs.conf"), "README should mention config file");
+    assert!(
+        content.contains(".iftoprs.conf"),
+        "README should mention config file"
+    );
 }
 
 #[test]
 fn readme_documents_export() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("export") || content.contains("Export"),
-        "README should document export functionality");
+    assert!(
+        content.contains("export") || content.contains("Export"),
+        "README should document export functionality"
+    );
 }
 
 #[test]
 fn readme_documents_sort() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("Sort") || content.contains("sort"),
-        "README should document sort functionality");
+    assert!(
+        content.contains("Sort") || content.contains("sort"),
+        "README should document sort functionality"
+    );
 }
 
 #[test]
 fn readme_documents_sliding_window() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("2s") && content.contains("10s") && content.contains("40s"),
-        "README should document sliding window averages");
+    assert!(
+        content.contains("2s") && content.contains("10s") && content.contains("40s"),
+        "README should document sliding window averages"
+    );
 }
 
 #[test]
 fn readme_documents_dns_resolution() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("DNS"), "README should document DNS resolution");
+    assert!(
+        content.contains("DNS"),
+        "README should document DNS resolution"
+    );
 }
 
 #[test]
@@ -1850,13 +2730,20 @@ fn readme_documents_protocol_types() {
 #[test]
 fn readme_is_substantial() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.len() > 5000, "README should be substantial, got {} bytes", content.len());
+    assert!(
+        content.len() > 5000,
+        "README should be substantial, got {} bytes",
+        content.len()
+    );
 }
 
 #[test]
 fn readme_has_menketechnologies_credit() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("MenkeTechnologies"), "README should credit author");
+    assert!(
+        content.contains("MenkeTechnologies"),
+        "README should credit author"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1970,13 +2857,18 @@ fn completions_dir_exists() {
 
 #[test]
 fn license_file_exists() {
-    assert!(std::path::Path::new("LICENSE").exists() || std::path::Path::new("LICENSE.md").exists(),
-        "should have a LICENSE file");
+    assert!(
+        std::path::Path::new("LICENSE").exists() || std::path::Path::new("LICENSE.md").exists(),
+        "should have a LICENSE file"
+    );
 }
 
 #[test]
 fn screenshots_dir_exists() {
-    assert!(std::path::Path::new("screenshots").exists(), "screenshots directory should exist");
+    assert!(
+        std::path::Path::new("screenshots").exists(),
+        "screenshots directory should exist"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1987,8 +2879,11 @@ fn screenshots_dir_exists() {
 fn lib_rs_declares_all_modules() {
     let content = std::fs::read_to_string("src/lib.rs").unwrap();
     for module in ["capture", "config", "data", "ui", "util"] {
-        assert!(content.contains(&format!("pub mod {}", module)),
-            "lib.rs should declare pub mod {}", module);
+        assert!(
+            content.contains(&format!("pub mod {}", module)),
+            "lib.rs should declare pub mod {}",
+            module
+        );
     }
 }
 
@@ -1996,27 +2891,39 @@ fn lib_rs_declares_all_modules() {
 fn main_rs_declares_all_modules() {
     let content = std::fs::read_to_string("src/main.rs").unwrap();
     for module in ["capture", "config", "data", "ui", "util"] {
-        assert!(content.contains(&format!("mod {}", module)),
-            "main.rs should declare mod {}", module);
+        assert!(
+            content.contains(&format!("mod {}", module)),
+            "main.rs should declare mod {}",
+            module
+        );
     }
 }
 
 #[test]
 fn main_rs_has_main_function() {
     let content = std::fs::read_to_string("src/main.rs").unwrap();
-    assert!(content.contains("fn main()"), "main.rs should have main function");
+    assert!(
+        content.contains("fn main()"),
+        "main.rs should have main function"
+    );
 }
 
 #[test]
 fn main_rs_uses_clap_parser() {
     let content = std::fs::read_to_string("src/main.rs").unwrap();
-    assert!(content.contains("Args::parse()"), "main.rs should use Args::parse()");
+    assert!(
+        content.contains("Args::parse()"),
+        "main.rs should use Args::parse()"
+    );
 }
 
 #[test]
 fn main_rs_returns_result() {
     let content = std::fs::read_to_string("src/main.rs").unwrap();
-    assert!(content.contains("-> Result<()>"), "main should return Result");
+    assert!(
+        content.contains("-> Result<()>"),
+        "main should return Result"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2026,49 +2933,70 @@ fn main_rs_returns_result() {
 #[test]
 fn help_output_is_valid_utf8() {
     let output = cargo_bin().arg("-h").output().unwrap();
-    assert!(String::from_utf8(output.stdout.clone()).is_ok(), "help should be valid UTF-8");
+    assert!(
+        String::from_utf8(output.stdout.clone()).is_ok(),
+        "help should be valid UTF-8"
+    );
 }
 
 #[test]
 fn help_contains_ansi_reset_codes() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\x1b[0m"), "help should contain ANSI reset codes");
+    assert!(
+        stdout.contains("\x1b[0m"),
+        "help should contain ANSI reset codes"
+    );
 }
 
 #[test]
 fn help_contains_cyan_ansi() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\x1b[36m"), "help should use cyan ANSI color");
+    assert!(
+        stdout.contains("\x1b[36m"),
+        "help should use cyan ANSI color"
+    );
 }
 
 #[test]
 fn help_contains_magenta_ansi() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\x1b[35m"), "help should use magenta ANSI color");
+    assert!(
+        stdout.contains("\x1b[35m"),
+        "help should use magenta ANSI color"
+    );
 }
 
 #[test]
 fn help_contains_red_ansi() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\x1b[31m"), "help should use red ANSI color");
+    assert!(
+        stdout.contains("\x1b[31m"),
+        "help should use red ANSI color"
+    );
 }
 
 #[test]
 fn help_contains_yellow_ansi() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\x1b[33m"), "help should use yellow ANSI color");
+    assert!(
+        stdout.contains("\x1b[33m"),
+        "help should use yellow ANSI color"
+    );
 }
 
 #[test]
 fn help_contains_green_ansi() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("\x1b[32m"), "help should use green ANSI color");
+    assert!(
+        stdout.contains("\x1b[32m"),
+        "help should use green ANSI color"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2079,7 +3007,10 @@ fn help_contains_green_ansi() {
 fn list_colors_output_is_deterministic() {
     let out1 = cargo_bin().arg("--list-colors").output().unwrap();
     let out2 = cargo_bin().arg("--list-colors").output().unwrap();
-    assert_eq!(out1.stdout, out2.stdout, "list-colors should be deterministic");
+    assert_eq!(
+        out1.stdout, out2.stdout,
+        "list-colors should be deterministic"
+    );
 }
 
 #[test]
@@ -2099,7 +3030,10 @@ fn config_flag_with_valid_temp_file() {
     std::fs::write(path, "").unwrap();
     let output = cargo_bin().args(["-c", path, "-h"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should work with empty config");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should work with empty config"
+    );
     assert!(output.status.success());
     let _ = std::fs::remove_file(path);
 }
@@ -2109,7 +3043,10 @@ fn config_flag_with_custom_theme() {
     let path = "/tmp/iftoprs_test_theme.conf";
     std::fs::write(path, "theme = \"BladeRunner\"\n").unwrap();
     let output = cargo_bin().args(["-c", path, "-h"]).output().unwrap();
-    assert!(output.status.success(), "should work with custom theme config");
+    assert!(
+        output.status.success(),
+        "should work with custom theme config"
+    );
     let _ = std::fs::remove_file(path);
 }
 
@@ -2120,7 +3057,10 @@ fn config_flag_with_invalid_toml() {
     let output = cargo_bin().args(["-c", path, "-h"]).output().unwrap();
     // Should still show help (help takes priority)
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should work even with invalid config");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should work even with invalid config"
+    );
     let _ = std::fs::remove_file(path);
 }
 
@@ -2144,7 +3084,10 @@ alert_threshold = 0.0
 "#;
     std::fs::write(path, config).unwrap();
     let output = cargo_bin().args(["-c", path, "-h"]).output().unwrap();
-    assert!(output.status.success(), "should work with full default config");
+    assert!(
+        output.status.success(),
+        "should work with full default config"
+    );
     let _ = std::fs::remove_file(path);
 }
 
@@ -2165,13 +3108,19 @@ fn config_flag_with_custom_refresh_rate() {
 fn interface_flag_with_help() {
     let output = cargo_bin().args(["-i", "lo0", "-h"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should work with -i flag");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should work with -i flag"
+    );
     assert!(output.status.success());
 }
 
 #[test]
 fn interface_long_flag_with_help() {
-    let output = cargo_bin().args(["--interface", "en0", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--interface", "en0", "-h"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
@@ -2181,7 +3130,10 @@ fn interface_long_flag_with_help() {
 
 #[test]
 fn filter_flag_with_help() {
-    let output = cargo_bin().args(["-f", "tcp port 80", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["-f", "tcp port 80", "-h"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("BANDWIDTH MONITOR"));
     assert!(output.status.success());
@@ -2189,19 +3141,28 @@ fn filter_flag_with_help() {
 
 #[test]
 fn filter_long_flag_with_help() {
-    let output = cargo_bin().args(["--filter", "udp", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--filter", "udp", "-h"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
 #[test]
 fn net_filter_flag_with_help() {
-    let output = cargo_bin().args(["-F", "192.168.1.0/24", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["-F", "192.168.1.0/24", "-h"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
 #[test]
 fn net_filter_long_flag_with_help() {
-    let output = cargo_bin().args(["--net-filter", "10.0.0.0/8", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--net-filter", "10.0.0.0/8", "-h"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
@@ -2213,42 +3174,60 @@ fn net_filter_long_flag_with_help() {
 fn help_interface_flag_mentions_jack_into() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("jack into"), "interface description should say 'jack into'");
+    assert!(
+        stdout.contains("jack into"),
+        "interface description should say 'jack into'"
+    );
 }
 
 #[test]
 fn help_no_dns_flag_mentions_kill() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Kill DNS"), "no-dns description should say 'Kill DNS'");
+    assert!(
+        stdout.contains("Kill DNS"),
+        "no-dns description should say 'Kill DNS'"
+    );
 }
 
 #[test]
 fn help_no_bars_flag_mentions_flatline() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Flatline"), "no-bars description should say 'Flatline'");
+    assert!(
+        stdout.contains("Flatline"),
+        "no-bars description should say 'Flatline'"
+    );
 }
 
 #[test]
 fn help_hide_ports_flag_mentions_ghost() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Ghost"), "hide-ports description should say 'Ghost'");
+    assert!(
+        stdout.contains("Ghost"),
+        "hide-ports description should say 'Ghost'"
+    );
 }
 
 #[test]
 fn help_promiscuous_flag_mentions_sniff() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("sniff"), "promiscuous description should mention sniffing");
+    assert!(
+        stdout.contains("sniff"),
+        "promiscuous description should mention sniffing"
+    );
 }
 
 #[test]
 fn help_list_interfaces_flag_mentions_enumerate() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("Enumerate"), "list-interfaces should say Enumerate");
+    assert!(
+        stdout.contains("Enumerate"),
+        "list-interfaces should say Enumerate"
+    );
 }
 
 #[test]
@@ -2262,8 +3241,10 @@ fn help_list_colors_flag_mentions_preview() {
 fn help_bytes_flag_mentions_bytes() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("bytes instead of bits") || stdout.contains("bytes"),
-        "bytes flag should mention bytes");
+    assert!(
+        stdout.contains("bytes instead of bits") || stdout.contains("bytes"),
+        "bytes flag should mention bytes"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2275,17 +3256,24 @@ fn zsh_completions_include_flag_descriptions() {
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Zsh completions include [description] after flags
-    assert!(stdout.contains("interface") || stdout.contains("Interface"),
-        "zsh completions should describe interface flag");
+    assert!(
+        stdout.contains("interface") || stdout.contains("Interface"),
+        "zsh completions should describe interface flag"
+    );
 }
 
 #[test]
 fn fish_completions_have_descriptions() {
-    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "fish"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Fish completions use -d for descriptions
-    assert!(stdout.contains("-d") || stdout.contains("description"),
-        "fish completions should have descriptions");
+    assert!(
+        stdout.contains("-d") || stdout.contains("description"),
+        "fish completions should have descriptions"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2295,22 +3283,46 @@ fn fish_completions_have_descriptions() {
 #[test]
 fn completions_zsh_size_reasonable() {
     let output = cargo_bin().args(["--completions", "zsh"]).output().unwrap();
-    assert!(output.stdout.len() > 500, "zsh completions should be > 500 bytes");
-    assert!(output.stdout.len() < 50_000, "zsh completions should be < 50KB");
+    assert!(
+        output.stdout.len() > 500,
+        "zsh completions should be > 500 bytes"
+    );
+    assert!(
+        output.stdout.len() < 50_000,
+        "zsh completions should be < 50KB"
+    );
 }
 
 #[test]
 fn completions_bash_size_reasonable() {
-    let output = cargo_bin().args(["--completions", "bash"]).output().unwrap();
-    assert!(output.stdout.len() > 500, "bash completions should be > 500 bytes");
-    assert!(output.stdout.len() < 50_000, "bash completions should be < 50KB");
+    let output = cargo_bin()
+        .args(["--completions", "bash"])
+        .output()
+        .unwrap();
+    assert!(
+        output.stdout.len() > 500,
+        "bash completions should be > 500 bytes"
+    );
+    assert!(
+        output.stdout.len() < 50_000,
+        "bash completions should be < 50KB"
+    );
 }
 
 #[test]
 fn completions_fish_size_reasonable() {
-    let output = cargo_bin().args(["--completions", "fish"]).output().unwrap();
-    assert!(output.stdout.len() > 200, "fish completions should be > 200 bytes");
-    assert!(output.stdout.len() < 50_000, "fish completions should be < 50KB");
+    let output = cargo_bin()
+        .args(["--completions", "fish"])
+        .output()
+        .unwrap();
+    assert!(
+        output.stdout.len() > 200,
+        "fish completions should be > 200 bytes"
+    );
+    assert!(
+        output.stdout.len() < 50_000,
+        "fish completions should be < 50KB"
+    );
 }
 
 #[test]
@@ -2323,7 +3335,10 @@ fn version_output_size_reasonable() {
 #[test]
 fn list_colors_size_reasonable() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
-    assert!(output.stdout.len() > 1000, "list-colors should be > 1000 bytes");
+    assert!(
+        output.stdout.len() > 1000,
+        "list-colors should be > 1000 bytes"
+    );
     assert!(output.stdout.len() < 50_000, "list-colors should be < 50KB");
 }
 
@@ -2334,9 +3349,11 @@ fn list_colors_size_reasonable() {
 #[test]
 fn default_config_parses_to_correct_theme() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    let filtered: String = content.lines()
+    let filtered: String = content
+        .lines()
         .filter(|l| !l.trim_start().starts_with('#') || l.contains('='))
-        .collect::<Vec<_>>().join("\n");
+        .collect::<Vec<_>>()
+        .join("\n");
     let parsed: toml::Value = toml::from_str(&filtered).unwrap();
     let theme = parsed.get("theme").unwrap().as_str().unwrap();
     assert_eq!(theme, "NeonSprawl", "default theme should be NeonSprawl");
@@ -2345,9 +3362,11 @@ fn default_config_parses_to_correct_theme() {
 #[test]
 fn default_config_parses_refresh_rate() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    let filtered: String = content.lines()
+    let filtered: String = content
+        .lines()
         .filter(|l| !l.trim_start().starts_with('#') || l.contains('='))
-        .collect::<Vec<_>>().join("\n");
+        .collect::<Vec<_>>()
+        .join("\n");
     let parsed: toml::Value = toml::from_str(&filtered).unwrap();
     let rate = parsed.get("refresh_rate").unwrap().as_integer().unwrap();
     assert_eq!(rate, 1, "default refresh_rate should be 1");
@@ -2356,9 +3375,11 @@ fn default_config_parses_refresh_rate() {
 #[test]
 fn default_config_parses_alert_threshold() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    let filtered: String = content.lines()
+    let filtered: String = content
+        .lines()
         .filter(|l| !l.trim_start().starts_with('#') || l.contains('='))
-        .collect::<Vec<_>>().join("\n");
+        .collect::<Vec<_>>()
+        .join("\n");
     let parsed: toml::Value = toml::from_str(&filtered).unwrap();
     let threshold = parsed.get("alert_threshold").unwrap().as_float().unwrap();
     assert_eq!(threshold, 0.0, "default alert_threshold should be 0.0");
@@ -2367,14 +3388,16 @@ fn default_config_parses_alert_threshold() {
 #[test]
 fn default_config_parses_booleans_correctly() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
-    let filtered: String = content.lines()
+    let filtered: String = content
+        .lines()
         .filter(|l| !l.trim_start().starts_with('#') || l.contains('='))
-        .collect::<Vec<_>>().join("\n");
+        .collect::<Vec<_>>()
+        .join("\n");
     let parsed: toml::Value = toml::from_str(&filtered).unwrap();
-    assert_eq!(parsed.get("show_border").unwrap().as_bool().unwrap(), true);
-    assert_eq!(parsed.get("show_bars").unwrap().as_bool().unwrap(), true);
-    assert_eq!(parsed.get("show_ports").unwrap().as_bool().unwrap(), true);
-    assert_eq!(parsed.get("use_bytes").unwrap().as_bool().unwrap(), false);
+    assert!(parsed.get("show_border").unwrap().as_bool().unwrap());
+    assert!(parsed.get("show_bars").unwrap().as_bool().unwrap());
+    assert!(parsed.get("show_ports").unwrap().as_bool().unwrap());
+    assert!(!parsed.get("use_bytes").unwrap().as_bool().unwrap());
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2384,79 +3407,118 @@ fn default_config_parses_booleans_correctly() {
 #[test]
 fn readme_has_feature_dump_section() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("FEATURE_DUMP"), "README should have feature dump section");
+    assert!(
+        content.contains("FEATURE_DUMP"),
+        "README should have feature dump section"
+    );
 }
 
 #[test]
 fn readme_has_cli_options_section() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("CLI_OPTIONS"), "README should have CLI options section");
+    assert!(
+        content.contains("CLI_OPTIONS"),
+        "README should have CLI options section"
+    );
 }
 
 #[test]
 fn readme_has_keybind_matrix_section() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("KEYBIND_MATRIX"), "README should have keybind matrix section");
+    assert!(
+        content.contains("KEYBIND_MATRIX"),
+        "README should have keybind matrix section"
+    );
 }
 
 #[test]
 fn readme_has_compile_sequence_section() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("COMPILE_SEQUENCE"), "README should have compile section");
+    assert!(
+        content.contains("COMPILE_SEQUENCE"),
+        "README should have compile section"
+    );
 }
 
 #[test]
 fn readme_documents_capture_engine() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("CAPTURE_ENGINE"), "README should document capture engine");
+    assert!(
+        content.contains("CAPTURE_ENGINE"),
+        "README should document capture engine"
+    );
 }
 
 #[test]
 fn readme_documents_theme_engine() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("THEME_ENGINE"), "README should document theme engine");
+    assert!(
+        content.contains("THEME_ENGINE"),
+        "README should document theme engine"
+    );
 }
 
 #[test]
 fn readme_documents_process_intel() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("PROCESS_INTEL"), "README should document process intel");
+    assert!(
+        content.contains("PROCESS_INTEL"),
+        "README should document process intel"
+    );
 }
 
 #[test]
 fn readme_documents_json_stream_feature() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("JSON_STREAM"), "README should document JSON stream feature");
+    assert!(
+        content.contains("JSON_STREAM"),
+        "README should document JSON stream feature"
+    );
 }
 
 #[test]
 fn readme_documents_filter_engine() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("FILTER_ENGINE"), "README should document filter engine");
+    assert!(
+        content.contains("FILTER_ENGINE"),
+        "README should document filter engine"
+    );
 }
 
 #[test]
 fn readme_documents_alert_system() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("ALERT_SYSTEM"), "README should document alert system");
+    assert!(
+        content.contains("ALERT_SYSTEM"),
+        "README should document alert system"
+    );
 }
 
 #[test]
 fn readme_documents_config_engine() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("CONFIG_ENGINE"), "README should document config engine");
+    assert!(
+        content.contains("CONFIG_ENGINE"),
+        "README should document config engine"
+    );
 }
 
 #[test]
 fn readme_documents_shell_completion() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("SHELL_COMPLETION"), "README should document shell completion");
+    assert!(
+        content.contains("SHELL_COMPLETION"),
+        "README should document shell completion"
+    );
 }
 
 #[test]
 fn readme_documents_platform_compat() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("PLATFORM_COMPAT"), "README should document platform compatibility");
+    assert!(
+        content.contains("PLATFORM_COMPAT"),
+        "README should document platform compatibility"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2485,7 +3547,10 @@ fn filter_flag_with_empty_string_still_parses() {
 
 #[test]
 fn interface_equals_form_with_help() {
-    let output = cargo_bin().args(["--interface=lo0", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--interface=lo0", "-h"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
@@ -2497,13 +3562,19 @@ fn filter_equals_form_with_help() {
 
 #[test]
 fn net_filter_equals_form_with_help() {
-    let output = cargo_bin().args(["--net-filter=10.0.0.0/8", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--net-filter=10.0.0.0/8", "-h"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
 #[test]
 fn config_equals_form_with_help() {
-    let output = cargo_bin().args(["--config=/tmp/nonexistent", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--config=/tmp/nonexistent", "-h"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
 }
 
@@ -2524,15 +3595,44 @@ fn list_colors_shows_display_names() {
     let output = cargo_bin().arg("--list-colors").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let display_names = [
-        "Neon Sprawl", "Acid Rain", "Ice Breaker", "Synth Wave", "Rust Belt",
-        "Ghost Wire", "Red Sector", "Sakura Den", "Data Stream", "Solar Flare",
-        "Neon Noir", "Chrome Heart", "Blade Runner", "Void Walker", "Toxic Waste",
-        "Cyber Frost", "Plasma Core", "Steel Nerve", "Dark Signal", "Glitch Pop",
-        "Holo Shift", "Night City", "Deep Net", "Laser Grid", "Quantum Flux",
-        "Bio Hazard", "Darkwave", "Overlock", "Megacorp", "Zaibatsu", "iftopcolor",
+        "Neon Sprawl",
+        "Acid Rain",
+        "Ice Breaker",
+        "Synth Wave",
+        "Rust Belt",
+        "Ghost Wire",
+        "Red Sector",
+        "Sakura Den",
+        "Data Stream",
+        "Solar Flare",
+        "Neon Noir",
+        "Chrome Heart",
+        "Blade Runner",
+        "Void Walker",
+        "Toxic Waste",
+        "Cyber Frost",
+        "Plasma Core",
+        "Steel Nerve",
+        "Dark Signal",
+        "Glitch Pop",
+        "Holo Shift",
+        "Night City",
+        "Deep Net",
+        "Laser Grid",
+        "Quantum Flux",
+        "Bio Hazard",
+        "Darkwave",
+        "Overlock",
+        "Megacorp",
+        "Zaibatsu",
+        "iftopcolor",
     ];
     for name in &display_names {
-        assert!(stdout.contains(name), "list-colors missing display name: {}", name);
+        assert!(
+            stdout.contains(name),
+            "list-colors missing display name: {}",
+            name
+        );
     }
 }
 
@@ -2544,7 +3644,10 @@ fn list_colors_shows_display_names() {
 fn help_takes_priority_over_json() {
     let output = cargo_bin().args(["--json", "-h"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should take priority over json mode");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should take priority over json mode"
+    );
     assert!(output.status.success());
 }
 
@@ -2552,15 +3655,24 @@ fn help_takes_priority_over_json() {
 fn version_takes_priority_over_json() {
     let output = cargo_bin().args(["--json", "-V"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.starts_with("iftoprs "), "version should take priority over json mode");
+    assert!(
+        stdout.starts_with("iftoprs "),
+        "version should take priority over json mode"
+    );
     assert!(output.status.success());
 }
 
 #[test]
 fn list_colors_takes_priority_over_json() {
-    let output = cargo_bin().args(["--json", "--list-colors"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--json", "--list-colors"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BUILTIN COLOR SCHEMES"), "list-colors should take priority over json");
+    assert!(
+        stdout.contains("BUILTIN COLOR SCHEMES"),
+        "list-colors should take priority over json"
+    );
     assert!(output.status.success());
 }
 
@@ -2568,14 +3680,23 @@ fn list_colors_takes_priority_over_json() {
 fn help_takes_priority_over_list_colors() {
     let output = cargo_bin().args(["--list-colors", "-h"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should take priority over list-colors");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should take priority over list-colors"
+    );
 }
 
 #[test]
 fn help_takes_priority_over_completions() {
-    let output = cargo_bin().args(["--completions", "zsh", "-h"]).output().unwrap();
+    let output = cargo_bin()
+        .args(["--completions", "zsh", "-h"])
+        .output()
+        .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "help should take priority over completions");
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "help should take priority over completions"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2586,8 +3707,14 @@ fn help_takes_priority_over_completions() {
 fn help_does_not_contain_debug_output() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(!stdout.contains("DEBUG"), "help should not contain DEBUG output");
-    assert!(!stdout.contains("TRACE"), "help should not contain TRACE output");
+    assert!(
+        !stdout.contains("DEBUG"),
+        "help should not contain DEBUG output"
+    );
+    assert!(
+        !stdout.contains("TRACE"),
+        "help should not contain TRACE output"
+    );
 }
 
 #[test]
@@ -2613,14 +3740,21 @@ fn list_colors_does_not_contain_debug_output() {
 #[test]
 fn cargo_toml_version_is_semver() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
-    let version_line = content.lines()
+    let version_line = content
+        .lines()
         .find(|l| l.starts_with("version = "))
         .unwrap();
-    let version = version_line.trim_start_matches("version = ").trim_matches('"');
+    let version = version_line
+        .trim_start_matches("version = ")
+        .trim_matches('"');
     let parts: Vec<&str> = version.split('.').collect();
     assert_eq!(parts.len(), 3, "Cargo.toml version should be semver");
     for part in &parts {
-        assert!(part.parse::<u32>().is_ok(), "non-numeric version part: {}", part);
+        assert!(
+            part.parse::<u32>().is_ok(),
+            "non-numeric version part: {}",
+            part
+        );
     }
 }
 
@@ -2633,8 +3767,14 @@ fn help_does_not_reference_cargo_or_rust_internally() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Help should reference Rust in context but not expose internal cargo details
-    assert!(!stdout.contains("Cargo.toml"), "help should not mention Cargo.toml");
-    assert!(!stdout.contains("target/"), "help should not mention target/");
+    assert!(
+        !stdout.contains("Cargo.toml"),
+        "help should not mention Cargo.toml"
+    );
+    assert!(
+        !stdout.contains("target/"),
+        "help should not mention target/"
+    );
 }
 
 #[test]
@@ -2642,8 +3782,14 @@ fn help_does_not_show_clap_default_help() {
     let output = cargo_bin().arg("-h").output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
     // Our custom help replaces clap's default; check we see our cyberpunk banner
-    assert!(stdout.contains("██"), "should use custom help with ASCII art, not clap default");
-    assert!(stdout.contains("BANDWIDTH MONITOR"), "should use cyberpunk help banner");
+    assert!(
+        stdout.contains("██"),
+        "should use custom help with ASCII art, not clap default"
+    );
+    assert!(
+        stdout.contains("BANDWIDTH MONITOR"),
+        "should use cyberpunk help banner"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2653,13 +3799,20 @@ fn help_does_not_show_clap_default_help() {
 #[test]
 fn zsh_completion_file_has_arguments_section() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
-    assert!(content.contains("_arguments"), "should use _arguments for completion");
+    assert!(
+        content.contains("_arguments"),
+        "should use _arguments for completion"
+    );
 }
 
 #[test]
 fn zsh_completion_file_is_substantial() {
     let content = std::fs::read_to_string("completions/_iftoprs").unwrap();
-    assert!(content.len() > 500, "completion file should be substantial, got {} bytes", content.len());
+    assert!(
+        content.len() > 500,
+        "completion file should be substantial, got {} bytes",
+        content.len()
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2669,21 +3822,36 @@ fn zsh_completion_file_is_substantial() {
 #[test]
 fn readme_has_flag_tables() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("| `FLAG`"), "README should have flag tables");
-    assert!(content.contains("| `KEY`"), "README should have keybind tables");
+    assert!(
+        content.contains("| `FLAG`"),
+        "README should have flag tables"
+    );
+    assert!(
+        content.contains("| `KEY`"),
+        "README should have keybind tables"
+    );
 }
 
 #[test]
 fn readme_has_dependency_table() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("| `IMPLANT`"), "README should have dependency table");
+    assert!(
+        content.contains("| `IMPLANT`"),
+        "README should have dependency table"
+    );
 }
 
 #[test]
 fn readme_documents_short_flags() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    for flag in ["-i", "-f", "-F", "-n", "-N", "-p", "-b", "-B", "-P", "-Z", "-l", "-h", "-V"] {
-        assert!(content.contains(flag), "README missing short flag: {}", flag);
+    for flag in [
+        "-i", "-f", "-F", "-n", "-N", "-p", "-b", "-B", "-P", "-Z", "-l", "-h", "-V",
+    ] {
+        assert!(
+            content.contains(flag),
+            "README missing short flag: {}",
+            flag
+        );
     }
 }
 
@@ -2697,8 +3865,14 @@ fn binary_runs_without_panic() {
     let output = cargo_bin().arg("-h").output().unwrap();
     assert!(output.status.success(), "binary should not panic on -h");
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(!stderr.contains("panic"), "should not contain panic message");
-    assert!(!stderr.contains("thread"), "should not contain thread panic message");
+    assert!(
+        !stderr.contains("panic"),
+        "should not contain panic message"
+    );
+    assert!(
+        !stderr.contains("thread"),
+        "should not contain thread panic message"
+    );
 }
 
 #[test]
@@ -2721,9 +3895,17 @@ fn binary_runs_list_colors_without_panic() {
 fn binary_runs_completions_without_panic() {
     for shell in ["zsh", "bash", "fish", "elvish", "powershell"] {
         let output = cargo_bin().args(["--completions", shell]).output().unwrap();
-        assert!(output.status.success(), "{} completions should not panic", shell);
+        assert!(
+            output.status.success(),
+            "{} completions should not panic",
+            shell
+        );
         let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(!stderr.contains("panic"), "{} completions should not panic", shell);
+        assert!(
+            !stderr.contains("panic"),
+            "{} completions should not panic",
+            shell
+        );
     }
 }
 
@@ -2734,27 +3916,41 @@ fn binary_runs_completions_without_panic() {
 #[test]
 fn readme_has_example_commands() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("sudo iftoprs"), "README should show sudo examples");
-    assert!(content.contains("iftoprs --completions"), "README should show completions example");
+    assert!(
+        content.contains("sudo iftoprs"),
+        "README should show sudo examples"
+    );
+    assert!(
+        content.contains("iftoprs --completions"),
+        "README should show completions example"
+    );
 }
 
 #[test]
 fn readme_documents_json_piping() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("--json | jq") || content.contains("--json |"),
-        "README should show JSON piping example");
+    assert!(
+        content.contains("--json | jq") || content.contains("--json |"),
+        "README should show JSON piping example"
+    );
 }
 
 #[test]
 fn readme_documents_en0_example() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("en0"), "README should show en0 interface example");
+    assert!(
+        content.contains("en0"),
+        "README should show en0 interface example"
+    );
 }
 
 #[test]
 fn readme_documents_tcp_port_443_example() {
     let content = std::fs::read_to_string("README.md").unwrap();
-    assert!(content.contains("tcp port 443"), "README should show HTTPS filter example");
+    assert!(
+        content.contains("tcp port 443"),
+        "README should show HTTPS filter example"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2765,8 +3961,16 @@ fn readme_documents_tcp_port_443_example() {
 fn default_config_has_reasonable_line_count() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
     let lines = content.lines().count();
-    assert!(lines >= 15, "default config should have >= 15 lines, got {}", lines);
-    assert!(lines <= 200, "default config should have <= 200 lines, got {}", lines);
+    assert!(
+        lines >= 15,
+        "default config should have >= 15 lines, got {}",
+        lines
+    );
+    assert!(
+        lines <= 200,
+        "default config should have <= 200 lines, got {}",
+        lines
+    );
 }
 
 #[test]
@@ -2774,19 +3978,28 @@ fn default_config_all_key_values_have_nearby_comments() {
     let content = std::fs::read_to_string("iftoprs.default.conf").unwrap();
     // The majority of value lines should have comments nearby
     let lines: Vec<&str> = content.lines().collect();
-    let value_lines: Vec<usize> = lines.iter().enumerate()
+    let value_lines: Vec<usize> = lines
+        .iter()
+        .enumerate()
         .filter(|(_, l)| l.contains('=') && !l.trim_start().starts_with('#'))
         .map(|(i, _)| i)
         .collect();
     let mut documented = 0;
     for &idx in &value_lines {
         if idx > 0 {
-            let has_comment = (0..idx).rev()
+            let has_comment = (0..idx)
+                .rev()
                 .take(10)
                 .any(|i| lines[i].trim_start().starts_with('#'));
-            if has_comment { documented += 1; }
+            if has_comment {
+                documented += 1;
+            }
         }
     }
     let ratio = documented as f64 / value_lines.len() as f64;
-    assert!(ratio >= 0.7, "at least 70% of values should be documented, got {:.0}%", ratio * 100.0);
+    assert!(
+        ratio >= 0.7,
+        "at least 70% of values should be documented, got {:.0}%",
+        ratio * 100.0
+    );
 }

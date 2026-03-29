@@ -65,7 +65,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
     version,
     about = "Real-time bandwidth monitor (iftop clone in Rust)",
     disable_help_flag = true,
-    disable_version_flag = true,
+    disable_version_flag = true
 )]
 pub struct Args {
     /// Path to config file (default: ~/.iftoprs.conf)
@@ -180,7 +180,10 @@ impl Args {
         let filter = self.net_filter.as_ref()?;
         let parts: Vec<&str> = filter.split('/').collect();
         if parts.len() != 2 {
-            eprintln!("Warning: invalid net filter '{}', expected CIDR notation", filter);
+            eprintln!(
+                "Warning: invalid net filter '{}', expected CIDR notation",
+                filter
+            );
             return None;
         }
         let addr: IpAddr = parts[0].parse().ok()?;
@@ -331,11 +334,23 @@ mod tests {
     #[test]
     fn default_args_all_false() {
         let args = Args {
-            config: None, interface: None, filter: None, net_filter: None,
-            no_dns: false, no_port_names: false, promiscuous: false,
-            no_bars: false, bytes: false, hide_ports: false, no_processes: false,
-            json: false, list_interfaces: false, list_colors: false,
-            completions: None, help: false, version: false,
+            config: None,
+            interface: None,
+            filter: None,
+            net_filter: None,
+            no_dns: false,
+            no_port_names: false,
+            promiscuous: false,
+            no_bars: false,
+            bytes: false,
+            hide_ports: false,
+            no_processes: false,
+            json: false,
+            list_interfaces: false,
+            list_colors: false,
+            completions: None,
+            help: false,
+            version: false,
         };
         assert!(!args.no_dns);
         assert!(!args.json);
@@ -349,10 +364,29 @@ mod tests {
     #[test]
     fn clap_command_has_all_flags() {
         let cmd = Args::command();
-        let args: Vec<String> = cmd.get_arguments().map(|a| a.get_id().to_string()).collect();
-        for flag in ["interface", "filter", "no_dns", "no_bars", "bytes", "hide_ports",
-                     "no_processes", "json", "list_interfaces", "list_colors", "completions",
-                     "help", "version", "config", "net_filter", "promiscuous", "no_port_names"] {
+        let args: Vec<String> = cmd
+            .get_arguments()
+            .map(|a| a.get_id().to_string())
+            .collect();
+        for flag in [
+            "interface",
+            "filter",
+            "no_dns",
+            "no_bars",
+            "bytes",
+            "hide_ports",
+            "no_processes",
+            "json",
+            "list_interfaces",
+            "list_colors",
+            "completions",
+            "help",
+            "version",
+            "config",
+            "net_filter",
+            "promiscuous",
+            "no_port_names",
+        ] {
             assert!(args.contains(&flag.to_string()), "missing flag: {}", flag);
         }
     }

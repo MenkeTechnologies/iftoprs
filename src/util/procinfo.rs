@@ -15,7 +15,11 @@ struct ProcTable {
 }
 
 fn get_cache() -> &'static Arc<Mutex<ProcTable>> {
-    PROC_CACHE.get_or_init(|| Arc::new(Mutex::new(ProcTable { by_port: HashMap::new() })))
+    PROC_CACHE.get_or_init(|| {
+        Arc::new(Mutex::new(ProcTable {
+            by_port: HashMap::new(),
+        }))
+    })
 }
 
 /// Refresh the entire process→socket table. Call this periodically from the
@@ -64,8 +68,12 @@ fn refresh_proc_table_lsof() {
                     // Determine protocol from the lsof line (TCP vs UDP)
                     // lsof -F doesn't give protocol directly in 'n' field,
                     // so we insert for both TCP and UDP
-                    new_table.entry((local_port, 6)).or_insert((pid, name.clone()));
-                    new_table.entry((local_port, 17)).or_insert((pid, name.clone()));
+                    new_table
+                        .entry((local_port, 6))
+                        .or_insert((pid, name.clone()));
+                    new_table
+                        .entry((local_port, 17))
+                        .or_insert((pid, name.clone()));
                 }
             }
         }
@@ -93,12 +101,18 @@ fn refresh_proc_table_linux() {
 
     let mut inode_to_port: HashMap<u64, (u16, u8)> = HashMap::new();
 
-    for (path, proto) in [("/proc/net/tcp", 6u8), ("/proc/net/tcp6", 6),
-                          ("/proc/net/udp", 17), ("/proc/net/udp6", 17)] {
+    for (path, proto) in [
+        ("/proc/net/tcp", 6u8),
+        ("/proc/net/tcp6", 6),
+        ("/proc/net/udp", 17),
+        ("/proc/net/udp6", 17),
+    ] {
         if let Ok(content) = fs::read_to_string(path) {
             for line in content.lines().skip(1) {
                 let fields: Vec<&str> = line.split_whitespace().collect();
-                if fields.len() < 10 { continue; }
+                if fields.len() < 10 {
+                    continue;
+                }
                 // fields[1] = local_address:port (hex)
                 if let Some(port) = parse_proc_net_port(fields[1]) {
                     if let Ok(inode) = fields[9].parse::<u64>() {
@@ -126,16 +140,22 @@ fn refresh_proc_table_linux() {
             let comm_path = format!("/proc/{}/comm", pid);
             let name = fs::read_to_string(&comm_path)
                 .unwrap_or_else(|_| format!("pid:{}", pid))
-                .trim().to_string();
+                .trim()
+                .to_string();
 
             if let Ok(fds) = fs::read_dir(&fd_path) {
                 for fd in fds.flatten() {
                     if let Ok(link) = fs::read_link(fd.path()) {
                         let link_str = link.to_string_lossy();
-                        if let Some(inode_str) = link_str.strip_prefix("socket:[").and_then(|s| s.strip_suffix(']')) {
+                        if let Some(inode_str) = link_str
+                            .strip_prefix("socket:[")
+                            .and_then(|s| s.strip_suffix(']'))
+                        {
                             if let Ok(inode) = inode_str.parse::<u64>() {
                                 if let Some(&(port, proto)) = inode_to_port.get(&inode) {
-                                    new_table.entry((port, proto)).or_insert((pid, name.clone()));
+                                    new_table
+                                        .entry((port, proto))
+                                        .or_insert((pid, name.clone()));
                                 }
                             }
                         }
@@ -197,8 +217,10 @@ mod tests {
     #[test]
     fn lookup_process_unknown_port() {
         let result = lookup_process(
-            "10.0.0.1".parse().unwrap(), 60000,
-            "10.0.0.2".parse().unwrap(), 60001,
+            "10.0.0.1".parse().unwrap(),
+            60000,
+            "10.0.0.2".parse().unwrap(),
+            60001,
             &Protocol::Tcp,
         );
         // May or may not find something depending on system state, but should not panic
@@ -208,8 +230,10 @@ mod tests {
     #[test]
     fn lookup_process_unsupported_protocol() {
         let result = lookup_process(
-            "10.0.0.1".parse().unwrap(), 80,
-            "10.0.0.2".parse().unwrap(), 80,
+            "10.0.0.1".parse().unwrap(),
+            80,
+            "10.0.0.2".parse().unwrap(),
+            80,
             &Protocol::Other(47),
         );
         assert!(result.is_none());
@@ -218,8 +242,10 @@ mod tests {
     #[test]
     fn lookup_process_icmp_returns_none() {
         let result = lookup_process(
-            "10.0.0.1".parse().unwrap(), 0,
-            "10.0.0.2".parse().unwrap(), 0,
+            "10.0.0.1".parse().unwrap(),
+            0,
+            "10.0.0.2".parse().unwrap(),
+            0,
             &Protocol::Icmp,
         );
         assert!(result.is_none());
@@ -228,8 +254,10 @@ mod tests {
     #[test]
     fn lookup_process_udp_no_panic() {
         let result = lookup_process(
-            "10.0.0.1".parse().unwrap(), 53,
-            "8.8.8.8".parse().unwrap(), 53,
+            "10.0.0.1".parse().unwrap(),
+            53,
+            "8.8.8.8".parse().unwrap(),
+            53,
             &Protocol::Udp,
         );
         let _ = result;
@@ -259,8 +287,10 @@ mod tests {
 
         // lookup_process should recover from poisoned mutex
         let result = lookup_process(
-            "10.0.0.1".parse().unwrap(), 80,
-            "10.0.0.2".parse().unwrap(), 80,
+            "10.0.0.1".parse().unwrap(),
+            80,
+            "10.0.0.2".parse().unwrap(),
+            80,
             &Protocol::Tcp,
         );
         let _ = result; // should not panic

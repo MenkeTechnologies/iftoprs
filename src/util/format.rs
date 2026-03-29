@@ -46,7 +46,9 @@ pub fn readable_total(bytes: u64, use_bytes: bool) -> String {
 pub fn sparkline(data: &[u64], max_width: usize) -> String {
     const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 
-    if data.is_empty() { return String::new(); }
+    if data.is_empty() {
+        return String::new();
+    }
 
     // Take the last `max_width` values
     let start = data.len().saturating_sub(max_width);
@@ -54,13 +56,17 @@ pub fn sparkline(data: &[u64], max_width: usize) -> String {
 
     let max = slice.iter().copied().max().unwrap_or(1).max(1);
 
-    slice.iter().map(|&v| {
-        if v == 0 { ' ' }
-        else {
-            let idx = ((v as f64 / max as f64) * 7.0).round() as usize;
-            BLOCKS[idx.min(7)]
-        }
-    }).collect()
+    slice
+        .iter()
+        .map(|&v| {
+            if v == 0 {
+                ' '
+            } else {
+                let idx = ((v as f64 / max as f64) * 7.0).round() as usize;
+                BLOCKS[idx.min(7)]
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]

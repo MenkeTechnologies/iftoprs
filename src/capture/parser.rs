@@ -48,9 +48,9 @@ pub fn parse_loopback(data: &[u8], local_net: Option<(IpAddr, u8)>) -> Option<Pa
     let af = u32::from_ne_bytes([data[0], data[1], data[2], data[3]]);
     let payload = &data[4..];
     match af {
-        2 => parse_ipv4(payload, local_net),   // AF_INET
-        30 => parse_ipv6(payload, local_net),  // AF_INET6 on macOS
-        10 => parse_ipv6(payload, local_net),  // AF_INET6 on Linux
+        2 => parse_ipv4(payload, local_net),  // AF_INET
+        30 => parse_ipv6(payload, local_net), // AF_INET6 on macOS
+        10 => parse_ipv6(payload, local_net), // AF_INET6 on Linux
         _ => None,
     }
 }
@@ -197,11 +197,7 @@ fn parse_ports(protocol: u8, data: &[u8], header_len: usize) -> (u16, u16) {
 
 /// Determine packet direction based on local network.
 /// If no local_net is configured, use src as "sent" (first-seen convention).
-fn determine_direction(
-    src: IpAddr,
-    dst: IpAddr,
-    local_net: Option<(IpAddr, u8)>,
-) -> Direction {
+fn determine_direction(src: IpAddr, dst: IpAddr, local_net: Option<(IpAddr, u8)>) -> Direction {
     if let Some((net, prefix)) = local_net {
         let src_local = ip_in_network(src, net, prefix);
         let dst_local = ip_in_network(dst, net, prefix);
@@ -243,16 +239,20 @@ mod tests {
     fn make_ipv4_tcp_packet(src: [u8; 4], dst: [u8; 4], src_port: u16, dst_port: u16) -> Vec<u8> {
         let mut pkt = vec![0u8; 44]; // 14 eth + 20 ip + 8 tcp/udp + 2 pad
         // Ethernet header
-        pkt[12] = 0x08; pkt[13] = 0x00; // IPv4
+        pkt[12] = 0x08;
+        pkt[13] = 0x00; // IPv4
         // IPv4 header at offset 14
         pkt[14] = 0x45; // version 4, IHL 5
-        pkt[16] = 0x00; pkt[17] = 30; // total_len = 30
+        pkt[16] = 0x00;
+        pkt[17] = 30; // total_len = 30
         pkt[23] = 6; // TCP
         pkt[26..30].copy_from_slice(&src);
         pkt[30..34].copy_from_slice(&dst);
         // TCP ports at offset 34 (14 eth + 20 ip)
-        pkt[34] = (src_port >> 8) as u8; pkt[35] = src_port as u8;
-        pkt[36] = (dst_port >> 8) as u8; pkt[37] = dst_port as u8;
+        pkt[34] = (src_port >> 8) as u8;
+        pkt[35] = src_port as u8;
+        pkt[36] = (dst_port >> 8) as u8;
+        pkt[37] = dst_port as u8;
         pkt
     }
 
@@ -274,7 +274,8 @@ mod tests {
     #[test]
     fn parse_ethernet_unknown_ethertype() {
         let mut pkt = vec![0u8; 60];
-        pkt[12] = 0xFF; pkt[13] = 0xFF;
+        pkt[12] = 0xFF;
+        pkt[13] = 0xFF;
         assert!(parse_ethernet(&pkt, None).is_none());
     }
 
@@ -282,12 +283,15 @@ mod tests {
     fn parse_raw_ipv4() {
         let mut raw = vec![0u8; 30];
         raw[0] = 0x45; // version 4, IHL 5
-        raw[2] = 0; raw[3] = 30;
+        raw[2] = 0;
+        raw[3] = 30;
         raw[9] = 17; // UDP
         raw[12..16].copy_from_slice(&[192, 168, 1, 1]);
         raw[16..20].copy_from_slice(&[8, 8, 8, 8]);
-        raw[20] = 0x1F; raw[21] = 0x90; // src port 8080
-        raw[22] = 0x00; raw[23] = 0x35; // dst port 53
+        raw[20] = 0x1F;
+        raw[21] = 0x90; // src port 8080
+        raw[22] = 0x00;
+        raw[23] = 0x35; // dst port 53
         let result = parse_raw(&raw, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
         // Normalized: 8.8.8.8:53 < 192.168.1.1:8080
@@ -370,23 +374,34 @@ mod tests {
 
     // ── VLAN parsing ──
 
-    fn make_vlan_ipv4_tcp_packet(src: [u8; 4], dst: [u8; 4], src_port: u16, dst_port: u16) -> Vec<u8> {
+    fn make_vlan_ipv4_tcp_packet(
+        src: [u8; 4],
+        dst: [u8; 4],
+        src_port: u16,
+        dst_port: u16,
+    ) -> Vec<u8> {
         let mut pkt = vec![0u8; 48]; // 14 eth + 4 vlan + 20 ip + 8 tcp + 2 pad
         // Ethernet header with VLAN tag
-        pkt[12] = 0x81; pkt[13] = 0x00; // 802.1Q
+        pkt[12] = 0x81;
+        pkt[13] = 0x00; // 802.1Q
         // VLAN tag (2 bytes TCI)
-        pkt[14] = 0x00; pkt[15] = 0x64; // VLAN ID 100
+        pkt[14] = 0x00;
+        pkt[15] = 0x64; // VLAN ID 100
         // Inner ethertype
-        pkt[16] = 0x08; pkt[17] = 0x00; // IPv4
+        pkt[16] = 0x08;
+        pkt[17] = 0x00; // IPv4
         // IPv4 header at offset 18
         pkt[18] = 0x45; // version 4, IHL 5
-        pkt[20] = 0x00; pkt[21] = 30; // total_len = 30
+        pkt[20] = 0x00;
+        pkt[21] = 30; // total_len = 30
         pkt[27] = 6; // TCP
         pkt[30..34].copy_from_slice(&src);
         pkt[34..38].copy_from_slice(&dst);
         // TCP ports at offset 38 (18 + 20)
-        pkt[38] = (src_port >> 8) as u8; pkt[39] = src_port as u8;
-        pkt[40] = (dst_port >> 8) as u8; pkt[41] = dst_port as u8;
+        pkt[38] = (src_port >> 8) as u8;
+        pkt[39] = src_port as u8;
+        pkt[40] = (dst_port >> 8) as u8;
+        pkt[41] = dst_port as u8;
         pkt
     }
 
@@ -402,15 +417,18 @@ mod tests {
     #[test]
     fn parse_vlan_too_short() {
         let mut pkt = vec![0u8; 16]; // short VLAN frame
-        pkt[12] = 0x81; pkt[13] = 0x00;
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
         assert!(parse_ethernet(&pkt, None).is_none());
     }
 
     #[test]
     fn parse_vlan_unknown_inner_ethertype() {
         let mut pkt = vec![0u8; 60];
-        pkt[12] = 0x81; pkt[13] = 0x00; // 802.1Q
-        pkt[16] = 0xFF; pkt[17] = 0xFF; // unknown inner
+        pkt[12] = 0x81;
+        pkt[13] = 0x00; // 802.1Q
+        pkt[16] = 0xFF;
+        pkt[17] = 0xFF; // unknown inner
         assert!(parse_ethernet(&pkt, None).is_none());
     }
 
@@ -419,10 +437,12 @@ mod tests {
     fn make_ipv6_tcp_packet() -> Vec<u8> {
         let mut pkt = vec![0u8; 14 + 40 + 4]; // eth + ipv6 + ports
         // Ethernet header
-        pkt[12] = 0x86; pkt[13] = 0xDD; // IPv6
+        pkt[12] = 0x86;
+        pkt[13] = 0xDD; // IPv6
         // IPv6 header at offset 14
         pkt[14] = 0x60; // version 6
-        pkt[18] = 0x00; pkt[19] = 4; // payload length = 4
+        pkt[18] = 0x00;
+        pkt[19] = 4; // payload length = 4
         pkt[20] = 6; // next header = TCP
         pkt[21] = 64; // hop limit
         // src = ::1
@@ -430,8 +450,10 @@ mod tests {
         // dst = ::2
         pkt[53] = 2;
         // TCP ports at offset 54
-        pkt[54] = 0x1F; pkt[55] = 0x90; // src port 8080
-        pkt[56] = 0x00; pkt[57] = 0x50; // dst port 80
+        pkt[54] = 0x1F;
+        pkt[55] = 0x90; // src port 8080
+        pkt[56] = 0x00;
+        pkt[57] = 0x50; // dst port 80
         pkt
     }
 
@@ -448,7 +470,8 @@ mod tests {
     #[test]
     fn parse_ethernet_ipv6_too_short() {
         let mut pkt = vec![0u8; 30]; // eth + partial ipv6
-        pkt[12] = 0x86; pkt[13] = 0xDD;
+        pkt[12] = 0x86;
+        pkt[13] = 0xDD;
         assert!(parse_ethernet(&pkt, None).is_none());
     }
 
@@ -458,13 +481,16 @@ mod tests {
     fn parse_raw_ipv6() {
         let mut raw = vec![0u8; 44]; // ipv6 header + ports
         raw[0] = 0x60; // version 6
-        raw[4] = 0x00; raw[5] = 4; // payload length
+        raw[4] = 0x00;
+        raw[5] = 4; // payload length
         raw[6] = 17; // UDP
         raw[7] = 64;
         raw[23] = 1; // src = ::1
         raw[39] = 2; // dst = ::2
-        raw[40] = 0x00; raw[41] = 0x35; // src port 53
-        raw[42] = 0x1F; raw[43] = 0x90; // dst port 8080
+        raw[40] = 0x00;
+        raw[41] = 0x35; // src port 53
+        raw[42] = 0x1F;
+        raw[43] = 0x90; // dst port 8080
         let result = parse_raw(&raw, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
         assert_eq!(result.key.src_port, 53);
@@ -487,12 +513,15 @@ mod tests {
         pkt[0..4].copy_from_slice(&af_bytes);
         // IPv4 header at offset 4
         pkt[4] = 0x45;
-        pkt[6] = 0; pkt[7] = 24; // total_len
+        pkt[6] = 0;
+        pkt[7] = 24; // total_len
         pkt[13] = 6; // TCP
         pkt[16..20].copy_from_slice(&[127, 0, 0, 1]);
         pkt[20..24].copy_from_slice(&[127, 0, 0, 1]);
-        pkt[24] = 0x1F; pkt[25] = 0x90; // src 8080
-        pkt[26] = 0x00; pkt[27] = 0x50; // dst 80
+        pkt[24] = 0x1F;
+        pkt[25] = 0x90; // src 8080
+        pkt[26] = 0x00;
+        pkt[27] = 0x50; // dst 80
         let result = parse_loopback(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Tcp);
         // Same IP, so normalized by port: 80 < 8080
@@ -513,15 +542,19 @@ mod tests {
     #[test]
     fn parse_sll_ipv4() {
         let mut pkt = vec![0u8; 16 + 24]; // 16 sll + 20 ip + 4 ports
-        pkt[14] = 0x08; pkt[15] = 0x00; // IPv4
+        pkt[14] = 0x08;
+        pkt[15] = 0x00; // IPv4
         // IPv4 header at offset 16
         pkt[16] = 0x45;
-        pkt[18] = 0; pkt[19] = 24;
+        pkt[18] = 0;
+        pkt[19] = 24;
         pkt[25] = 17; // UDP
         pkt[28..32].copy_from_slice(&[10, 0, 0, 1]);
         pkt[32..36].copy_from_slice(&[10, 0, 0, 2]);
-        pkt[36] = 0x00; pkt[37] = 0x35; // src 53
-        pkt[38] = 0x1F; pkt[39] = 0x90; // dst 8080
+        pkt[36] = 0x00;
+        pkt[37] = 0x35; // src 53
+        pkt[38] = 0x1F;
+        pkt[39] = 0x90; // dst 8080
         let result = parse_sll(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
         assert_eq!(result.key.src_port, 53);
@@ -530,7 +563,8 @@ mod tests {
     #[test]
     fn parse_sll_unknown_protocol() {
         let mut pkt = vec![0u8; 60];
-        pkt[14] = 0xFF; pkt[15] = 0xFF;
+        pkt[14] = 0xFF;
+        pkt[15] = 0xFF;
         assert!(parse_sll(&pkt, None).is_none());
     }
 
@@ -606,7 +640,8 @@ mod tests {
     fn parse_icmp_has_no_ports() {
         let mut raw = vec![0u8; 28]; // ipv4 + 8 payload
         raw[0] = 0x45;
-        raw[2] = 0; raw[3] = 28;
+        raw[2] = 0;
+        raw[3] = 28;
         raw[9] = 1; // ICMP
         raw[12..16].copy_from_slice(&[10, 0, 0, 1]);
         raw[16..20].copy_from_slice(&[10, 0, 0, 2]);
@@ -621,7 +656,8 @@ mod tests {
         // IPv4 header only, no room for ports
         let mut raw = vec![0u8; 20];
         raw[0] = 0x45;
-        raw[2] = 0; raw[3] = 20;
+        raw[2] = 0;
+        raw[3] = 20;
         raw[9] = 6; // TCP
         raw[12..16].copy_from_slice(&[10, 0, 0, 1]);
         raw[16..20].copy_from_slice(&[10, 0, 0, 2]);
@@ -633,14 +669,18 @@ mod tests {
     #[test]
     fn parse_ipv4_udp_packet() {
         let mut pkt = vec![0u8; 44];
-        pkt[12] = 0x08; pkt[13] = 0x00; // IPv4
+        pkt[12] = 0x08;
+        pkt[13] = 0x00; // IPv4
         pkt[14] = 0x45;
-        pkt[16] = 0x00; pkt[17] = 28;
+        pkt[16] = 0x00;
+        pkt[17] = 28;
         pkt[23] = 17; // UDP
         pkt[26..30].copy_from_slice(&[10, 0, 0, 1]);
         pkt[30..34].copy_from_slice(&[8, 8, 8, 8]);
-        pkt[34] = 0xC0; pkt[35] = 0x00; // src port 49152
-        pkt[36] = 0x00; pkt[37] = 0x35; // dst port 53
+        pkt[34] = 0xC0;
+        pkt[35] = 0x00; // src port 49152
+        pkt[36] = 0x00;
+        pkt[37] = 0x35; // dst port 53
         let result = parse_ethernet(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
         // Normalized: 8.8.8.8:53 < 10.0.0.1:49152
@@ -670,16 +710,21 @@ mod tests {
     #[test]
     fn parse_vlan_ipv6() {
         let mut pkt = vec![0u8; 18 + 40 + 4]; // eth+vlan + ipv6 + ports
-        pkt[12] = 0x81; pkt[13] = 0x00; // 802.1Q
-        pkt[16] = 0x86; pkt[17] = 0xDD; // IPv6 inner
+        pkt[12] = 0x81;
+        pkt[13] = 0x00; // 802.1Q
+        pkt[16] = 0x86;
+        pkt[17] = 0xDD; // IPv6 inner
         // IPv6 at offset 18
         pkt[18] = 0x60;
-        pkt[22] = 0; pkt[23] = 4; // payload len
+        pkt[22] = 0;
+        pkt[23] = 4; // payload len
         pkt[24] = 17; // UDP
         pkt[41] = 1; // src ::1
         pkt[57] = 2; // dst ::2
-        pkt[58] = 0x00; pkt[59] = 0x35; // src 53
-        pkt[60] = 0x1F; pkt[61] = 0x90; // dst 8080
+        pkt[58] = 0x00;
+        pkt[59] = 0x35; // src 53
+        pkt[60] = 0x1F;
+        pkt[61] = 0x90; // dst 8080
         let result = parse_ethernet(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
     }

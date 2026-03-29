@@ -76,9 +76,10 @@ pub fn start_capture(
                         };
 
                         if let Some(p) = parsed
-                            && tx.send(PacketEvent { parsed: p }).is_err() {
-                                break; // receiver dropped
-                            }
+                            && tx.send(PacketEvent { parsed: p }).is_err()
+                        {
+                            break; // receiver dropped
+                        }
                     }
                     Err(pcap::Error::TimeoutExpired) => continue,
                     Err(_) => break,
@@ -87,9 +88,7 @@ pub fn start_capture(
         })
         .context("Failed to spawn capture thread")?;
 
-    Ok(CaptureHandle {
-        _thread: handle,
-    })
+    Ok(CaptureHandle { _thread: handle })
 }
 
 pub struct CaptureHandle {

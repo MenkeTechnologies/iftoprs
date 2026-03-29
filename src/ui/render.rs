@@ -1,7 +1,7 @@
+use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::Frame;
 
 use crate::config::theme::{Theme, ThemeName};
 use crate::ui::app::{AppState, BarStyle, ViewTab};
@@ -15,11 +15,17 @@ const LOG10_MAX_BITS: f64 = 9.0;
 const DIM_BORDER: Color = Color::Indexed(240);
 
 const SCALE_TICKS: [(f64, f64); 5] = [
-    (1.25, 1.0), (125.0, 3.0), (12_500.0, 5.0), (1_250_000.0, 7.0), (125_000_000.0, 9.0),
+    (1.25, 1.0),
+    (125.0, 3.0),
+    (12_500.0, 5.0),
+    (1_250_000.0, 7.0),
+    (125_000_000.0, 9.0),
 ];
 
 fn rate_to_frac(bps: f64) -> f64 {
-    if bps <= 0.0 { return 0.0; }
+    if bps <= 0.0 {
+        return 0.0;
+    }
     ((bps * 8.0).log10() / LOG10_MAX_BITS).clamp(0.0, 1.0)
 }
 
@@ -74,9 +80,13 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
         let title_chars = title.chars().count() as u16;
         let tx = (size.width.saturating_sub(title_chars)) / 2;
         let ts = if state.paused {
-            Style::default().fg(Color::Indexed(196)).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Indexed(196))
+                .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(border_color).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(border_color)
+                .add_modifier(Modifier::BOLD)
         };
         set_str(buf, tx, 0, &title, ts, title_chars);
     }
@@ -91,11 +101,17 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
 
     // Layout: scale + flows + separator + totals + optional header (bottom)
     let header_h = if state.show_header { 1 } else { 0 };
-    let c = Layout::default().direction(Direction::Vertical).constraints([
-        Constraint::Length(1), Constraint::Length(1), Constraint::Min(4),
-        Constraint::Length(1), Constraint::Length(3),
-        Constraint::Length(header_h),
-    ]).split(inner);
+    let c = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(4),
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(header_h),
+        ])
+        .split(inner);
 
     // Store layout positions for mouse hit-testing
     state.flow_area_y = c[2].y;
@@ -109,48 +125,83 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
     }
     draw_separator(frame, c[3], state);
     draw_totals(frame, c[4], state);
-    if state.show_header { draw_header(frame, c[5], state); }
+    if state.show_header {
+        draw_header(frame, c[5], state);
+    }
 
     // Overlays
-    if state.theme_chooser.active { draw_theme_chooser(frame, size, state); }
-    if state.theme_edit.active { draw_theme_editor(frame, size, state); }
-    if state.interface_chooser.active { draw_interface_chooser(frame, size, state); }
-    if state.filter_state.active { draw_filter_popup(frame, size, state); }
-    if state.tooltip.active { draw_tooltip(frame, size, state); }
+    if state.theme_chooser.active {
+        draw_theme_chooser(frame, size, state);
+    }
+    if state.theme_edit.active {
+        draw_theme_editor(frame, size, state);
+    }
+    if state.interface_chooser.active {
+        draw_interface_chooser(frame, size, state);
+    }
+    if state.filter_state.active {
+        draw_filter_popup(frame, size, state);
+    }
+    if state.tooltip.active {
+        draw_tooltip(frame, size, state);
+    }
 
     // Hover tooltip on header bar segments
-    if state.show_header && !state.show_help && !state.theme_chooser.active
-        && !state.filter_state.active && state.hover.ready()
+    if state.show_header
+        && !state.show_help
+        && !state.theme_chooser.active
+        && !state.filter_state.active
+        && state.hover.ready()
         && let Some((_, hy)) = state.hover.pos
         && hy == state.header_bar_y
     {
         draw_header_hover_tooltip(frame, size, state);
     }
 
-    if state.show_help { draw_help(frame, size, state); }
+    if state.show_help {
+        draw_help(frame, size, state);
+    }
 
     if let Some(ref msg) = state.status_msg
-        && !msg.expired() { draw_status(frame, size, state, &msg.text); }
+        && !msg.expired()
+    {
+        draw_status(frame, size, state, &msg.text);
+    }
 }
 
 // ─── Header bar ──────────────────────────────────────────────────────────────
 
 fn draw_header(frame: &mut Frame, area: Rect, state: &AppState) {
-    if area.height < 1 { return; }
+    if area.height < 1 {
+        return;
+    }
     let buf = frame.buffer_mut();
     let t = &state.theme;
     let banner_s = Style::default().fg(t.scale_label).bg(Color::Indexed(236));
-    let accent_s = Style::default().fg(t.host_src).bg(Color::Indexed(236)).add_modifier(Modifier::BOLD);
+    let accent_s = Style::default()
+        .fg(t.host_src)
+        .bg(Color::Indexed(236))
+        .add_modifier(Modifier::BOLD);
     let inner_w = area.width;
 
     // Fill background
     for x in area.x..area.x + inner_w {
-        set_cell(buf, x, area.y, " ", Style::default().bg(Color::Indexed(236)));
+        set_cell(
+            buf,
+            x,
+            area.y,
+            " ",
+            Style::default().bg(Color::Indexed(236)),
+        );
     }
 
     let s = " │ ";
     let now = chrono::Local::now();
-    let iface = if state.interface_name.is_empty() { "auto" } else { &state.interface_name };
+    let iface = if state.interface_name.is_empty() {
+        "auto"
+    } else {
+        &state.interface_name
+    };
     let sort_name = match state.sort_column {
         crate::ui::app::SortColumn::Avg2s => "2s",
         crate::ui::app::SortColumn::Avg10s => "10s",
@@ -167,7 +218,10 @@ fn draw_header(frame: &mut Frame, area: Rect, state: &AppState) {
         state.refresh_rate,
         state.theme_name.display_name(),
     );
-    title.push_str(&format!("{s}paused:{}", if state.paused { "yes" } else { "no" }));
+    title.push_str(&format!(
+        "{s}paused:{}",
+        if state.paused { "yes" } else { "no" }
+    ));
     if let Some(ref filter) = state.screen_filter {
         title.push_str(&format!("{s}filter:{filter}"));
     }
@@ -195,13 +249,16 @@ fn draw_header(frame: &mut Frame, area: Rect, state: &AppState) {
 // ─── Scale ────────────────────────────────────────────────────────────────────
 
 fn draw_scale_labels(frame: &mut Frame, area: Rect, state: &AppState) {
-    if area.width < 20 { return; }
+    if area.width < 20 {
+        return;
+    }
     let w = area.width as usize;
     let buf = frame.buffer_mut();
     let s = Style::default().fg(state.theme.scale_label);
     for &(v, lp) in &SCALE_TICKS {
         let tx = (lp / LOG10_MAX_BITS * w as f64).round() as usize;
-        let l = readable_size(v, state.use_bytes); let l = l.trim();
+        let l = readable_size(v, state.use_bytes);
+        let l = l.trim();
         let lx = tx.saturating_sub(l.len() / 2);
         let x = area.x + (lx as u16).min(area.width.saturating_sub(l.len() as u16));
         buf.set_string(x, area.y, l, s);
@@ -209,11 +266,15 @@ fn draw_scale_labels(frame: &mut Frame, area: Rect, state: &AppState) {
 }
 
 fn draw_scale_ticks(frame: &mut Frame, area: Rect, state: &AppState) {
-    if area.width < 10 { return; }
+    if area.width < 10 {
+        return;
+    }
     let w = area.width as usize;
     let buf = frame.buffer_mut();
     let s = Style::default().fg(state.theme.scale_line);
-    for x in area.x..area.x + area.width { buf.set_string(x, area.y, "─", s); }
+    for x in area.x..area.x + area.width {
+        buf.set_string(x, area.y, "─", s);
+    }
     buf.set_string(area.x, area.y, "└", s);
     for &(_, lp) in &SCALE_TICKS {
         let tx = ((lp / LOG10_MAX_BITS * w as f64).round() as usize).min(w - 1);
@@ -224,7 +285,9 @@ fn draw_scale_ticks(frame: &mut Frame, area: Rect, state: &AppState) {
 // ─── Flows ────────────────────────────────────────────────────────────────────
 
 fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool) {
-    if area.height < 1 || area.width < 30 || state.flows.is_empty() { return; }
+    if area.height < 1 || area.width < 30 || state.flows.is_empty() {
+        return;
+    }
     let t = &state.theme;
     let w = area.width;
     let start = state.scroll_offset.min(state.flows.len() - 1);
@@ -239,7 +302,9 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
 
     for (i, f) in vis.iter().enumerate() {
         let y = area.y + i as u16;
-        if y >= area.y + area.height { break; }
+        if y >= area.y + area.height {
+            break;
+        }
         let flow_idx = start + i;
         let is_selected = state.selected == Some(flow_idx);
         let is_pinned = state.is_pinned(&f.key);
@@ -254,7 +319,9 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
         // Alert flash background for flows above threshold
         if is_flashing && state.alert_threshold > 0.0 && rate >= state.alert_threshold {
             let flash_bg = Style::default().bg(Color::Indexed(52));
-            for x in area.x..area.x + w { set_cell(buf, x, y, " ", flash_bg); }
+            for x in area.x..area.x + w {
+                set_cell(buf, x, y, " ", flash_bg);
+            }
         }
 
         // Bar first
@@ -266,16 +333,49 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
 
         // src hostname
         let sd = format!("{:<w$}", trunc(&src_with_pin, hl), w = hl);
-        write_bar_styled(buf, area.x, y, &sd, t.host_src, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(
+            buf,
+            area.x,
+            y,
+            &sd,
+            t.host_src,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
 
         // <=>
         let ax = area.x + hl as u16;
-        write_bar_styled(buf, ax, y, " <=> ", t.arrow, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(
+            buf,
+            ax,
+            y,
+            " <=> ",
+            t.arrow,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
 
         // dst hostname
         let dx = ax + 5;
         let dd = format!("{:<w$}", trunc(&dst, hl), w = hl);
-        write_bar_styled(buf, dx, y, &dd, t.host_dst, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(
+            buf,
+            dx,
+            y,
+            &dd,
+            t.host_dst,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
 
         // process column
         if state.show_processes && proc_w > 0 {
@@ -287,14 +387,36 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
                 _ => String::new(),
             };
             let pt = format!("{:>w$}", trunc(&proc_s, proc_w), w = proc_w);
-            write_bar_styled(buf, proc_x, y, &pt, t.proc_name, area.x, bl, t.bar_color, t.bar_text, bs);
+            write_bar_styled(
+                buf,
+                proc_x,
+                y,
+                &pt,
+                t.proc_name,
+                area.x,
+                bl,
+                t.bar_color,
+                t.bar_text,
+                bs,
+            );
         }
 
         // right cols
         let rx = area.x + w - RIGHT_AREA_W as u16;
-        write_right_styled(buf, rx, y, f.total_sent + f.total_recv,
-            f.sent_2s + f.recv_2s, f.sent_10s + f.recv_10s, f.sent_40s + f.recv_40s,
-            state.use_bytes, area.x, bl, t, bs);
+        write_right_styled(
+            buf,
+            rx,
+            y,
+            f.total_sent + f.total_recv,
+            f.sent_2s + f.recv_2s,
+            f.sent_10s + f.recv_10s,
+            f.sent_40s + f.recv_40s,
+            state.use_bytes,
+            area.x,
+            bl,
+            t,
+            bs,
+        );
 
         // Selection indicator — applied AFTER everything else so it's visible
         if is_selected {
@@ -316,7 +438,14 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
                 let spark = crate::util::format::sparkline(&f.history, spark_w);
                 let spark_label = format!(" {} ", spark);
                 let spark_s = Style::default().fg(t.rate_2s).add_modifier(Modifier::DIM);
-                set_str(buf, area.x + 1, spark_y, &spark_label, spark_s, spark_label.len() as u16);
+                set_str(
+                    buf,
+                    area.x + 1,
+                    spark_y,
+                    &spark_label,
+                    spark_s,
+                    spark_label.len() as u16,
+                );
             }
         }
     }
@@ -325,7 +454,9 @@ fn draw_flows(frame: &mut Frame, area: Rect, state: &AppState, is_flashing: bool
 // ─── Process aggregation view ─────────────────────────────────────────────────
 
 fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
-    if area.height < 2 || area.width < 30 || state.process_snapshots.is_empty() { return; }
+    if area.height < 2 || area.width < 30 || state.process_snapshots.is_empty() {
+        return;
+    }
     let t = &state.theme;
     let w = area.width;
     let buf = frame.buffer_mut();
@@ -335,14 +466,26 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
     let flows_w = 8usize;
     let header = format!(
         "{:<pw$}{:>fw$}{:>10}{:>10}{:>10}{:>10}{:>10}{:>10}",
-        " PROCESS", "FLOWS", "TX 2s", "RX 2s", "TX 10s", "RX 10s", "TOTAL TX", "TOTAL RX",
-        pw = proc_name_w, fw = flows_w,
+        " PROCESS",
+        "FLOWS",
+        "TX 2s",
+        "RX 2s",
+        "TX 10s",
+        "RX 10s",
+        "TOTAL TX",
+        "TOTAL RX",
+        pw = proc_name_w,
+        fw = flows_w,
     );
-    let header_s = Style::default().fg(t.scale_label).add_modifier(Modifier::BOLD);
+    let header_s = Style::default()
+        .fg(t.scale_label)
+        .add_modifier(Modifier::BOLD);
     let header_display: String = header.chars().take(w as usize).collect();
     set_str(buf, area.x, area.y, &header_display, header_s, w);
 
-    let start = state.process_scroll.min(state.process_snapshots.len().saturating_sub(1));
+    let start = state
+        .process_scroll
+        .min(state.process_snapshots.len().saturating_sub(1));
     let vis = &state.process_snapshots[start..];
     let rows_available = (area.height - 1) as usize; // -1 for header
     let vis = &vis[..vis.len().min(rows_available)];
@@ -351,7 +494,9 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
 
     for (i, p) in vis.iter().enumerate() {
         let y = area.y + 1 + i as u16;
-        if y >= area.y + area.height { break; }
+        if y >= area.y + area.height {
+            break;
+        }
         let proc_idx = start + i;
         let is_selected = state.process_selected == Some(proc_idx);
 
@@ -367,12 +512,34 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
             None => format!(" {}", p.name),
         };
         let name_trunc = format!("{:<w$}", trunc(&name_display, proc_name_w), w = proc_name_w);
-        write_bar_styled(buf, area.x, y, &name_trunc, t.host_src, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(
+            buf,
+            area.x,
+            y,
+            &name_trunc,
+            t.host_src,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
 
         // Flow count
         let flows_str = format!("{:>fw$}", p.flow_count, fw = flows_w);
         let fx = area.x + proc_name_w as u16;
-        write_bar_styled(buf, fx, y, &flows_str, t.proc_name, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(
+            buf,
+            fx,
+            y,
+            &flows_str,
+            t.proc_name,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
 
         // Rate columns (each 9 chars + 1 space = 10 wide)
         let col_w: u16 = 10;
@@ -384,12 +551,78 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
         let tot_tx = format!("{:>9} ", readable_total(p.total_sent, state.use_bytes));
         let tot_rx = format!("{:>9} ", readable_total(p.total_recv, state.use_bytes));
 
-        write_bar_styled(buf, cols_x, y, &tx_2s, t.rate_2s, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + col_w, y, &rx_2s, t.rate_2s, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + col_w * 2, y, &tx_10s, t.rate_10s, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + col_w * 3, y, &rx_10s, t.rate_10s, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + col_w * 4, y, &tot_tx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
-        write_bar_styled(buf, cols_x + col_w * 5, y, &tot_rx, t.cum_label, area.x, bl, t.bar_color, t.bar_text, bs);
+        write_bar_styled(
+            buf,
+            cols_x,
+            y,
+            &tx_2s,
+            t.rate_2s,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
+        write_bar_styled(
+            buf,
+            cols_x + col_w,
+            y,
+            &rx_2s,
+            t.rate_2s,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
+        write_bar_styled(
+            buf,
+            cols_x + col_w * 2,
+            y,
+            &tx_10s,
+            t.rate_10s,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
+        write_bar_styled(
+            buf,
+            cols_x + col_w * 3,
+            y,
+            &rx_10s,
+            t.rate_10s,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
+        write_bar_styled(
+            buf,
+            cols_x + col_w * 4,
+            y,
+            &tot_tx,
+            t.cum_label,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
+        write_bar_styled(
+            buf,
+            cols_x + col_w * 5,
+            y,
+            &tot_rx,
+            t.cum_label,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
 
         // Selection highlight — background overlay
         if is_selected {
@@ -412,15 +645,26 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
 fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let s = Style::default().fg(state.theme.scale_line);
-    for x in area.x..area.x + area.width { buf.set_string(x, area.y, "─", s); }
+    for x in area.x..area.x + area.width {
+        buf.set_string(x, area.y, "─", s);
+    }
 
     // Tab indicator on the left
     let tab_indicator = match state.view_tab {
         ViewTab::Flows => " [Flows] Processes ",
         ViewTab::Processes => " Flows [Processes] ",
     };
-    let tab_s = Style::default().fg(state.theme.host_src).add_modifier(Modifier::BOLD);
-    set_str(buf, area.x + 1, area.y, tab_indicator, tab_s, tab_indicator.len() as u16);
+    let tab_s = Style::default()
+        .fg(state.theme.host_src)
+        .add_modifier(Modifier::BOLD);
+    set_str(
+        buf,
+        area.x + 1,
+        area.y,
+        tab_indicator,
+        tab_s,
+        tab_indicator.len() as u16,
+    );
     let mut hint_x = area.x + 1 + tab_indicator.len() as u16;
     let tab_hint_s = Style::default().fg(Color::Indexed(240));
     set_str(buf, hint_x, area.y, "Tab", tab_hint_s, 3);
@@ -429,7 +673,9 @@ fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
     // Show process drill-down filter indicator
     if let Some(ref pf) = state.process_filter {
         let pf_text = format!(" \u{25B8}{} ", pf); // ▸processname
-        let pf_s = Style::default().fg(state.theme.rate_2s).add_modifier(Modifier::BOLD);
+        let pf_s = Style::default()
+            .fg(state.theme.rate_2s)
+            .add_modifier(Modifier::BOLD);
         set_str(buf, hint_x, area.y, &pf_text, pf_s, pf_text.len() as u16);
         hint_x += pf_text.len() as u16;
         let esc_s = Style::default().fg(Color::Indexed(240));
@@ -444,7 +690,9 @@ fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
     parts.push(format!("flows:{}", state.flows.len()));
     parts.push(format!("rate:{}s", state.refresh_rate));
     parts.push(state.theme_name.display_name().to_string());
-    if state.paused { parts.push("⏸".to_string()); }
+    if state.paused {
+        parts.push("⏸".to_string());
+    }
 
     let info = format!(" {} ", parts.join(" │ "));
     let info_x = area.x + area.width.saturating_sub(info.len() as u16 + 1);
@@ -453,7 +701,9 @@ fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
 }
 
 fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
-    if area.height < 3 { return; }
+    if area.height < 3 {
+        return;
+    }
     let th = &state.theme;
     let tot = &state.totals;
     let buf = frame.buffer_mut();
@@ -462,11 +712,33 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
     let rrx = rx + TOTAL_COL_W as u16;
 
     let rows: [(u16, &str, u64, f64, f64, f64, f64); 3] = [
-        (area.y, "TX:", tot.cumulative_sent, tot.peak_sent, tot.sent_2s, tot.sent_10s, tot.sent_40s),
-        (area.y + 1, "RX:", tot.cumulative_recv, tot.peak_recv, tot.recv_2s, tot.recv_10s, tot.recv_40s),
-        (area.y + 2, "TOTAL:", tot.cumulative_sent + tot.cumulative_recv,
+        (
+            area.y,
+            "TX:",
+            tot.cumulative_sent,
+            tot.peak_sent,
+            tot.sent_2s,
+            tot.sent_10s,
+            tot.sent_40s,
+        ),
+        (
+            area.y + 1,
+            "RX:",
+            tot.cumulative_recv,
+            tot.peak_recv,
+            tot.recv_2s,
+            tot.recv_10s,
+            tot.recv_40s,
+        ),
+        (
+            area.y + 2,
+            "TOTAL:",
+            tot.cumulative_sent + tot.cumulative_recv,
             tot.peak_sent + tot.peak_recv,
-            tot.sent_2s + tot.recv_2s, tot.sent_10s + tot.recv_10s, tot.sent_40s + tot.recv_40s),
+            tot.sent_2s + tot.recv_2s,
+            tot.sent_10s + tot.recv_10s,
+            tot.sent_40s + tot.recv_40s,
+        ),
     ];
 
     let bs = state.bar_style;
@@ -474,17 +746,94 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
         let bl = bar_length(r2, w);
         paint_bar_styled(buf, area.x, y, bl, w, th.bar_color, bs);
 
-        write_bar_styled(buf, area.x, y, label, th.total_label, area.x, bl, th.bar_color, th.bar_text, bs);
+        write_bar_styled(
+            buf,
+            area.x,
+            y,
+            label,
+            th.total_label,
+            area.x,
+            bl,
+            th.bar_color,
+            th.bar_text,
+            bs,
+        );
         let cum_text = format!("  cum:{:>8}", readable_total(cum, state.use_bytes));
-        write_bar_styled(buf, area.x + 8, y, &cum_text, th.cum_label, area.x, bl, th.bar_color, th.bar_text, bs);
+        write_bar_styled(
+            buf,
+            area.x + 8,
+            y,
+            &cum_text,
+            th.cum_label,
+            area.x,
+            bl,
+            th.bar_color,
+            th.bar_text,
+            bs,
+        );
         let peak_text = format!("  peak:{:>8}", readable_size(peak, state.use_bytes));
-        write_bar_styled(buf, area.x + 24, y, &peak_text, th.peak_label, area.x, bl, th.bar_color, th.bar_text, bs);
+        write_bar_styled(
+            buf,
+            area.x + 24,
+            y,
+            &peak_text,
+            th.peak_label,
+            area.x,
+            bl,
+            th.bar_color,
+            th.bar_text,
+            bs,
+        );
 
         let rl_x = rrx.saturating_sub(8);
-        write_bar_styled(buf, rl_x, y, "rates:", th.total_label, area.x, bl, th.bar_color, th.bar_text, bs);
-        write_bar_styled(buf, rrx, y, &format!("{:>8} ", readable_size(r2, state.use_bytes)), th.rate_2s, area.x, bl, th.bar_color, th.bar_text, bs);
-        write_bar_styled(buf, rrx + RATE_COL_W as u16, y, &format!("{:>8} ", readable_size(r10, state.use_bytes)), th.rate_10s, area.x, bl, th.bar_color, th.bar_text, bs);
-        write_bar_styled(buf, rrx + (RATE_COL_W * 2) as u16, y, &format!("{:>8} ", readable_size(r40, state.use_bytes)), th.rate_40s, area.x, bl, th.bar_color, th.bar_text, bs);
+        write_bar_styled(
+            buf,
+            rl_x,
+            y,
+            "rates:",
+            th.total_label,
+            area.x,
+            bl,
+            th.bar_color,
+            th.bar_text,
+            bs,
+        );
+        write_bar_styled(
+            buf,
+            rrx,
+            y,
+            &format!("{:>8} ", readable_size(r2, state.use_bytes)),
+            th.rate_2s,
+            area.x,
+            bl,
+            th.bar_color,
+            th.bar_text,
+            bs,
+        );
+        write_bar_styled(
+            buf,
+            rrx + RATE_COL_W as u16,
+            y,
+            &format!("{:>8} ", readable_size(r10, state.use_bytes)),
+            th.rate_10s,
+            area.x,
+            bl,
+            th.bar_color,
+            th.bar_text,
+            bs,
+        );
+        write_bar_styled(
+            buf,
+            rrx + (RATE_COL_W * 2) as u16,
+            y,
+            &format!("{:>8} ", readable_size(r40, state.use_bytes)),
+            th.rate_40s,
+            area.x,
+            bl,
+            th.bar_color,
+            th.bar_text,
+            bs,
+        );
     }
 }
 
@@ -494,13 +843,26 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
 /// For Solid: colored bg in bar region, nothing outside.
 /// For others: colored bg in bar region (dimmer shade), nothing outside.
 /// Text is overlaid on top by write_bar_styled.
-fn paint_bar_styled(buf: &mut Buffer, x0: u16, y: u16, len: u16, max_w: u16, color: Color, _style: BarStyle) {
+fn paint_bar_styled(
+    buf: &mut Buffer,
+    x0: u16,
+    y: u16,
+    len: u16,
+    max_w: u16,
+    color: Color,
+    _style: BarStyle,
+) {
     // All styles use background color for the bar region — the style
     // only affects how write_bar_styled renders text on top.
-    let bw = buf.area().width; let bx = buf.area().x; let bh = buf.area().height; let by = buf.area().y;
+    let bw = buf.area().width;
+    let bx = buf.area().x;
+    let bh = buf.area().height;
+    let by = buf.area().y;
     let bar_len = len.min(max_w);
     for x in x0..x0 + bar_len {
-        if x >= bx + bw || y >= by + bh { break; }
+        if x >= bx + bw || y >= by + bh {
+            break;
+        }
         let c = &mut buf[(x, y)];
         c.set_char(' ');
         c.set_bg(color);
@@ -508,37 +870,105 @@ fn paint_bar_styled(buf: &mut Buffer, x0: u16, y: u16, len: u16, max_w: u16, col
 }
 
 #[allow(clippy::too_many_arguments)]
-fn write_bar_styled(buf: &mut Buffer, x: u16, y: u16, text: &str, fg: Color,
-    x0: u16, bl: u16, bar_bg: Color, bar_fg: Color, _bs: BarStyle)
-{
+fn write_bar_styled(
+    buf: &mut Buffer,
+    x: u16,
+    y: u16,
+    text: &str,
+    fg: Color,
+    x0: u16,
+    bl: u16,
+    bar_bg: Color,
+    bar_fg: Color,
+    _bs: BarStyle,
+) {
     let mx = buf.area().x + buf.area().width;
     let my = buf.area().y + buf.area().height;
     for (i, ch) in text.chars().enumerate() {
         let cx = x + i as u16;
-        if cx >= mx || y >= my { break; }
+        if cx >= mx || y >= my {
+            break;
+        }
         let c = &mut buf[(cx, y)];
         c.set_char(ch);
         if cx < x0 + bl {
             // Inside bar region — always black text on colored background
-            c.set_fg(bar_fg); c.set_bg(bar_bg);
+            c.set_fg(bar_fg);
+            c.set_bg(bar_bg);
         } else {
             // Outside bar
-            c.set_fg(fg); c.set_bg(Color::Reset);
+            c.set_fg(fg);
+            c.set_bg(Color::Reset);
             c.set_style(c.style().add_modifier(Modifier::BOLD));
         }
     }
 }
 
 #[allow(clippy::too_many_arguments)]
-fn write_right_styled(buf: &mut Buffer, x: u16, y: u16, tot: u64, r2: f64, r10: f64, r40: f64,
-    ub: bool, x0: u16, bl: u16, t: &Theme, bs: BarStyle)
-{
+fn write_right_styled(
+    buf: &mut Buffer,
+    x: u16,
+    y: u16,
+    tot: u64,
+    r2: f64,
+    r10: f64,
+    r40: f64,
+    ub: bool,
+    x0: u16,
+    bl: u16,
+    t: &Theme,
+    bs: BarStyle,
+) {
     let tt = format!("{:>7} ", readable_total(tot, ub));
-    write_bar_styled(buf, x, y, &tt, t.cum_label, x0, bl, t.bar_color, t.bar_text, bs);
+    write_bar_styled(
+        buf,
+        x,
+        y,
+        &tt,
+        t.cum_label,
+        x0,
+        bl,
+        t.bar_color,
+        t.bar_text,
+        bs,
+    );
     let rx = x + TOTAL_COL_W as u16;
-    write_bar_styled(buf, rx, y, &format!("{:>8} ", readable_size(r2, ub)), t.rate_2s, x0, bl, t.bar_color, t.bar_text, bs);
-    write_bar_styled(buf, rx + RATE_COL_W as u16, y, &format!("{:>8} ", readable_size(r10, ub)), t.rate_10s, x0, bl, t.bar_color, t.bar_text, bs);
-    write_bar_styled(buf, rx + (RATE_COL_W * 2) as u16, y, &format!("{:>8} ", readable_size(r40, ub)), t.rate_40s, x0, bl, t.bar_color, t.bar_text, bs);
+    write_bar_styled(
+        buf,
+        rx,
+        y,
+        &format!("{:>8} ", readable_size(r2, ub)),
+        t.rate_2s,
+        x0,
+        bl,
+        t.bar_color,
+        t.bar_text,
+        bs,
+    );
+    write_bar_styled(
+        buf,
+        rx + RATE_COL_W as u16,
+        y,
+        &format!("{:>8} ", readable_size(r10, ub)),
+        t.rate_10s,
+        x0,
+        bl,
+        t.bar_color,
+        t.bar_text,
+        bs,
+    );
+    write_bar_styled(
+        buf,
+        rx + (RATE_COL_W * 2) as u16,
+        y,
+        &format!("{:>8} ", readable_size(r40, ub)),
+        t.rate_40s,
+        x0,
+        bl,
+        t.bar_color,
+        t.bar_text,
+        bs,
+    );
 }
 
 fn set_cell(buf: &mut Buffer, x: u16, y: u16, ch: &str, s: Style) {
@@ -553,11 +983,15 @@ fn set_cell(buf: &mut Buffer, x: u16, y: u16, ch: &str, s: Style) {
 fn set_str(buf: &mut Buffer, x: u16, y: u16, s: &str, st: Style, mw: u16) {
     let aw = buf.area().x + buf.area().width;
     let ah = buf.area().y + buf.area().height;
-    if y >= ah { return; }
+    if y >= ah {
+        return;
+    }
     let mut char_buf = [0u8; 4];
     for (i, ch) in s.chars().enumerate() {
         let cx = x + i as u16;
-        if cx >= x + mw || cx >= aw { break; }
+        if cx >= x + mw || cx >= aw {
+            break;
+        }
         let c = &mut buf[(cx, y)];
         c.set_symbol(ch.encode_utf8(&mut char_buf));
         c.set_style(st);
@@ -565,27 +999,49 @@ fn set_str(buf: &mut Buffer, x: u16, y: u16, s: &str, st: Style, mw: u16) {
 }
 
 /// Draw a filled box with double-line border. Returns (x0, y0, bw, bh).
-fn draw_box(buf: &mut Buffer, area: Rect, bw: u16, bh: u16, bg: Color, border_style: Style) -> (u16, u16) {
+fn draw_box(
+    buf: &mut Buffer,
+    area: Rect,
+    bw: u16,
+    bh: u16,
+    bg: Color,
+    border_style: Style,
+) -> (u16, u16) {
     let x0 = (area.width.saturating_sub(bw)) / 2;
     let y0 = (area.height.saturating_sub(bh)) / 2;
     let x1 = x0 + bw - 1;
     let y1 = y0 + bh - 1;
     let fill = Style::default().bg(bg);
-    for y in y0..y0 + bh { for x in x0..x0 + bw { set_cell(buf, x, y, " ", fill); } }
+    for y in y0..y0 + bh {
+        for x in x0..x0 + bw {
+            set_cell(buf, x, y, " ", fill);
+        }
+    }
     set_cell(buf, x0, y0, "╔", border_style);
     set_cell(buf, x1, y0, "╗", border_style);
     set_cell(buf, x0, y1, "╚", border_style);
     set_cell(buf, x1, y1, "╝", border_style);
-    for x in x0 + 1..x1 { set_cell(buf, x, y0, "═", border_style); set_cell(buf, x, y1, "═", border_style); }
-    for y in y0 + 1..y1 { set_cell(buf, x0, y, "║", border_style); set_cell(buf, x1, y, "║", border_style); }
+    for x in x0 + 1..x1 {
+        set_cell(buf, x, y0, "═", border_style);
+        set_cell(buf, x, y1, "═", border_style);
+    }
+    for y in y0 + 1..y1 {
+        set_cell(buf, x0, y, "║", border_style);
+        set_cell(buf, x1, y, "║", border_style);
+    }
     (x0, y0)
 }
 
 fn trunc(s: &str, m: usize) -> String {
     let char_count = s.chars().count();
-    if char_count <= m { s.to_string() }
-    else if m <= 1 { s.chars().next().map(|c| c.to_string()).unwrap_or_default() }
-    else { let t: String = s.chars().take(m - 1).collect(); format!("{}~", t) }
+    if char_count <= m {
+        s.to_string()
+    } else if m <= 1 {
+        s.chars().next().map(|c| c.to_string()).unwrap_or_default()
+    } else {
+        let t: String = s.chars().take(m - 1).collect();
+        format!("{}~", t)
+    }
 }
 
 // ─── Help modal (storageshower-style) ─────────────────────────────────────────
@@ -599,28 +1055,111 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let bs = Style::default().fg(t.help_border);
     let bgs = Style::default().fg(Color::White).bg(bg);
     let ks = Style::default().fg(t.help_key).bg(bg);
-    let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
-    let ss = Style::default().fg(t.help_section).bg(bg).add_modifier(Modifier::BOLD);
+    let ts = Style::default()
+        .fg(t.help_title)
+        .bg(bg)
+        .add_modifier(Modifier::BOLD);
+    let ss = Style::default()
+        .fg(t.help_section)
+        .bg(bg)
+        .add_modifier(Modifier::BOLD);
 
     let (x0, y0) = draw_box(buf, area, bw, bh, bg, bs);
 
     let ver = env!("CARGO_PKG_VERSION");
     let title = format!("⌨ IFTOPRS v{} — KEYBOARD SHORTCUTS", ver);
     let title_cw = title.chars().count() as u16;
-    set_str(buf, x0 + (bw.saturating_sub(title_cw)) / 2, y0 + 1, &title, ts, bw - 2);
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(title_cw)) / 2,
+        y0 + 1,
+        &title,
+        ts,
+        bw - 2,
+    );
     let byline = "by MenkeTechnologies";
     let byline_s = Style::default().fg(Color::Indexed(240)).bg(bg);
-    set_str(buf, x0 + (bw.saturating_sub(byline.len() as u16)) / 2, y0 + 2, byline, byline_s, bw - 2);
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(byline.len() as u16)) / 2,
+        y0 + 2,
+        byline,
+        byline_s,
+        bw - 2,
+    );
     let bl = "[ jacking into your packet stream ]";
-    set_str(buf, x0 + (bw.saturating_sub(bl.len() as u16)) / 2, y0 + 3, bl, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 2);
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(bl.len() as u16)) / 2,
+        y0 + 3,
+        bl,
+        Style::default().fg(Color::Indexed(240)).bg(bg),
+        bw - 2,
+    );
 
     let entries: [(&str, &[(&str, &str)]); 7] = [
-        ("CAPTURE", &[("n","DNS toggle"),("N","Port names"),("p","Ports"),("Z","Processes"),("B","Bytes/bits"),("b","Bar style"),("T","Cumulative"),("P","Pause")]),
-        ("SORT", &[("1","By 2s"),("2","By 10s"),("3","By 40s"),("<","By source"),(">","By dest"),("r","Reverse"),("o","Freeze order")]),
-        ("NAV", &[("j/↓","Select next"),("k/↑","Select prev"),("^D","Half-page dn"),("^U","Half-page up"),("G/End","Jump last"),("Home","Jump first"),("Esc","Deselect")]),
-        ("FILTER", &[("/","Search flows"),("0","Clear filter")]),
-        ("ACTIONS", &[("e","Export flows"),("y","Copy selected"),("F","Pin/unpin ★")]),
-        ("DISPLAY", &[("Tab","Switch view"),("Enter","Drill into proc"),("c","Theme chooser"),("C","Theme editor"),("i","Interface"),("t","Line mode"),("x","Toggle border"),("g","Toggle header"),("f","Refresh rate"),("h/?","Toggle help"),("q","Quit")]),
+        (
+            "CAPTURE",
+            &[
+                ("n", "DNS toggle"),
+                ("N", "Port names"),
+                ("p", "Ports"),
+                ("Z", "Processes"),
+                ("B", "Bytes/bits"),
+                ("b", "Bar style"),
+                ("T", "Cumulative"),
+                ("P", "Pause"),
+            ],
+        ),
+        (
+            "SORT",
+            &[
+                ("1", "By 2s"),
+                ("2", "By 10s"),
+                ("3", "By 40s"),
+                ("<", "By source"),
+                (">", "By dest"),
+                ("r", "Reverse"),
+                ("o", "Freeze order"),
+            ],
+        ),
+        (
+            "NAV",
+            &[
+                ("j/↓", "Select next"),
+                ("k/↑", "Select prev"),
+                ("^D", "Half-page dn"),
+                ("^U", "Half-page up"),
+                ("G/End", "Jump last"),
+                ("Home", "Jump first"),
+                ("Esc", "Deselect"),
+            ],
+        ),
+        ("FILTER", &[("/", "Search flows"), ("0", "Clear filter")]),
+        (
+            "ACTIONS",
+            &[
+                ("e", "Export flows"),
+                ("y", "Copy selected"),
+                ("F", "Pin/unpin ★"),
+            ],
+        ),
+        (
+            "DISPLAY",
+            &[
+                ("Tab", "Switch view"),
+                ("Enter", "Drill into proc"),
+                ("c", "Theme chooser"),
+                ("C", "Theme editor"),
+                ("i", "Interface"),
+                ("t", "Line mode"),
+                ("x", "Toggle border"),
+                ("g", "Toggle header"),
+                ("f", "Refresh rate"),
+                ("h/?", "Toggle help"),
+                ("q", "Quit"),
+            ],
+        ),
         ("", &[]),
     ];
 
@@ -628,15 +1167,25 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let mut col = 0usize;
     let mut row = 0usize;
     for (section, keys) in &entries {
-        if section.is_empty() { continue; }
-        if row + keys.len() + 2 > (bh as usize - 6) { col += 1; row = 0; if col >= 3 { break; } }
+        if section.is_empty() {
+            continue;
+        }
+        if row + keys.len() + 2 > (bh as usize - 6) {
+            col += 1;
+            row = 0;
+            if col >= 3 {
+                break;
+            }
+        }
         let cx = x0 + 2 + (col as u16) * cw as u16;
         let sy = y0 + 5 + row as u16;
         set_str(buf, cx, sy, section, ss, cw as u16);
         row += 1;
         for &(k, d) in *keys {
             let ey = y0 + 5 + row as u16;
-            if ey >= y0 + bh - 2 { break; }
+            if ey >= y0 + bh - 2 {
+                break;
+            }
             set_str(buf, cx, ey, k, ks, 8);
             set_str(buf, cx + 9, ey, d, bgs, 18);
             row += 1;
@@ -645,10 +1194,22 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     }
 
     let tl = format!("theme: {} | c=chooser", state.theme_name.display_name());
-    set_str(buf, x0 + (bw.saturating_sub(tl.len() as u16)) / 2, y0 + bh - 3,
-        &tl, Style::default().fg(t.help_val).bg(bg), bw - 4);
-    set_str(buf, x0 + (bw.saturating_sub(16)) / 2, y0 + bh - 2,
-        "press h to close", Style::default().fg(Color::Indexed(240)).bg(bg), bw - 4);
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(tl.len() as u16)) / 2,
+        y0 + bh - 3,
+        &tl,
+        Style::default().fg(t.help_val).bg(bg),
+        bw - 4,
+    );
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(16)) / 2,
+        y0 + bh - 2,
+        "press h to close",
+        Style::default().fg(Color::Indexed(240)).bg(bg),
+        bw - 4,
+    );
 }
 
 // ─── Theme editor ─────────────────────────────────────────────────────────────
@@ -663,7 +1224,10 @@ fn draw_theme_editor(frame: &mut Frame, area: Rect, state: &AppState) {
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
     let bgs = Style::default().fg(Color::White).bg(bg);
-    let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
+    let ts = Style::default()
+        .fg(t.help_title)
+        .bg(bg)
+        .add_modifier(Modifier::BOLD);
     let hint_s = Style::default().fg(Color::Indexed(240)).bg(bg);
     let sel_s = Style::default().fg(Color::White).bg(Color::Indexed(237));
 
@@ -672,7 +1236,14 @@ fn draw_theme_editor(frame: &mut Frame, area: Rect, state: &AppState) {
     // Title
     let title = "\u{1F3A8} THEME EDITOR";
     let tlen = title.chars().count() as u16;
-    set_str(buf, x0 + (bw.saturating_sub(tlen)) / 2, y0 + 1, title, ts, bw - 2);
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(tlen)) / 2,
+        y0 + 1,
+        title,
+        ts,
+        bw - 2,
+    );
 
     // Color channel labels
     let labels = ["primary", "accent", "c3", "c4", "c5", "c6"];
@@ -680,7 +1251,9 @@ fn draw_theme_editor(frame: &mut Frame, area: Rect, state: &AppState) {
 
     for (i, label) in labels.iter().enumerate() {
         let row_y = y0 + 3 + i as u16;
-        if row_y >= y0 + bh - 2 { break; }
+        if row_y >= y0 + bh - 2 {
+            break;
+        }
         let is_sel = i == te.slot;
 
         let row_style = if is_sel { sel_s } else { bgs };
@@ -701,11 +1274,25 @@ fn draw_theme_editor(frame: &mut Frame, area: Rect, state: &AppState) {
 
         // Color swatch
         let swatch_s = Style::default().fg(Color::Indexed(colors[i])).bg(bg);
-        set_str(buf, x0 + 20, row_y, "\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}", swatch_s, 5);
+        set_str(
+            buf,
+            x0 + 20,
+            row_y,
+            "\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}",
+            swatch_s,
+            5,
+        );
 
         // Arrow preview
         let arrow_s = Style::default().fg(Color::Indexed(colors[i])).bg(bg);
-        set_str(buf, x0 + 26, row_y, " \u{25C0}\u{2500}\u{2500}\u{25B6}", arrow_s, 5);
+        set_str(
+            buf,
+            x0 + 26,
+            row_y,
+            " \u{25C0}\u{2500}\u{2500}\u{25B6}",
+            arrow_s,
+            5,
+        );
     }
 
     // Preview bar using the full palette
@@ -728,7 +1315,13 @@ fn draw_theme_editor(frame: &mut Frame, area: Rect, state: &AppState) {
             } else {
                 Color::Indexed(colors[5]) // c6
             };
-            set_cell(buf, x0 + 11 + j as u16, preview_y, "\u{2588}", Style::default().fg(c).bg(bg));
+            set_cell(
+                buf,
+                x0 + 11 + j as u16,
+                preview_y,
+                "\u{2588}",
+                Style::default().fg(c).bg(bg),
+            );
         }
     }
 
@@ -736,17 +1329,40 @@ fn draw_theme_editor(frame: &mut Frame, area: Rect, state: &AppState) {
     if te.naming {
         let name_y = y0 + 12;
         if name_y < y0 + bh - 1 {
-            let input_s = Style::default().fg(Color::Indexed(48)).bg(Color::Indexed(235));
+            let input_s = Style::default()
+                .fg(Color::Indexed(48))
+                .bg(Color::Indexed(235));
             set_str(buf, x0 + 2, name_y, "Theme name:", bgs, 11);
             let name_display = format!("{}_", te.name);
             set_str(buf, x0 + 14, name_y, &name_display, input_s, bw - 16);
-            set_str(buf, x0 + 2, name_y + 1, "Enter:save  Esc:back", hint_s, bw - 4);
+            set_str(
+                buf,
+                x0 + 2,
+                name_y + 1,
+                "Enter:save  Esc:back",
+                hint_s,
+                bw - 4,
+            );
         }
     } else {
         let hint_y = y0 + 12;
         if hint_y < y0 + bh - 1 {
-            set_str(buf, x0 + 2, hint_y, "j/k:select  h/l:\u{00B1}1  H/L:\u{00B1}10", hint_s, bw - 4);
-            set_str(buf, x0 + 2, hint_y + 1, "Enter/s:save  Esc/q:cancel", hint_s, bw - 4);
+            set_str(
+                buf,
+                x0 + 2,
+                hint_y,
+                "j/k:select  h/l:\u{00B1}1  H/L:\u{00B1}10",
+                hint_s,
+                bw - 4,
+            );
+            set_str(
+                buf,
+                x0 + 2,
+                hint_y + 1,
+                "Enter/s:save  Esc/q:cancel",
+                hint_s,
+                bw - 4,
+            );
         }
     }
 }
@@ -761,32 +1377,56 @@ fn draw_theme_chooser(frame: &mut Frame, area: Rect, state: &AppState) {
     let bh = (ThemeName::ALL.len() as u16 + 6).min(area.height.saturating_sub(4));
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
-    let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
+    let ts = Style::default()
+        .fg(t.help_title)
+        .bg(bg)
+        .add_modifier(Modifier::BOLD);
 
     let (x0, y0) = draw_box(buf, area, bw, bh, bg, bs);
     set_str(buf, x0 + 2, y0 + 1, "THEME CHOOSER", ts, bw - 4);
 
     for (i, &tn) in ThemeName::ALL.iter().enumerate() {
         let ey = y0 + 3 + i as u16;
-        if ey >= y0 + bh - 2 { break; }
+        if ey >= y0 + bh - 2 {
+            break;
+        }
         let sel = i == ch.selected;
         let act = tn == state.theme_name;
         let mk = if act { "▸ " } else { "  " };
-        let rs = if sel { Style::default().fg(Color::Black).bg(t.help_key) }
-                 else { Style::default().fg(Color::White).bg(bg) };
-        set_str(buf, x0 + 2, ey, &format!("{}{:<20}", mk, tn.display_name()), rs, 24);
+        let rs = if sel {
+            Style::default().fg(Color::Black).bg(t.help_key)
+        } else {
+            Style::default().fg(Color::White).bg(bg)
+        };
+        set_str(
+            buf,
+            x0 + 2,
+            ey,
+            &format!("{}{:<20}", mk, tn.display_name()),
+            rs,
+            24,
+        );
         let swatch = Theme::swatch(tn);
         let sx = x0 + 26;
         for (si, (color, block)) in swatch.iter().enumerate() {
-            let ss = if sel { Style::default().fg(*color).bg(t.help_key) }
-                     else { Style::default().fg(*color).bg(bg) };
+            let ss = if sel {
+                Style::default().fg(*color).bg(t.help_key)
+            } else {
+                Style::default().fg(*color).bg(bg)
+            };
             set_str(buf, sx + (si as u16) * 2, ey, block, ss, 2);
         }
     }
 
     let ft = "j/k:nav  Enter:select  Esc:cancel";
-    set_str(buf, x0 + (bw.saturating_sub(ft.len() as u16)) / 2, y0 + bh - 2,
-        ft, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 4);
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(ft.len() as u16)) / 2,
+        y0 + bh - 2,
+        ft,
+        Style::default().fg(Color::Indexed(240)).bg(bg),
+        bw - 4,
+    );
 }
 
 // ─── Interface chooser ───────────────────────────────────────────────────────
@@ -797,26 +1437,47 @@ fn draw_interface_chooser(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let bw = 50u16.min(area.width.saturating_sub(4));
     let bh = (ch.interfaces.len() as u16 + 5).min(area.height.saturating_sub(4));
-    let (x0, y0) = draw_box(buf, area, bw, bh, t.help_bg, Style::default().fg(t.help_border));
+    let (x0, y0) = draw_box(
+        buf,
+        area,
+        bw,
+        bh,
+        t.help_bg,
+        Style::default().fg(t.help_border),
+    );
     let bg = t.help_bg;
-    let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
+    let ts = Style::default()
+        .fg(t.help_title)
+        .bg(bg)
+        .add_modifier(Modifier::BOLD);
 
     set_str(buf, x0 + 2, y0 + 1, "INTERFACE CHOOSER", ts, bw - 4);
 
     for (i, iface) in ch.interfaces.iter().enumerate() {
         let ey = y0 + 3 + i as u16;
-        if ey >= y0 + bh - 2 { break; }
+        if ey >= y0 + bh - 2 {
+            break;
+        }
         let sel = i == ch.selected;
         let act = *iface == state.interface_name;
         let mk = if act { "▸ " } else { "  " };
-        let rs = if sel { Style::default().fg(Color::Black).bg(t.help_key) }
-                 else { Style::default().fg(Color::White).bg(bg) };
+        let rs = if sel {
+            Style::default().fg(Color::Black).bg(t.help_key)
+        } else {
+            Style::default().fg(Color::White).bg(bg)
+        };
         set_str(buf, x0 + 2, ey, &format!("{}{}", mk, iface), rs, bw - 4);
     }
 
     let ft = "j/k:nav  i:next  Enter:select  Esc:cancel";
-    set_str(buf, x0 + (bw.saturating_sub(ft.len() as u16)) / 2, y0 + bh - 2,
-        ft, Style::default().fg(Color::Indexed(240)).bg(bg), bw - 4);
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(ft.len() as u16)) / 2,
+        y0 + bh - 2,
+        ft,
+        Style::default().fg(Color::Indexed(240)).bg(bg),
+        bw - 4,
+    );
 }
 
 // ─── Filter popup ─────────────────────────────────────────────────────────────
@@ -829,7 +1490,10 @@ fn draw_filter_popup(frame: &mut Frame, area: Rect, state: &AppState) {
     let bh = 9u16;
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
-    let ts = Style::default().fg(t.help_title).bg(bg).add_modifier(Modifier::BOLD);
+    let ts = Style::default()
+        .fg(t.help_title)
+        .bg(bg)
+        .add_modifier(Modifier::BOLD);
     let input_s = Style::default().fg(t.help_key).bg(Color::Indexed(235));
     let hint_s = Style::default().fg(Color::Indexed(240)).bg(bg);
     let label_s = Style::default().fg(t.help_val).bg(bg);
@@ -839,12 +1503,26 @@ fn draw_filter_popup(frame: &mut Frame, area: Rect, state: &AppState) {
     // Centered bold title
     let title = "⚡ FILTER FLOWS";
     let tlen = title.chars().count() as u16;
-    set_str(buf, x0 + (bw.saturating_sub(tlen)) / 2, y0 + 1, title, ts, bw - 2);
+    set_str(
+        buf,
+        x0 + (bw.saturating_sub(tlen)) / 2,
+        y0 + 1,
+        title,
+        ts,
+        bw - 2,
+    );
 
     // Active filter display
     let current_val = state.screen_filter.as_deref().unwrap_or("(none)");
     set_str(buf, x0 + 2, y0 + 2, "Active: ", label_s, 8);
-    set_str(buf, x0 + 10, y0 + 2, current_val, Style::default().fg(Color::White).bg(bg), bw.saturating_sub(13));
+    set_str(
+        buf,
+        x0 + 10,
+        y0 + 2,
+        current_val,
+        Style::default().fg(Color::White).bg(bg),
+        bw.saturating_sub(13),
+    );
 
     // Input field with contrasting background
     let input_w = bw.saturating_sub(4);
@@ -865,7 +1543,14 @@ fn draw_filter_popup(frame: &mut Frame, area: Rect, state: &AppState) {
     };
 
     let display_buf = &fs.buf[vis_start..vis_end.min(buf_len)];
-    set_str(buf, x0 + 4, field_y, display_buf, input_s, input_w.saturating_sub(3));
+    set_str(
+        buf,
+        x0 + 4,
+        field_y,
+        display_buf,
+        input_s,
+        input_w.saturating_sub(3),
+    );
 
     // Block cursor
     let cursor_x = x0 + 4 + (cursor_pos - vis_start) as u16;
@@ -913,7 +1598,13 @@ fn draw_status(frame: &mut Frame, area: Rect, state: &AppState, text: &str) {
 // ─── Header hover tooltip ─────────────────────────────────────────────────────
 
 /// Find which pipe-delimited segment the cursor x falls into.
-fn segment_at_x(buf: &Buffer, hover_x: u16, hover_y: u16, bar_start_x: u16, bar_end_x: u16) -> Option<String> {
+fn segment_at_x(
+    buf: &Buffer,
+    hover_x: u16,
+    hover_y: u16,
+    bar_start_x: u16,
+    bar_end_x: u16,
+) -> Option<String> {
     // Read the rendered bar text from the buffer
     let mut bar_text = String::new();
     for x in bar_start_x..bar_end_x {
@@ -937,7 +1628,11 @@ fn segment_at_x(buf: &Buffer, hover_x: u16, hover_y: u16, bar_start_x: u16, bar_
         }
         pos += seg_chars;
     }
-    bar_text.split('│').next_back().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+    bar_text
+        .split('│')
+        .next_back()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
 }
 
 fn draw_header_hover_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
@@ -949,13 +1644,21 @@ fn draw_header_hover_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
     let margin: u16 = if state.show_border { 1 } else { 0 };
     let buf = frame.buffer_mut();
 
-    let segment = match segment_at_x(buf, hover_x, hover_y, margin, area.width.saturating_sub(margin)) {
+    let segment = match segment_at_x(
+        buf,
+        hover_x,
+        hover_y,
+        margin,
+        area.width.saturating_sub(margin),
+    ) {
         Some(s) => s,
         None => return,
     };
 
     let lines = state.header_segment_tooltip(&segment);
-    if lines.is_empty() { return; }
+    if lines.is_empty() {
+        return;
+    }
 
     // Render tooltip popup
     let t = &state.theme;
@@ -964,14 +1667,26 @@ fn draw_header_hover_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
     let bs = Style::default().fg(t.help_border);
     let bg = t.help_bg;
 
-    let max_label = lines.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(0);
-    let max_val = lines.iter().map(|(_, v)| v.chars().count()).max().unwrap_or(0);
+    let max_label = lines
+        .iter()
+        .map(|(l, _)| l.chars().count())
+        .max()
+        .unwrap_or(0);
+    let max_val = lines
+        .iter()
+        .map(|(_, v)| v.chars().count())
+        .max()
+        .unwrap_or(0);
     let inner_w = (max_label + 3 + max_val).max(20);
     let bw = (inner_w + 4) as u16;
     let bh = (lines.len() + 2) as u16;
 
     // Position above the header bar (since it's at the bottom)
-    let x0 = if hover_x + bw + 2 < area.width { hover_x + 1 } else { area.width.saturating_sub(bw + 1) };
+    let x0 = if hover_x + bw + 2 < area.width {
+        hover_x + 1
+    } else {
+        area.width.saturating_sub(bw + 1)
+    };
     let y0 = hover_y.saturating_sub(bh);
 
     // Fill + rounded border
@@ -980,19 +1695,25 @@ fn draw_header_hover_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
             set_cell(buf, x, y, " ", Style::default().bg(bg));
         }
     }
-    set_cell(buf, x0, y0, "╭", bs); set_cell(buf, x0 + bw - 1, y0, "╮", bs);
-    set_cell(buf, x0, y0 + bh - 1, "╰", bs); set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╯", bs);
+    set_cell(buf, x0, y0, "╭", bs);
+    set_cell(buf, x0 + bw - 1, y0, "╮", bs);
+    set_cell(buf, x0, y0 + bh - 1, "╰", bs);
+    set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╯", bs);
     for x in x0 + 1..x0 + bw - 1 {
-        set_cell(buf, x, y0, "─", bs); set_cell(buf, x, y0 + bh - 1, "─", bs);
+        set_cell(buf, x, y0, "─", bs);
+        set_cell(buf, x, y0 + bh - 1, "─", bs);
     }
     for y in y0 + 1..y0 + bh - 1 {
-        set_cell(buf, x0, y, "│", bs); set_cell(buf, x0 + bw - 1, y, "│", bs);
+        set_cell(buf, x0, y, "│", bs);
+        set_cell(buf, x0 + bw - 1, y, "│", bs);
     }
 
     // Content
     for (i, (label, value)) in lines.iter().enumerate() {
         let ey = y0 + 1 + i as u16;
-        if ey >= y0 + bh - 1 { break; }
+        if ey >= y0 + bh - 1 {
+            break;
+        }
         set_str(buf, x0 + 2, ey, label, label_s, max_label as u16 + 1);
         if !value.is_empty() {
             let vx = x0 + 2 + max_label as u16 + 2;
@@ -1017,8 +1738,16 @@ fn draw_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
     let bh = (tt.lines.len() + 2) as u16;
 
     // Position near the click, but keep on screen
-    let x0 = if tt.x + bw + 2 < area.width { tt.x + 1 } else { tt.x.saturating_sub(bw + 1) };
-    let y0 = if tt.y + bh + 1 < area.height { tt.y } else { tt.y.saturating_sub(bh) };
+    let x0 = if tt.x + bw + 2 < area.width {
+        tt.x + 1
+    } else {
+        tt.x.saturating_sub(bw + 1)
+    };
+    let y0 = if tt.y + bh + 1 < area.height {
+        tt.y
+    } else {
+        tt.y.saturating_sub(bh)
+    };
 
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
@@ -1031,27 +1760,46 @@ fn draw_tooltip(frame: &mut Frame, area: Rect, state: &AppState) {
             set_cell(buf, x, y, " ", Style::default().bg(bg));
         }
     }
-    set_cell(buf, x0, y0, "╭", bs); set_cell(buf, x0 + bw - 1, y0, "╮", bs);
-    set_cell(buf, x0, y0 + bh - 1, "╰", bs); set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╯", bs);
+    set_cell(buf, x0, y0, "╭", bs);
+    set_cell(buf, x0 + bw - 1, y0, "╮", bs);
+    set_cell(buf, x0, y0 + bh - 1, "╰", bs);
+    set_cell(buf, x0 + bw - 1, y0 + bh - 1, "╯", bs);
     for x in x0 + 1..x0 + bw - 1 {
-        set_cell(buf, x, y0, "─", bs); set_cell(buf, x, y0 + bh - 1, "─", bs);
+        set_cell(buf, x, y0, "─", bs);
+        set_cell(buf, x, y0 + bh - 1, "─", bs);
     }
     for y in y0 + 1..y0 + bh - 1 {
-        set_cell(buf, x0, y, "│", bs); set_cell(buf, x0 + bw - 1, y, "│", bs);
+        set_cell(buf, x0, y, "│", bs);
+        set_cell(buf, x0 + bw - 1, y, "│", bs);
     }
 
     // Content
     for (i, (label, value)) in tt.lines.iter().enumerate() {
         let ey = y0 + 1 + i as u16;
-        if ey >= y0 + bh - 1 { break; }
+        if ey >= y0 + bh - 1 {
+            break;
+        }
         if label.is_empty() && value.is_empty() {
             // Separator line
             for x in x0 + 1..x0 + bw - 1 {
-                set_cell(buf, x, ey, "·", Style::default().fg(Color::Indexed(240)).bg(bg));
+                set_cell(
+                    buf,
+                    x,
+                    ey,
+                    "·",
+                    Style::default().fg(Color::Indexed(240)).bg(bg),
+                );
             }
         } else {
             set_str(buf, x0 + 2, ey, label, label_s, max_label as u16 + 1);
-            set_str(buf, x0 + 2 + max_label as u16 + 2, ey, value, val_s, max_val as u16 + 1);
+            set_str(
+                buf,
+                x0 + 2 + max_label as u16 + 2,
+                ey,
+                value,
+                val_s,
+                max_val as u16 + 1,
+            );
         }
     }
 }
@@ -1117,14 +1865,19 @@ mod tests {
 
     #[test]
     fn draw_flows_empty_flows_no_panic() {
-        use crate::ui::app::AppState;
-        use crate::util::resolver::Resolver;
         use crate::config::prefs::Prefs;
+        use crate::ui::app::AppState;
         use crate::ui::app::CliOverrides;
+        use crate::util::resolver::Resolver;
 
         let mut app = AppState::new(
-            Resolver::new(false), true, true, false, true,
-            &Prefs::default(), CliOverrides::default(),
+            Resolver::new(false),
+            true,
+            true,
+            false,
+            true,
+            &Prefs::default(),
+            CliOverrides::default(),
         );
         // Simulate: scroll_offset > 0 but flows is empty
         app.scroll_offset = 10;
@@ -1133,62 +1886,98 @@ mod tests {
         // Render into a small terminal — should not panic
         let backend = ratatui::backend::TestBackend::new(80, 24);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
-        terminal.draw(|frame| {
-            draw(frame, &mut app);
-        }).unwrap();
+        terminal
+            .draw(|frame| {
+                draw(frame, &mut app);
+            })
+            .unwrap();
     }
 
     #[test]
     fn draw_flows_scroll_offset_beyond_flows_no_panic() {
-        use crate::ui::app::AppState;
-        use crate::util::resolver::Resolver;
         use crate::config::prefs::Prefs;
-        use crate::ui::app::CliOverrides;
-        use crate::data::tracker::FlowSnapshot;
         use crate::data::flow::{FlowKey, Protocol};
+        use crate::data::tracker::FlowSnapshot;
+        use crate::ui::app::AppState;
+        use crate::ui::app::CliOverrides;
+        use crate::util::resolver::Resolver;
 
         let mut app = AppState::new(
-            Resolver::new(false), true, true, false, true,
-            &Prefs::default(), CliOverrides::default(),
+            Resolver::new(false),
+            true,
+            true,
+            false,
+            true,
+            &Prefs::default(),
+            CliOverrides::default(),
         );
         app.flows = vec![FlowSnapshot {
             key: FlowKey {
                 src: "10.0.0.1".parse().unwrap(),
                 dst: "10.0.0.2".parse().unwrap(),
-                src_port: 5000, dst_port: 80,
+                src_port: 5000,
+                dst_port: 80,
                 protocol: Protocol::Tcp,
             },
-            sent_2s: 100.0, sent_10s: 0.0, sent_40s: 0.0,
-            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
-            total_sent: 100, total_recv: 0,
-            process_name: None, pid: None, history: Vec::new(),
+            sent_2s: 100.0,
+            sent_10s: 0.0,
+            sent_40s: 0.0,
+            recv_2s: 0.0,
+            recv_10s: 0.0,
+            recv_40s: 0.0,
+            total_sent: 100,
+            total_recv: 0,
+            process_name: None,
+            pid: None,
+            history: Vec::new(),
         }];
         app.scroll_offset = 100; // way beyond
 
         let backend = ratatui::backend::TestBackend::new(80, 24);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
-        terminal.draw(|frame| {
-            draw(frame, &mut app);
-        }).unwrap();
+        terminal
+            .draw(|frame| {
+                draw(frame, &mut app);
+            })
+            .unwrap();
     }
 
     fn make_test_app() -> crate::ui::app::AppState {
+        use crate::config::prefs::Prefs;
         use crate::ui::app::{AppState, CliOverrides};
         use crate::util::resolver::Resolver;
-        use crate::config::prefs::Prefs;
-        AppState::new(Resolver::new(false), true, true, false, true,
-            &Prefs::default(), CliOverrides::default())
+        AppState::new(
+            Resolver::new(false),
+            true,
+            true,
+            false,
+            true,
+            &Prefs::default(),
+            CliOverrides::default(),
+        )
     }
 
     fn make_test_flow(port: u16) -> crate::data::tracker::FlowSnapshot {
-        use crate::data::tracker::FlowSnapshot;
         use crate::data::flow::{FlowKey, Protocol};
+        use crate::data::tracker::FlowSnapshot;
         FlowSnapshot {
-            key: FlowKey { src: "10.0.0.1".parse().unwrap(), dst: "10.0.0.2".parse().unwrap(),
-                src_port: port, dst_port: 80, protocol: Protocol::Tcp },
-            sent_2s: port as f64 * 100.0, sent_10s: 50.0, sent_40s: 25.0,
-            recv_2s: port as f64 * 50.0, recv_10s: 25.0, recv_40s: 10.0,
-            total_sent: 1000, total_recv: 500, process_name: None, pid: None,
+            key: FlowKey {
+                src: "10.0.0.1".parse().unwrap(),
+                dst: "10.0.0.2".parse().unwrap(),
+                src_port: port,
+                dst_port: 80,
+                protocol: Protocol::Tcp,
+            },
+            sent_2s: port as f64 * 100.0,
+            sent_10s: 50.0,
+            sent_40s: 25.0,
+            recv_2s: port as f64 * 50.0,
+            recv_10s: 25.0,
+            recv_40s: 10.0,
+            total_sent: 1000,
+            total_recv: 500,
+            process_name: None,
+            pid: None,
             history: Vec::new(),
         }
     }
@@ -1342,7 +2131,12 @@ mod tests {
     #[test]
     fn draw_all_bar_styles() {
         use crate::ui::app::BarStyle;
-        for style in [BarStyle::Gradient, BarStyle::Solid, BarStyle::Thin, BarStyle::Ascii] {
+        for style in [
+            BarStyle::Gradient,
+            BarStyle::Solid,
+            BarStyle::Thin,
+            BarStyle::Ascii,
+        ] {
             let mut app = make_test_app();
             app.bar_style = style;
             app.flows = vec![make_test_flow(10)];
@@ -1398,12 +2192,21 @@ mod tests {
         let mut f = make_test_flow(1);
         f.process_name = Some("curl".into());
         f.pid = Some(42);
-        app.update_snapshot(vec![f], crate::data::tracker::TotalStats {
-            sent_2s: 100.0, sent_10s: 50.0, sent_40s: 25.0,
-            recv_2s: 50.0, recv_10s: 25.0, recv_40s: 10.0,
-            cumulative_sent: 1000, cumulative_recv: 500,
-            peak_sent: 200.0, peak_recv: 100.0,
-        });
+        app.update_snapshot(
+            vec![f],
+            crate::data::tracker::TotalStats {
+                sent_2s: 100.0,
+                sent_10s: 50.0,
+                sent_40s: 25.0,
+                recv_2s: 50.0,
+                recv_10s: 25.0,
+                recv_40s: 10.0,
+                cumulative_sent: 1000,
+                cumulative_recv: 500,
+                peak_sent: 200.0,
+                peak_recv: 100.0,
+            },
+        );
         let backend = ratatui::backend::TestBackend::new(120, 24);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
@@ -1422,18 +2225,29 @@ mod tests {
     fn draw_process_view_many_processes() {
         let mut app = make_test_app();
         app.view_tab = crate::ui::app::ViewTab::Processes;
-        let flows: Vec<_> = (1..=20).map(|i| {
-            let mut f = make_test_flow(i);
-            f.process_name = Some(format!("process_{}", i));
-            f.pid = Some(i as u32 * 100);
-            f
-        }).collect();
-        app.update_snapshot(flows, crate::data::tracker::TotalStats {
-            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
-            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
-            cumulative_sent: 0, cumulative_recv: 0,
-            peak_sent: 0.0, peak_recv: 0.0,
-        });
+        let flows: Vec<_> = (1..=20)
+            .map(|i| {
+                let mut f = make_test_flow(i);
+                f.process_name = Some(format!("process_{}", i));
+                f.pid = Some(i as u32 * 100);
+                f
+            })
+            .collect();
+        app.update_snapshot(
+            flows,
+            crate::data::tracker::TotalStats {
+                sent_2s: 0.0,
+                sent_10s: 0.0,
+                sent_40s: 0.0,
+                recv_2s: 0.0,
+                recv_10s: 0.0,
+                recv_40s: 0.0,
+                cumulative_sent: 0,
+                cumulative_recv: 0,
+                peak_sent: 0.0,
+                peak_recv: 0.0,
+            },
+        );
         let backend = ratatui::backend::TestBackend::new(120, 30);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
@@ -1443,14 +2257,25 @@ mod tests {
     fn draw_process_view_with_selection() {
         let mut app = make_test_app();
         app.view_tab = crate::ui::app::ViewTab::Processes;
-        let mut f1 = make_test_flow(1); f1.process_name = Some("a".into());
-        let mut f2 = make_test_flow(2); f2.process_name = Some("b".into());
-        app.update_snapshot(vec![f1, f2], crate::data::tracker::TotalStats {
-            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
-            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
-            cumulative_sent: 0, cumulative_recv: 0,
-            peak_sent: 0.0, peak_recv: 0.0,
-        });
+        let mut f1 = make_test_flow(1);
+        f1.process_name = Some("a".into());
+        let mut f2 = make_test_flow(2);
+        f2.process_name = Some("b".into());
+        app.update_snapshot(
+            vec![f1, f2],
+            crate::data::tracker::TotalStats {
+                sent_2s: 0.0,
+                sent_10s: 0.0,
+                sent_40s: 0.0,
+                recv_2s: 0.0,
+                recv_10s: 0.0,
+                recv_40s: 0.0,
+                cumulative_sent: 0,
+                cumulative_recv: 0,
+                peak_sent: 0.0,
+                peak_recv: 0.0,
+            },
+        );
         app.process_selected = Some(1);
         let backend = ratatui::backend::TestBackend::new(120, 24);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
@@ -1461,13 +2286,23 @@ mod tests {
     fn draw_process_view_narrow_terminal() {
         let mut app = make_test_app();
         app.view_tab = crate::ui::app::ViewTab::Processes;
-        let mut f = make_test_flow(1); f.process_name = Some("test".into());
-        app.update_snapshot(vec![f], crate::data::tracker::TotalStats {
-            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
-            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
-            cumulative_sent: 0, cumulative_recv: 0,
-            peak_sent: 0.0, peak_recv: 0.0,
-        });
+        let mut f = make_test_flow(1);
+        f.process_name = Some("test".into());
+        app.update_snapshot(
+            vec![f],
+            crate::data::tracker::TotalStats {
+                sent_2s: 0.0,
+                sent_10s: 0.0,
+                sent_40s: 0.0,
+                recv_2s: 0.0,
+                recv_10s: 0.0,
+                recv_40s: 0.0,
+                cumulative_sent: 0,
+                cumulative_recv: 0,
+                peak_sent: 0.0,
+                peak_recv: 0.0,
+            },
+        );
         let backend = ratatui::backend::TestBackend::new(40, 10);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
@@ -1478,12 +2313,21 @@ mod tests {
         let mut app = make_test_app();
         app.view_tab = crate::ui::app::ViewTab::Processes;
         let f = make_test_flow(1); // no process_name → "(unknown)"
-        app.update_snapshot(vec![f], crate::data::tracker::TotalStats {
-            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
-            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
-            cumulative_sent: 0, cumulative_recv: 0,
-            peak_sent: 0.0, peak_recv: 0.0,
-        });
+        app.update_snapshot(
+            vec![f],
+            crate::data::tracker::TotalStats {
+                sent_2s: 0.0,
+                sent_10s: 0.0,
+                sent_40s: 0.0,
+                recv_2s: 0.0,
+                recv_10s: 0.0,
+                recv_40s: 0.0,
+                cumulative_sent: 0,
+                cumulative_recv: 0,
+                peak_sent: 0.0,
+                peak_recv: 0.0,
+            },
+        );
         let backend = ratatui::backend::TestBackend::new(120, 24);
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
@@ -1493,17 +2337,28 @@ mod tests {
     fn draw_process_view_scrolled() {
         let mut app = make_test_app();
         app.view_tab = crate::ui::app::ViewTab::Processes;
-        let flows: Vec<_> = (1..=50).map(|i| {
-            let mut f = make_test_flow(i);
-            f.process_name = Some(format!("p{}", i));
-            f
-        }).collect();
-        app.update_snapshot(flows, crate::data::tracker::TotalStats {
-            sent_2s: 0.0, sent_10s: 0.0, sent_40s: 0.0,
-            recv_2s: 0.0, recv_10s: 0.0, recv_40s: 0.0,
-            cumulative_sent: 0, cumulative_recv: 0,
-            peak_sent: 0.0, peak_recv: 0.0,
-        });
+        let flows: Vec<_> = (1..=50)
+            .map(|i| {
+                let mut f = make_test_flow(i);
+                f.process_name = Some(format!("p{}", i));
+                f
+            })
+            .collect();
+        app.update_snapshot(
+            flows,
+            crate::data::tracker::TotalStats {
+                sent_2s: 0.0,
+                sent_10s: 0.0,
+                sent_40s: 0.0,
+                recv_2s: 0.0,
+                recv_10s: 0.0,
+                recv_40s: 0.0,
+                cumulative_sent: 0,
+                cumulative_recv: 0,
+                peak_sent: 0.0,
+                peak_recv: 0.0,
+            },
+        );
         app.process_scroll = 25;
         app.process_selected = Some(30);
         let backend = ratatui::backend::TestBackend::new(120, 24);

@@ -40,16 +40,36 @@ pub enum ThemeName {
 
 impl ThemeName {
     pub const ALL: &'static [ThemeName] = &[
-        ThemeName::NeonSprawl, ThemeName::AcidRain, ThemeName::IceBreaker,
-        ThemeName::SynthWave, ThemeName::RustBelt, ThemeName::GhostWire,
-        ThemeName::RedSector, ThemeName::SakuraDen, ThemeName::DataStream,
-        ThemeName::SolarFlare, ThemeName::NeonNoir, ThemeName::ChromeHeart,
-        ThemeName::BladeRunner, ThemeName::VoidWalker, ThemeName::ToxicWaste,
-        ThemeName::CyberFrost, ThemeName::PlasmaCore, ThemeName::SteelNerve,
-        ThemeName::DarkSignal, ThemeName::GlitchPop, ThemeName::HoloShift,
-        ThemeName::NightCity, ThemeName::DeepNet, ThemeName::LaserGrid,
-        ThemeName::QuantumFlux, ThemeName::BioHazard, ThemeName::Darkwave,
-        ThemeName::Overlock, ThemeName::Megacorp, ThemeName::Zaibatsu,
+        ThemeName::NeonSprawl,
+        ThemeName::AcidRain,
+        ThemeName::IceBreaker,
+        ThemeName::SynthWave,
+        ThemeName::RustBelt,
+        ThemeName::GhostWire,
+        ThemeName::RedSector,
+        ThemeName::SakuraDen,
+        ThemeName::DataStream,
+        ThemeName::SolarFlare,
+        ThemeName::NeonNoir,
+        ThemeName::ChromeHeart,
+        ThemeName::BladeRunner,
+        ThemeName::VoidWalker,
+        ThemeName::ToxicWaste,
+        ThemeName::CyberFrost,
+        ThemeName::PlasmaCore,
+        ThemeName::SteelNerve,
+        ThemeName::DarkSignal,
+        ThemeName::GlitchPop,
+        ThemeName::HoloShift,
+        ThemeName::NightCity,
+        ThemeName::DeepNet,
+        ThemeName::LaserGrid,
+        ThemeName::QuantumFlux,
+        ThemeName::BioHazard,
+        ThemeName::Darkwave,
+        ThemeName::Overlock,
+        ThemeName::Megacorp,
+        ThemeName::Zaibatsu,
         ThemeName::Iftopcolor,
     ];
 
@@ -88,43 +108,42 @@ impl ThemeName {
             ThemeName::Iftopcolor => "iftopcolor",
         }
     }
-
 }
 
 /// 6-color palette from storageshower: (primary, accent, c3, c4, c5, c6)
 fn palette(name: ThemeName) -> (u8, u8, u8, u8, u8, u8) {
     match name {
-        ThemeName::NeonSprawl  => (27, 48, 135, 141, 63, 99),
-        ThemeName::AcidRain    => (28, 46, 34, 40, 22, 35),
-        ThemeName::IceBreaker  => (19, 39, 25, 33, 21, 32),
-        ThemeName::SynthWave   => (91, 177, 128, 134, 93, 97),
-        ThemeName::RustBelt    => (172, 214, 178, 220, 166, 130),
-        ThemeName::GhostWire   => (37, 50, 44, 87, 30, 23),
-        ThemeName::RedSector   => (160, 203, 196, 210, 124, 88),
-        ThemeName::SakuraDen   => (175, 218, 182, 225, 169, 132),
-        ThemeName::DataStream  => (22, 46, 28, 119, 34, 22),
-        ThemeName::SolarFlare  => (202, 220, 196, 213, 160, 125),
-        ThemeName::NeonNoir    => (201, 231, 93, 219, 57, 53),
+        ThemeName::NeonSprawl => (27, 48, 135, 141, 63, 99),
+        ThemeName::AcidRain => (28, 46, 34, 40, 22, 35),
+        ThemeName::IceBreaker => (19, 39, 25, 33, 21, 32),
+        ThemeName::SynthWave => (91, 177, 128, 134, 93, 97),
+        ThemeName::RustBelt => (172, 214, 178, 220, 166, 130),
+        ThemeName::GhostWire => (37, 50, 44, 87, 30, 23),
+        ThemeName::RedSector => (160, 203, 196, 210, 124, 88),
+        ThemeName::SakuraDen => (175, 218, 182, 225, 169, 132),
+        ThemeName::DataStream => (22, 46, 28, 119, 34, 22),
+        ThemeName::SolarFlare => (202, 220, 196, 213, 160, 125),
+        ThemeName::NeonNoir => (201, 231, 93, 219, 57, 53),
         ThemeName::ChromeHeart => (250, 255, 246, 253, 243, 239),
         ThemeName::BladeRunner => (208, 37, 166, 73, 130, 23),
-        ThemeName::VoidWalker  => (55, 99, 54, 141, 92, 17),
-        ThemeName::ToxicWaste  => (118, 190, 154, 226, 82, 58),
-        ThemeName::CyberFrost  => (159, 195, 153, 189, 111, 67),
-        ThemeName::PlasmaCore  => (199, 213, 163, 207, 126, 89),
-        ThemeName::SteelNerve  => (68, 110, 60, 146, 24, 236),
-        ThemeName::DarkSignal  => (30, 43, 23, 79, 29, 16),
-        ThemeName::GlitchPop   => (201, 51, 226, 47, 196, 21),
-        ThemeName::HoloShift   => (123, 219, 159, 183, 87, 133),
-        ThemeName::NightCity   => (214, 227, 209, 223, 172, 94),
-        ThemeName::DeepNet     => (19, 33, 17, 75, 26, 16),
-        ThemeName::LaserGrid   => (46, 201, 51, 226, 196, 21),
+        ThemeName::VoidWalker => (55, 99, 54, 141, 92, 17),
+        ThemeName::ToxicWaste => (118, 190, 154, 226, 82, 58),
+        ThemeName::CyberFrost => (159, 195, 153, 189, 111, 67),
+        ThemeName::PlasmaCore => (199, 213, 163, 207, 126, 89),
+        ThemeName::SteelNerve => (68, 110, 60, 146, 24, 236),
+        ThemeName::DarkSignal => (30, 43, 23, 79, 29, 16),
+        ThemeName::GlitchPop => (201, 51, 226, 47, 196, 21),
+        ThemeName::HoloShift => (123, 219, 159, 183, 87, 133),
+        ThemeName::NightCity => (214, 227, 209, 223, 172, 94),
+        ThemeName::DeepNet => (19, 33, 17, 75, 26, 16),
+        ThemeName::LaserGrid => (46, 201, 51, 226, 196, 21),
         ThemeName::QuantumFlux => (135, 75, 171, 111, 98, 61),
-        ThemeName::BioHazard   => (148, 184, 106, 192, 64, 22),
-        ThemeName::Darkwave    => (53, 140, 89, 176, 127, 52),
-        ThemeName::Overlock    => (196, 208, 160, 214, 124, 52),
-        ThemeName::Megacorp    => (252, 39, 245, 81, 242, 236),
-        ThemeName::Zaibatsu    => (167, 216, 131, 224, 95, 52),
-        ThemeName::Iftopcolor  => (21, 46, 28, 48, 33, 19),
+        ThemeName::BioHazard => (148, 184, 106, 192, 64, 22),
+        ThemeName::Darkwave => (53, 140, 89, 176, 127, 52),
+        ThemeName::Overlock => (196, 208, 160, 214, 124, 52),
+        ThemeName::Megacorp => (252, 39, 245, 81, 242, 236),
+        ThemeName::Zaibatsu => (167, 216, 131, 224, 95, 52),
+        ThemeName::Iftopcolor => (21, 46, 28, 48, 33, 19),
     }
 }
 
@@ -173,17 +192,17 @@ impl Theme {
 
     pub fn from_palette_raw(c1: u8, c2: u8, c3: u8, c4: u8, c5: u8, c6: u8) -> Self {
         Theme {
-            bar_color: Color::Indexed(c6),       // darkest — bar background
+            bar_color: Color::Indexed(c6), // darkest — bar background
             bar_text: Color::Black,
-            host_src: Color::Indexed(c2),         // accent — bright
+            host_src: Color::Indexed(c2), // accent — bright
             host_dst: Color::Indexed(c2),
             arrow: Color::Indexed(c5),
-            rate_2s: Color::Indexed(c2),          // accent
-            rate_10s: Color::Indexed(c4),         // mid
-            rate_40s: Color::Indexed(c5),         // dim
+            rate_2s: Color::Indexed(c2),  // accent
+            rate_10s: Color::Indexed(c4), // mid
+            rate_40s: Color::Indexed(c5), // dim
             scale_label: Color::Indexed(c2),
             scale_line: Color::Indexed(c6),
-            total_label: Color::Indexed(c1),      // primary
+            total_label: Color::Indexed(c1), // primary
             cum_label: Color::Indexed(c2),
             peak_label: Color::Indexed(c4),
             proc_name: Color::Indexed(c3),
