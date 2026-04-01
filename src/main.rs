@@ -529,6 +529,15 @@ fn run_app(
                     app.save_prefs();
                 }
                 KeyCode::Char('T') => {
+                    app.hover_tooltips = !app.hover_tooltips;
+                    app.set_status(if app.hover_tooltips {
+                        "Hover tooltips: on"
+                    } else {
+                        "Hover tooltips: off"
+                    });
+                    app.save_prefs();
+                }
+                KeyCode::Char('U') => {
                     app.show_cumulative = !app.show_cumulative;
                     app.save_prefs();
                 }
@@ -552,15 +561,6 @@ fn run_app(
                         "Header: on"
                     } else {
                         "Header: off"
-                    });
-                    app.save_prefs();
-                }
-                KeyCode::Char('m') => {
-                    app.hover_tooltips = !app.hover_tooltips;
-                    app.set_status(if app.hover_tooltips {
-                        "Hover tooltips: on"
-                    } else {
-                        "Hover tooltips: off"
                     });
                     app.save_prefs();
                 }
