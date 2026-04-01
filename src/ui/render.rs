@@ -146,8 +146,8 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
         draw_tooltip(frame, size, state);
     }
 
-    // Hover tooltip on header bar segments (only when hover tooltips enabled)
-    if state.hover_tooltips
+    // Hover tooltip on header bar segments (right-click always works, hover respects toggle)
+    if (state.hover_tooltips || state.hover.right_click)
         && state.show_header
         && !state.show_help
         && !state.theme_chooser.active
