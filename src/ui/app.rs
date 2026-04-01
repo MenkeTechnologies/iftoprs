@@ -626,10 +626,25 @@ impl AppState {
                 ),
                 ("  Desc".into(), "Real-time bandwidth monitor".into()),
                 ("  Author".into(), "MenkeTechnologies".into()),
-                ("  License".into(), "MIT".into()),
                 (
                     "  Repo".into(),
                     "github.com/MenkeTechnologies/iftoprs".into(),
+                ),
+                ("  Crate".into(), "crates.io/crates/iftoprs".into()),
+                ("  License".into(), "MIT".into()),
+                ("  Install".into(), "cargo install iftoprs".into()),
+                (
+                    "  Platform".into(),
+                    format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
+                ),
+                (
+                    "  Built with".into(),
+                    "Rust + ratatui + pcap + crossterm".into(),
+                ),
+                ("  Config".into(), "~/.iftoprs.conf (TOML)".into()),
+                (
+                    "  Flows".into(),
+                    format!("{} tracked", self.total_flow_count),
                 ),
             ]
         } else if seg.starts_with("iface:") {
@@ -654,7 +669,16 @@ impl AppState {
                     if self.show_dns {
                         "Enabled (n to toggle)"
                     } else {
-                        "Disabled"
+                        "Disabled (n to toggle)"
+                    }
+                    .into(),
+                ),
+                (
+                    "  Port names".into(),
+                    if self.show_port_names {
+                        "Enabled (e.g. https, http)"
+                    } else {
+                        "Disabled (raw port numbers)"
                     }
                     .into(),
                 ),
@@ -663,20 +687,34 @@ impl AppState {
                     if self.show_ports {
                         "Shown (p to toggle)"
                     } else {
-                        "Hidden"
+                        "Hidden (p to toggle)"
                     }
                     .into(),
                 ),
                 ("  Promisc".into(), "Set via -p flag".into()),
+                (
+                    "  Flows".into(),
+                    format!("{} active connections", self.total_flow_count),
+                ),
+                (
+                    "  Chooser".into(),
+                    "i to switch interface live".into(),
+                ),
+                ("  Source".into(), "pcap::Device::list()".into()),
             ]
         } else if seg.starts_with("flows:") {
             let filtered = self.flows.len();
+            let hidden = self.total_flow_count.saturating_sub(filtered);
             let pinned = self.pinned.len();
             let total_rate = self.totals.sent_2s + self.totals.recv_2s;
+            let peak_combined = self.totals.peak_sent + self.totals.peak_recv;
+            let process_count = self.process_snapshots.len();
             vec![
                 ("▶ Flows".into(), format!("{} total", self.total_flow_count)),
                 ("  Visible".into(), format!("{} (after filter)", filtered)),
+                ("  Hidden".into(), format!("{} filtered out", hidden)),
                 ("  Pinned".into(), format!("{} (F to pin)", pinned)),
+                ("  Processes".into(), format!("{} unique", process_count)),
                 (
                     "  Total TX".into(),
                     crate::util::format::readable_size(self.totals.sent_2s, self.use_bytes),
@@ -697,23 +735,46 @@ impl AppState {
                     "  Peak RX".into(),
                     crate::util::format::readable_size(self.totals.peak_recv, self.use_bytes),
                 ),
+                (
+                    "  Peak total".into(),
+                    crate::util::format::readable_size(peak_combined, self.use_bytes),
+                ),
+                (
+                    "  Cumul TX".into(),
+                    crate::util::format::readable_total(
+                        self.totals.cumulative_sent,
+                        self.use_bytes,
+                    ),
+                ),
+                (
+                    "  Cumul RX".into(),
+                    crate::util::format::readable_total(
+                        self.totals.cumulative_recv,
+                        self.use_bytes,
+                    ),
+                ),
+                (
+                    "  View".into(),
+                    format!("{:?} (Tab to switch)", self.view_tab),
+                ),
+                ("  Keys".into(), "j/k=scroll  /=filter  F=pin".into()),
             ]
         } else if seg.starts_with("clock:") {
             let now = chrono::Local::now();
+            let epoch = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
             vec![
                 ("▶ Clock".into(), now.format("%H:%M:%S").to_string()),
-                ("  Date".into(), now.format("%Y-%m-%d").to_string()),
-                ("  Timezone".into(), now.format("%Z").to_string()),
+                ("  Date".into(), now.format("%Y-%m-%d %A").to_string()),
+                ("  Timezone".into(), now.format("%Z (%:z)").to_string()),
+                ("  Epoch".into(), format!("{} seconds", epoch)),
                 (
-                    "  Uptime".into(),
-                    format!(
-                        "{}s",
-                        std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_secs()
-                    ),
+                    "  Refresh".into(),
+                    format!("Every {}s", self.refresh_rate),
                 ),
+                ("  Source".into(), "chrono::Local::now()".into()),
             ]
         } else if seg.starts_with("sort:") {
             let name = match self.sort_column {
@@ -723,14 +784,28 @@ impl AppState {
                 SortColumn::SrcName => "Source hostname",
                 SortColumn::DstName => "Destination hostname",
             };
+            let top = self.flows.first().map(|f| {
+                format!(
+                    "{} ({})",
+                    self.resolver.resolve(f.key.src),
+                    crate::util::format::readable_size(f.sent_2s + f.recv_2s, self.use_bytes)
+                )
+            });
+            let bottom = self.flows.last().map(|f| {
+                format!(
+                    "{} ({})",
+                    self.resolver.resolve(f.key.src),
+                    crate::util::format::readable_size(f.sent_2s + f.recv_2s, self.use_bytes)
+                )
+            });
             vec![
                 ("▶ Sort".into(), name.into()),
                 (
                     "  Direction".into(),
                     if self.sort_reverse {
-                        "Reversed"
+                        "Reversed ▼"
                     } else {
-                        "Normal (highest first)"
+                        "Normal ▲ (highest first)"
                     }
                     .into(),
                 ),
@@ -743,56 +818,199 @@ impl AppState {
                     }
                     .into(),
                 ),
-                ("  Keys".into(), "1/2/3 = rate, </> = host".into()),
-                ("  Reverse".into(), "r to toggle".into()),
+                (
+                    "  First".into(),
+                    top.unwrap_or_else(|| "(none)".into()),
+                ),
+                (
+                    "  Last".into(),
+                    bottom.unwrap_or_else(|| "(none)".into()),
+                ),
+                (
+                    "  Flows".into(),
+                    format!("{} sorted", self.flows.len()),
+                ),
+                ("  Rate keys".into(), "1=2s  2=10s  3=40s".into()),
+                ("  Host keys".into(), "<=src  >=dst".into()),
+                ("  Reverse".into(), "r to toggle direction".into()),
+                (
+                    "  Mouse".into(),
+                    "Right-click header for tooltip".into(),
+                ),
+                ("  Config".into(), "sort_column in prefs".into()),
             ]
         } else if seg.starts_with("rate:") {
+            let rates = [1u64, 2, 5, 10];
+            let idx = rates.iter().position(|&r| r == self.refresh_rate).unwrap_or(0);
+            let next = rates[(idx + 1) % rates.len()];
+            let prev = rates[(idx + rates.len() - 1) % rates.len()];
             vec![
-                ("▶ Refresh Rate".into(), format!("{}s", self.refresh_rate)),
-                ("  Cycle".into(), "f to change (1→2→5→10)".into()),
-                ("  Rendering".into(), "~30 fps (33ms)".into()),
-                ("  Data".into(), format!("Every {}s", self.refresh_rate)),
+                (
+                    "▶ Refresh Rate".into(),
+                    format!("{}s", self.refresh_rate),
+                ),
+                (
+                    "  Desc".into(),
+                    "How often flow data is re-collected".into(),
+                ),
+                ("  Next (f)".into(), format!("{}s", next)),
+                ("  Prev (F)".into(), format!("{}s", prev)),
+                ("  Cycle".into(), "1s → 2s → 5s → 10s".into()),
+                ("  Rendering".into(), "~30 fps (33ms tick)".into()),
+                (
+                    "  Paused".into(),
+                    if self.paused {
+                        "Yes (press P)"
+                    } else {
+                        "No — live updates"
+                    }
+                    .into(),
+                ),
+                (
+                    "  Source".into(),
+                    "pcap capture thread via mpsc channel".into(),
+                ),
+                ("  Config".into(), "refresh_rate in prefs".into()),
             ]
         } else if seg.starts_with("theme:") {
+            let builtin_count = crate::config::theme::ThemeName::ALL.len();
+            let custom_count = self.custom_themes.len();
             vec![
-                ("▶ Theme".into(), self.theme_name.display_name().into()),
                 (
-                    "  Available".into(),
-                    format!("{} themes", crate::config::theme::ThemeName::ALL.len()),
+                    "▶ Theme".into(),
+                    self.theme_name.display_name().into(),
                 ),
-                ("  Chooser".into(), "c to open".into()),
-                ("  CLI".into(), "--list-colors to preview".into()),
+                (
+                    "  Builtins".into(),
+                    format!("{} palettes", builtin_count),
+                ),
+                (
+                    "  Custom".into(),
+                    format!("{} user themes", custom_count),
+                ),
+                (
+                    "  Total".into(),
+                    format!("{} available", builtin_count + custom_count),
+                ),
+                (
+                    "  Bar style".into(),
+                    format!("{:?}", self.bar_style),
+                ),
+                (
+                    "  Chooser".into(),
+                    "c to open (live preview + scroll)".into(),
+                ),
+                ("  Editor".into(), "C to create custom themes".into()),
+                (
+                    "  CLI".into(),
+                    "--list-colors to preview all".into(),
+                ),
+                ("  Config".into(), "theme / active_custom_theme in prefs".into()),
             ]
         } else if seg.starts_with("filter:") {
             let filter_text = self.screen_filter.as_deref().unwrap_or("(none)");
+            let filter_len = self
+                .screen_filter
+                .as_ref()
+                .map(|f| f.len())
+                .unwrap_or(0);
+            let matched = self.flows.len();
+            let hidden = self.total_flow_count.saturating_sub(matched);
             vec![
                 ("▶ Filter".into(), filter_text.into()),
+                ("  Length".into(), format!("{} chars", filter_len)),
                 (
                     "  Matched".into(),
-                    format!("{} of {} flows", self.flows.len(), self.total_flow_count),
+                    format!("{} of {} flows", matched, self.total_flow_count),
                 ),
-                ("  Open".into(), "/ to search".into()),
-                ("  Clear".into(), "0 to reset".into()),
+                (
+                    "  Hidden".into(),
+                    format!("{} filtered out", hidden),
+                ),
+                (
+                    "  Type".into(),
+                    "Case-insensitive host/IP substring".into(),
+                ),
+                (
+                    "  Cursor".into(),
+                    format!(
+                        "Position {} of {}",
+                        self.filter_state.cursor, self.filter_state.buf.len()
+                    ),
+                ),
+                (
+                    "  Nav keys".into(),
+                    "Enter=confirm  Esc=cancel  /=open".into(),
+                ),
+                (
+                    "  Edit keys".into(),
+                    "Ctrl+a/e=home/end  Ctrl+b/f=left/right".into(),
+                ),
+                (
+                    "  Delete".into(),
+                    "Ctrl+w=word  Ctrl+u=line  Ctrl+k=to-end".into(),
+                ),
+                (
+                    "  Clear".into(),
+                    "0 to clear (when not in filter mode)".into(),
+                ),
             ]
         } else if seg.contains("paused") {
             if self.paused {
                 vec![
-                    ("▶ Paused".into(), "yes — data refresh is frozen".into()),
-                    ("  Resume".into(), "P to toggle".into()),
-                    ("  Display".into(), "Showing last captured state".into()),
+                    ("▶ ⏸ PAUSED".into(), String::new()),
+                    ("  Desc".into(), "Data refresh is paused".into()),
+                    (
+                        "  Effect".into(),
+                        "Flow and bandwidth stats are frozen".into(),
+                    ),
+                    (
+                        "  Refresh rate".into(),
+                        format!("{}s (when active)", self.refresh_rate),
+                    ),
+                    (
+                        "  Flows".into(),
+                        format!("{} tracked", self.total_flow_count),
+                    ),
+                    ("  Resume".into(), "Press P to resume live data".into()),
                 ]
             } else {
                 vec![
                     ("▶ Paused".into(), "no — live updates active".into()),
+                    (
+                        "  Refresh".into(),
+                        format!("Every {}s", self.refresh_rate),
+                    ),
+                    (
+                        "  Flows".into(),
+                        format!("{} tracked", self.total_flow_count),
+                    ),
                     ("  Toggle".into(), "P to pause".into()),
                 ]
             }
         } else if seg.starts_with("h=help") {
             vec![
-                ("▶ Help".into(), "Press h or ? for keybinds".into()),
-                ("  Export".into(), "e to export flows".into()),
+                ("▶ Help".into(), String::new()),
+                (
+                    "  Open".into(),
+                    "Press h / H / ? to show keybinds".into(),
+                ),
+                ("  Close".into(), "Same keys or Esc to dismiss".into()),
+                (
+                    "  Layout".into(),
+                    "3-column keybind reference".into(),
+                ),
+                (
+                    "  Categories".into(),
+                    "Navigation, Display, Sort, Theme, Filter".into(),
+                ),
+                (
+                    "  Mouse".into(),
+                    "Click rows, scroll, R-click for tips".into(),
+                ),
+                ("  Export".into(), "e to export flows to file".into()),
                 ("  Copy".into(), "y to copy selected flow".into()),
-                ("  Quit".into(), "q to exit".into()),
+                ("  Quit".into(), "q to disconnect".into()),
             ]
         } else {
             vec![("▶ Header".into(), segment.to_string())]
