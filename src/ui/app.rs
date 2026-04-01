@@ -456,6 +456,14 @@ pub struct AppState {
     pub resolver: Resolver,
 }
 
+/// Reorder a slice in-place according to a permutation of indices.
+fn apply_permutation<T: Clone>(slice: &mut [T], perm: &[usize]) {
+    let ordered: Vec<T> = perm.iter().map(|&i| slice[i].clone()).collect();
+    for (i, val) in ordered.into_iter().enumerate() {
+        slice[i] = val;
+    }
+}
+
 impl AppState {
     pub fn new(
         resolver: Resolver,
@@ -1451,20 +1459,30 @@ impl AppState {
                     .unwrap_or(std::cmp::Ordering::Equal);
                 if rev { ord.reverse() } else { ord }
             }),
-            SortColumn::SrcName => flows.sort_by(|a, b| {
-                let ord = self
-                    .resolver
-                    .resolve(a.key.src)
-                    .cmp(&self.resolver.resolve(b.key.src));
-                if rev { ord.reverse() } else { ord }
-            }),
-            SortColumn::DstName => flows.sort_by(|a, b| {
-                let ord = self
-                    .resolver
-                    .resolve(a.key.dst)
-                    .cmp(&self.resolver.resolve(b.key.dst));
-                if rev { ord.reverse() } else { ord }
-            }),
+            SortColumn::SrcName => {
+                let resolved: Vec<String> = flows
+                    .iter()
+                    .map(|f| self.resolver.resolve(f.key.src))
+                    .collect();
+                let mut idx: Vec<usize> = (0..flows.len()).collect();
+                idx.sort_by(|&a, &b| {
+                    let ord = resolved[a].cmp(&resolved[b]);
+                    if rev { ord.reverse() } else { ord }
+                });
+                apply_permutation(flows, &idx);
+            }
+            SortColumn::DstName => {
+                let resolved: Vec<String> = flows
+                    .iter()
+                    .map(|f| self.resolver.resolve(f.key.dst))
+                    .collect();
+                let mut idx: Vec<usize> = (0..flows.len()).collect();
+                idx.sort_by(|&a, &b| {
+                    let ord = resolved[a].cmp(&resolved[b]);
+                    if rev { ord.reverse() } else { ord }
+                });
+                apply_permutation(flows, &idx);
+            }
         }
     }
 

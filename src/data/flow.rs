@@ -52,15 +52,16 @@ impl FlowKey {
     /// Canonicalize the key so that (A:pA, B:pB) and (B:pB, A:pA) hash equally.
     /// Returns the normalized key and whether src/dst were swapped.
     pub fn normalize(self) -> (Self, bool) {
-        let src_bytes = match self.src {
-            IpAddr::V4(v4) => v4.octets().to_vec(),
-            IpAddr::V6(v6) => v6.octets().to_vec(),
+        // Zero-allocation comparison using u128 representation
+        let src_ord = match self.src {
+            IpAddr::V4(v4) => u128::from(u32::from(v4)),
+            IpAddr::V6(v6) => u128::from(v6),
         };
-        let dst_bytes = match self.dst {
-            IpAddr::V4(v4) => v4.octets().to_vec(),
-            IpAddr::V6(v6) => v6.octets().to_vec(),
+        let dst_ord = match self.dst {
+            IpAddr::V4(v4) => u128::from(u32::from(v4)),
+            IpAddr::V6(v6) => u128::from(v6),
         };
-        let swap = (src_bytes, self.src_port) > (dst_bytes, self.dst_port);
+        let swap = (src_ord, self.src_port) > (dst_ord, self.dst_port);
         if swap {
             (
                 FlowKey {

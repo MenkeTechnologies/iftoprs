@@ -166,14 +166,23 @@ impl FlowTracker {
             })
             .collect();
 
-        // Compute totals by summing flow averages
+        // Compute totals in a single pass
+        let (mut s2, mut s10, mut s40, mut r2, mut r10, mut r40) = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        for f in &snapshots {
+            s2 += f.sent_2s;
+            s10 += f.sent_10s;
+            s40 += f.sent_40s;
+            r2 += f.recv_2s;
+            r10 += f.recv_10s;
+            r40 += f.recv_40s;
+        }
         let totals = TotalStats {
-            sent_2s: snapshots.iter().map(|f| f.sent_2s).sum(),
-            sent_10s: snapshots.iter().map(|f| f.sent_10s).sum(),
-            sent_40s: snapshots.iter().map(|f| f.sent_40s).sum(),
-            recv_2s: snapshots.iter().map(|f| f.recv_2s).sum(),
-            recv_10s: snapshots.iter().map(|f| f.recv_10s).sum(),
-            recv_40s: snapshots.iter().map(|f| f.recv_40s).sum(),
+            sent_2s: s2,
+            sent_10s: s10,
+            sent_40s: s40,
+            recv_2s: r2,
+            recv_10s: r10,
+            recv_40s: r40,
             cumulative_sent: inner.total_sent,
             cumulative_recv: inner.total_recv,
             peak_sent: inner.peak_sent,
