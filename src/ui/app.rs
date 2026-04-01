@@ -406,6 +406,7 @@ pub struct AppState {
     pub tooltip: Tooltip,
     pub show_border: bool,
     pub show_header: bool,
+    pub hover_tooltips: bool,
     /// Y offset where the flow area starts (set by renderer).
     pub flow_area_y: u16,
     /// Y offset of the header bar (set by renderer).
@@ -502,6 +503,7 @@ impl AppState {
             tooltip: Tooltip::new(),
             show_border: prefs.show_border,
             show_header: prefs.show_header,
+            hover_tooltips: prefs.hover_tooltips,
             flow_area_y: 2,
             header_bar_y: 0,
             hover: HoverState::default(),
@@ -589,6 +591,7 @@ impl AppState {
             pinned: self.pinned.clone(),
             show_border: self.show_border,
             show_header: self.show_header,
+            hover_tooltips: self.hover_tooltips,
             refresh_rate: self.refresh_rate,
             alert_threshold: self.alert_threshold,
             interface: if co.interface {
@@ -2271,6 +2274,7 @@ mod tests {
             pinned: app.pinned.clone(),
             show_border: app.show_border,
             show_header: app.show_header,
+            hover_tooltips: app.hover_tooltips,
             refresh_rate: app.refresh_rate,
             alert_threshold: app.alert_threshold,
             interface: app.config_interface.clone(),

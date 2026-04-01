@@ -32,6 +32,8 @@ pub struct Prefs {
     pub show_border: bool,
     #[serde(default = "default_true")]
     pub show_header: bool,
+    #[serde(default = "default_true")]
+    pub hover_tooltips: bool,
     #[serde(default = "default_refresh")]
     pub refresh_rate: u64,
     #[serde(default)]
@@ -67,6 +69,7 @@ impl Default for Prefs {
             pinned: Vec::new(),
             show_border: true,
             show_header: true,
+            hover_tooltips: true,
             refresh_rate: 1,
             alert_threshold: 0.0,
             interface: None,

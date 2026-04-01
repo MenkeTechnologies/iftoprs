@@ -555,6 +555,15 @@ fn run_app(
                     });
                     app.save_prefs();
                 }
+                KeyCode::Char('m') => {
+                    app.hover_tooltips = !app.hover_tooltips;
+                    app.set_status(if app.hover_tooltips {
+                        "Hover tooltips: on"
+                    } else {
+                        "Hover tooltips: off"
+                    });
+                    app.save_prefs();
+                }
                 KeyCode::Char('f') => app.cycle_refresh_rate(),
 
                 // ── Sort ──

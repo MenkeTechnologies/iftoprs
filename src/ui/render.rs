@@ -146,8 +146,9 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
         draw_tooltip(frame, size, state);
     }
 
-    // Hover tooltip on header bar segments
-    if state.show_header
+    // Hover tooltip on header bar segments (only when hover tooltips enabled)
+    if state.hover_tooltips
+        && state.show_header
         && !state.show_help
         && !state.theme_chooser.active
         && !state.filter_state.active
@@ -1160,6 +1161,7 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
                 ("t", "Line mode"),
                 ("x", "Toggle border"),
                 ("g", "Toggle header"),
+                ("m", "Hover tooltips"),
                 ("f", "Refresh rate"),
                 ("h/?", "Toggle help"),
                 ("q", "Quit"),

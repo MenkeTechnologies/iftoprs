@@ -286,6 +286,7 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | `P` | Pause / resume display (shows overlay) |
 | `x` | Toggle border chrome |
 | `g` | Toggle column header |
+| `m` | Toggle hover tooltips (right-click still works) |
 | `f` | Cycle refresh rate ── 1s / 2s / 5s / 10s |
 
 #### `// SORT_PROTOCOL`
