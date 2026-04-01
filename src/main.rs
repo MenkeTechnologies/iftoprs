@@ -649,6 +649,33 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
         app.tooltip.active = false;
     }
 
+    // Theme chooser: scroll cycles through themes
+    if app.theme_chooser.active {
+        match mouse.kind {
+            MouseEventKind::ScrollDown => {
+                let len = config::theme::ThemeName::ALL.len();
+                app.theme_chooser.selected = (app.theme_chooser.selected + 1) % len;
+                let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
+                app.set_theme(name);
+            }
+            MouseEventKind::ScrollUp => {
+                let len = config::theme::ThemeName::ALL.len();
+                app.theme_chooser.selected = (app.theme_chooser.selected + len - 1) % len;
+                let name = config::theme::ThemeName::ALL[app.theme_chooser.selected];
+                app.set_theme(name);
+            }
+            MouseEventKind::Down(MouseButton::Left) => {
+                app.theme_chooser.active = false;
+                app.save_prefs();
+            }
+            MouseEventKind::Down(_) => {
+                app.theme_chooser.active = false;
+            }
+            _ => {}
+        }
+        return;
+    }
+
     match mouse.kind {
         MouseEventKind::Down(MouseButton::Left) => {
             let row = mouse.row;
@@ -917,4 +944,106 @@ fn auto_detect_local_net(interface: Option<&str>) -> Option<(std::net::IpAddr, u
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+
+    fn make_app() -> AppState {
+        AppState::new(
+            util::resolver::Resolver::new(false),
+            true,
+            true,
+            false,
+            true,
+            &config::prefs::Prefs::default(),
+            ui::app::CliOverrides::default(),
+        )
+    }
+
+    fn scroll_event(kind: MouseEventKind) -> MouseEvent {
+        MouseEvent {
+            kind,
+            column: 0,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    #[test]
+    fn theme_chooser_scroll_down_cycles_forward() {
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        let orig = app.theme_chooser.selected;
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        assert_eq!(app.theme_chooser.selected, orig + 1);
+        assert!(app.theme_chooser.active);
+    }
+
+    #[test]
+    fn theme_chooser_scroll_up_cycles_backward() {
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        // Move forward first so we can go back
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        let before = app.theme_chooser.selected;
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollUp));
+        assert_eq!(app.theme_chooser.selected, before - 1);
+        assert!(app.theme_chooser.active);
+    }
+
+    #[test]
+    fn theme_chooser_scroll_wraps_around() {
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        app.theme_chooser.selected = config::theme::ThemeName::ALL.len() - 1;
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        assert_eq!(app.theme_chooser.selected, 0);
+    }
+
+    #[test]
+    fn theme_chooser_scroll_up_wraps_to_last() {
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        app.theme_chooser.selected = 0;
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollUp));
+        assert_eq!(
+            app.theme_chooser.selected,
+            config::theme::ThemeName::ALL.len() - 1
+        );
+    }
+
+    #[test]
+    fn theme_chooser_left_click_confirms() {
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        handle_mouse(
+            &mut app,
+            scroll_event(MouseEventKind::Down(MouseButton::Left)),
+        );
+        assert!(!app.theme_chooser.active);
+    }
+
+    #[test]
+    fn theme_chooser_right_click_cancels() {
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        handle_mouse(
+            &mut app,
+            scroll_event(MouseEventKind::Down(MouseButton::Right)),
+        );
+        assert!(!app.theme_chooser.active);
+    }
+
+    #[test]
+    fn scroll_without_theme_chooser_selects_flow() {
+        let mut app = make_app();
+        assert!(!app.theme_chooser.active);
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        assert!(!app.theme_chooser.active);
+    }
 }

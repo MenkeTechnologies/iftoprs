@@ -348,7 +348,7 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | Left click | Select flow row |
 | Right click | Show TX/RX tooltip |
 | Middle click | Pin/unpin flow |
-| Scroll up/down | Navigate flows |
+| Scroll up/down | Navigate flows (cycle themes in chooser) |
 
 #### `// GENERAL_OPS`
 
