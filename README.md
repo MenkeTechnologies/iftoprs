@@ -67,6 +67,15 @@ cargo install iftoprs
   │   ├── per-process aggregated bandwidth view (Tab key)
   │   └── drill-down: Enter on process → filtered flows, Esc to clear
   │
+[TOOLTIP_SYSTEM]
+  ├── Rich contextual tooltips on hover + right-click
+  │   ├── right-click flow rows ── TX/RX rates, totals, process, sparkline
+  │   ├── hover header bar segments ── 1s delay, 3s auto-hide
+  │   ├── right-click header ── instant tooltip, persistent until dismissed
+  │   ├── segment tooltips: app info, interface, flows, clock, sort,
+  │   │   refresh rate, theme, filter, paused state, help
+  │   └── 9-15 lines per segment: config fields, sources, key hints
+  │
 [SPARKLINE]
   ├── Per-flow bandwidth sparkline (▁▂▃▅▇█)
   │   ├── shown on row below selected flow (40s history)
@@ -346,9 +355,11 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | `INPUT` | `ACTION` |
 |:---:|:---|
 | Left click | Select flow row |
-| Right click | Show TX/RX tooltip |
+| Right click (flow) | Show TX/RX tooltip with bandwidth, process, sparkline |
+| Right click (header) | Instant segment tooltip (persistent until dismissed) |
 | Middle click | Pin/unpin flow |
 | Scroll up/down | Navigate flows (cycle themes in chooser) |
+| Hover header bar | Segment tooltip after 1s delay (auto-hides after 3s) |
 
 #### `// GENERAL_OPS`
 
