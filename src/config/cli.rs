@@ -44,7 +44,8 @@ Real-time bandwidth monitor (iftop clone in Rust)
 \x1b[36m  ── KEYBINDS ───────────────────────────────────────────\x1b[0m
 \x1b[33m  h\x1b[0m ── help HUD       \x1b[33mn\x1b[0m ── toggle DNS      \x1b[33mb\x1b[0m ── bars
 \x1b[33m  B\x1b[0m ── bytes/bits     \x1b[33mp\x1b[0m ── ports           \x1b[33mZ\x1b[0m ── processes
-\x1b[33m  t\x1b[0m ── line mode      \x1b[33mT\x1b[0m ── cumulative      \x1b[33mP\x1b[0m ── pause
+\x1b[33m  t\x1b[0m ── line mode      \x1b[33mT\x1b[0m ── hover tips      \x1b[33mP\x1b[0m ── pause
+\x1b[33m  U\x1b[0m ── cumulative
 \x1b[33m  x\x1b[0m ── border          \x1b[33mc\x1b[0m ── themes           \x1b[33m/\x1b[0m ── filter
 \x1b[33m  g\x1b[0m ── header bar     \x1b[33mf\x1b[0m ── refresh rate    \x1b[33mTab\x1b[0m ── switch view
 \x1b[33m  1/2/3\x1b[0m ── sort by 2s/10s/40s average
