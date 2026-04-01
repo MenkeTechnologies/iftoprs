@@ -358,6 +358,7 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | Right click (flow) | Show TX/RX tooltip with bandwidth, process, sparkline |
 | Right click (header) | Instant segment tooltip (persistent until dismissed) |
 | Middle click | Pin/unpin flow |
+| Mouse move | Dismiss flow tooltip |
 | Scroll up/down | Navigate flows (cycle themes in chooser) |
 | Hover header bar | Segment tooltip after 1s delay (auto-hides after 3s) |
 
