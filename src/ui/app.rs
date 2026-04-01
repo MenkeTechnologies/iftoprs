@@ -696,10 +696,7 @@ impl AppState {
                     "  Flows".into(),
                     format!("{} active connections", self.total_flow_count),
                 ),
-                (
-                    "  Chooser".into(),
-                    "i to switch interface live".into(),
-                ),
+                ("  Chooser".into(), "i to switch interface live".into()),
                 ("  Source".into(), "pcap::Device::list()".into()),
             ]
         } else if seg.starts_with("flows:") {
@@ -770,10 +767,7 @@ impl AppState {
                 ("  Date".into(), now.format("%Y-%m-%d %A").to_string()),
                 ("  Timezone".into(), now.format("%Z (%:z)").to_string()),
                 ("  Epoch".into(), format!("{} seconds", epoch)),
-                (
-                    "  Refresh".into(),
-                    format!("Every {}s", self.refresh_rate),
-                ),
+                ("  Refresh".into(), format!("Every {}s", self.refresh_rate)),
                 ("  Source".into(), "chrono::Local::now()".into()),
             ]
         } else if seg.starts_with("sort:") {
@@ -818,37 +812,25 @@ impl AppState {
                     }
                     .into(),
                 ),
-                (
-                    "  First".into(),
-                    top.unwrap_or_else(|| "(none)".into()),
-                ),
-                (
-                    "  Last".into(),
-                    bottom.unwrap_or_else(|| "(none)".into()),
-                ),
-                (
-                    "  Flows".into(),
-                    format!("{} sorted", self.flows.len()),
-                ),
+                ("  First".into(), top.unwrap_or_else(|| "(none)".into())),
+                ("  Last".into(), bottom.unwrap_or_else(|| "(none)".into())),
+                ("  Flows".into(), format!("{} sorted", self.flows.len())),
                 ("  Rate keys".into(), "1=2s  2=10s  3=40s".into()),
                 ("  Host keys".into(), "<=src  >=dst".into()),
                 ("  Reverse".into(), "r to toggle direction".into()),
-                (
-                    "  Mouse".into(),
-                    "Right-click header for tooltip".into(),
-                ),
+                ("  Mouse".into(), "Right-click header for tooltip".into()),
                 ("  Config".into(), "sort_column in prefs".into()),
             ]
         } else if seg.starts_with("rate:") {
             let rates = [1u64, 2, 5, 10];
-            let idx = rates.iter().position(|&r| r == self.refresh_rate).unwrap_or(0);
+            let idx = rates
+                .iter()
+                .position(|&r| r == self.refresh_rate)
+                .unwrap_or(0);
             let next = rates[(idx + 1) % rates.len()];
             let prev = rates[(idx + rates.len() - 1) % rates.len()];
             vec![
-                (
-                    "▶ Refresh Rate".into(),
-                    format!("{}s", self.refresh_rate),
-                ),
+                ("▶ Refresh Rate".into(), format!("{}s", self.refresh_rate)),
                 (
                     "  Desc".into(),
                     "How often flow data is re-collected".into(),
@@ -876,44 +858,28 @@ impl AppState {
             let builtin_count = crate::config::theme::ThemeName::ALL.len();
             let custom_count = self.custom_themes.len();
             vec![
-                (
-                    "▶ Theme".into(),
-                    self.theme_name.display_name().into(),
-                ),
-                (
-                    "  Builtins".into(),
-                    format!("{} palettes", builtin_count),
-                ),
-                (
-                    "  Custom".into(),
-                    format!("{} user themes", custom_count),
-                ),
+                ("▶ Theme".into(), self.theme_name.display_name().into()),
+                ("  Builtins".into(), format!("{} palettes", builtin_count)),
+                ("  Custom".into(), format!("{} user themes", custom_count)),
                 (
                     "  Total".into(),
                     format!("{} available", builtin_count + custom_count),
                 ),
-                (
-                    "  Bar style".into(),
-                    format!("{:?}", self.bar_style),
-                ),
+                ("  Bar style".into(), format!("{:?}", self.bar_style)),
                 (
                     "  Chooser".into(),
                     "c to open (live preview + scroll)".into(),
                 ),
                 ("  Editor".into(), "C to create custom themes".into()),
+                ("  CLI".into(), "--list-colors to preview all".into()),
                 (
-                    "  CLI".into(),
-                    "--list-colors to preview all".into(),
+                    "  Config".into(),
+                    "theme / active_custom_theme in prefs".into(),
                 ),
-                ("  Config".into(), "theme / active_custom_theme in prefs".into()),
             ]
         } else if seg.starts_with("filter:") {
             let filter_text = self.screen_filter.as_deref().unwrap_or("(none)");
-            let filter_len = self
-                .screen_filter
-                .as_ref()
-                .map(|f| f.len())
-                .unwrap_or(0);
+            let filter_len = self.screen_filter.as_ref().map(|f| f.len()).unwrap_or(0);
             let matched = self.flows.len();
             let hidden = self.total_flow_count.saturating_sub(matched);
             vec![
@@ -923,19 +889,14 @@ impl AppState {
                     "  Matched".into(),
                     format!("{} of {} flows", matched, self.total_flow_count),
                 ),
-                (
-                    "  Hidden".into(),
-                    format!("{} filtered out", hidden),
-                ),
-                (
-                    "  Type".into(),
-                    "Case-insensitive host/IP substring".into(),
-                ),
+                ("  Hidden".into(), format!("{} filtered out", hidden)),
+                ("  Type".into(), "Case-insensitive host/IP substring".into()),
                 (
                     "  Cursor".into(),
                     format!(
                         "Position {} of {}",
-                        self.filter_state.cursor, self.filter_state.buf.len()
+                        self.filter_state.cursor,
+                        self.filter_state.buf.len()
                     ),
                 ),
                 (
@@ -977,10 +938,7 @@ impl AppState {
             } else {
                 vec![
                     ("▶ Paused".into(), "no — live updates active".into()),
-                    (
-                        "  Refresh".into(),
-                        format!("Every {}s", self.refresh_rate),
-                    ),
+                    ("  Refresh".into(), format!("Every {}s", self.refresh_rate)),
                     (
                         "  Flows".into(),
                         format!("{} tracked", self.total_flow_count),
@@ -991,15 +949,9 @@ impl AppState {
         } else if seg.starts_with("h=help") {
             vec![
                 ("▶ Help".into(), String::new()),
-                (
-                    "  Open".into(),
-                    "Press h / H / ? to show keybinds".into(),
-                ),
+                ("  Open".into(), "Press h / H / ? to show keybinds".into()),
                 ("  Close".into(), "Same keys or Esc to dismiss".into()),
-                (
-                    "  Layout".into(),
-                    "3-column keybind reference".into(),
-                ),
+                ("  Layout".into(), "3-column keybind reference".into()),
                 (
                     "  Categories".into(),
                     "Navigation, Display, Sort, Theme, Filter".into(),
