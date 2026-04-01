@@ -743,6 +743,8 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
             }
         }
         MouseEventKind::Moved => {
+            // Dismiss right-click flow tooltip on mouse move
+            app.tooltip.active = false;
             // Track hover position for header bar tooltips
             app.hover.move_to(mouse.column, mouse.row);
         }
