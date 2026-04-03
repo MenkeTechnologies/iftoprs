@@ -963,4 +963,18 @@ mod tests {
         let sum: u64 = flows.iter().map(|f| f.total_recv).sum();
         assert_eq!(sum, totals.cumulative_recv);
     }
+
+    #[test]
+    fn snapshot_flow_totals_sum_matches_globals_with_mixed_directions() {
+        let t = FlowTracker::new();
+        t.record(test_key(10), Direction::Sent, 1000);
+        t.record(test_key(10), Direction::Received, 250);
+        t.record(test_key(11), Direction::Sent, 300);
+        t.record(test_key(12), Direction::Received, 400);
+        let (flows, totals) = t.snapshot();
+        let sum_sent: u64 = flows.iter().map(|f| f.total_sent).sum();
+        let sum_recv: u64 = flows.iter().map(|f| f.total_recv).sum();
+        assert_eq!(sum_sent, totals.cumulative_sent);
+        assert_eq!(sum_recv, totals.cumulative_recv);
+    }
 }

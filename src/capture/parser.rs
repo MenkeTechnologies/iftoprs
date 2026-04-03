@@ -286,6 +286,50 @@ mod tests {
     }
 
     #[test]
+    fn parse_ethernet_ipv4_payload_shorter_than_ipv4_header_returns_none() {
+        // 14-byte Ethernet + 19-byte IPv4 payload (minimum IPv4 header is 20 bytes).
+        let mut pkt = vec![0u8; 33];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_ethernet_ipv6_fixed_header_incomplete_returns_none() {
+        // 14-byte Ethernet + 39-byte IPv6 payload (fixed header is 40 bytes).
+        let mut pkt = vec![0u8; 53];
+        pkt[12] = 0x86;
+        pkt[13] = 0xDD;
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_sll_ipv4_payload_shorter_than_ipv4_header_returns_none() {
+        let mut pkt = vec![0u8; 35];
+        pkt[14] = 0x08;
+        pkt[15] = 0x00;
+        assert!(parse_sll(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_vlan_ipv4_inner_payload_truncated_returns_none() {
+        // 14 (Ethernet) + 4 (802.1Q) + 19 (truncated IPv4).
+        let mut pkt = vec![0u8; 37];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
+        pkt[16] = 0x08;
+        pkt[17] = 0x00;
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_raw_ipv6_payload_shorter_than_40_bytes_returns_none() {
+        let mut raw = vec![0u8; 39];
+        raw[0] = 0x60;
+        assert!(parse_raw(&raw, None).is_none());
+    }
+
+    #[test]
     fn parse_raw_ipv4() {
         let mut raw = vec![0u8; 30];
         raw[0] = 0x45; // version 4, IHL 5

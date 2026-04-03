@@ -369,6 +369,17 @@ mod tests {
     }
 
     #[test]
+    fn prefs_hover_tooltips_false_roundtrip() {
+        let p = Prefs {
+            hover_tooltips: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.hover_tooltips);
+    }
+
+    #[test]
     fn prefs_show_border_false_roundtrip() {
         let p = Prefs {
             show_border: false,

@@ -109,6 +109,11 @@ mod tests {
     }
 
     #[test]
+    fn protocol_from_sctp_is_other() {
+        assert_eq!(Protocol::from_ip_next_header(132), Protocol::Other(132));
+    }
+
+    #[test]
     fn protocol_from_zero_is_other() {
         assert_eq!(Protocol::from_ip_next_header(0), Protocol::Other(0));
     }

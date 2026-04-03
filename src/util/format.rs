@@ -390,6 +390,11 @@ mod tests {
     }
 
     #[test]
+    fn readable_total_exactly_one_gigabyte() {
+        assert_eq!(readable_total(1_000_000_000, false), "1.00GB");
+    }
+
+    #[test]
     fn readable_size_bytes_megabyte_exact_from_table() {
         assert_eq!(readable_size(1_500_000.0, true), "1.50MB");
     }
@@ -478,11 +483,6 @@ mod tests {
         let s = sparkline(&[7, 7, 7, 7], 10);
         let c: Vec<char> = s.chars().collect();
         assert!(c.iter().all(|&x| x == c[0]));
-    }
-
-    #[test]
-    fn readable_total_exactly_one_gigabyte() {
-        assert_eq!(readable_total(1_000_000_000, false), "1.00GB");
     }
 
     #[test]

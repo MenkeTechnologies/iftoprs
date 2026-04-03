@@ -762,4 +762,14 @@ mod tests {
         // Deque has 10 slots ending with 0 in the newest; window takes all 10 → 1+2+…+9+0 = 45.
         assert_eq!(h.avg_sent_10s(), 45.0);
     }
+
+    #[test]
+    fn avg_recv_10s_sums_all_slots_when_fewer_than_ten_exist() {
+        let mut h = FlowHistory::new();
+        for i in 1..=9 {
+            h.add_recv(i);
+            h.rotate();
+        }
+        assert_eq!(h.avg_recv_10s(), 45.0);
+    }
 }
