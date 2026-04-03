@@ -319,6 +319,11 @@ mod tests {
         }
 
         #[test]
+        fn extract_local_port_ipv6_link_local_with_zone() {
+            assert_eq!(extract_local_port("[fe80::1%en0]:443"), Some(443));
+        }
+
+        #[test]
         fn extract_local_port_invalid() {
             assert_eq!(extract_local_port("no-colon"), None);
         }
@@ -388,6 +393,16 @@ mod tests {
         #[test]
         fn parse_proc_net_port_ephemeral_hex() {
             assert_eq!(parse_proc_net_port("0100007F:C000"), Some(49152));
+        }
+
+        #[test]
+        fn parse_proc_net_port_hex_accepts_lowercase() {
+            assert_eq!(parse_proc_net_port("0100007F:00ff"), Some(255));
+        }
+
+        #[test]
+        fn parse_proc_net_port_port_hex_overflow_u16_returns_none() {
+            assert_eq!(parse_proc_net_port("0100007F:10000"), None);
         }
     }
 }

@@ -522,6 +522,18 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_plus_in_service_name() {
+        let m = parse_etc_services_text("svc+alt 8080/tcp\n");
+        assert_eq!(m.get(&(8080, "tcp")).copied(), Some("svc+alt"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_trims_leading_line_whitespace_before_name() {
+        let m = parse_etc_services_text("\t  ssh 22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);

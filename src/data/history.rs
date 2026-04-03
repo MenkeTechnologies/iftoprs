@@ -683,4 +683,15 @@ mod tests {
         h.rotate();
         assert_eq!(h.peak_recv, 400.0);
     }
+
+    #[test]
+    fn avg_recv_2s_after_two_rotations_sums_last_two_slots() {
+        let mut h = FlowHistory::new();
+        h.add_recv(100);
+        h.rotate();
+        h.add_recv(200);
+        h.rotate();
+        h.add_recv(50);
+        assert_eq!(h.avg_recv_2s(), 250.0);
+    }
 }

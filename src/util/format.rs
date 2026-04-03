@@ -537,4 +537,15 @@ mod tests {
         let c: Vec<char> = s.chars().collect();
         assert!(c.iter().all(|&x| x == c[0]));
     }
+
+    #[test]
+    fn readable_size_bits_just_under_one_megabit_per_second() {
+        // 999_999 B/s → 7_999_992 b/s → megabit tier (not kilobit).
+        assert_eq!(readable_size(999_999.0, false), "8.00Mb");
+    }
+
+    #[test]
+    fn readable_size_bytes_exactly_one_million_per_second() {
+        assert_eq!(readable_size(1_000_000.0, true), "1.00MB");
+    }
 }
