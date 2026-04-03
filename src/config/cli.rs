@@ -662,4 +662,37 @@ mod tests {
         let args = Args::try_parse_from(["iftoprs", "-F", "fe80::/10"]).unwrap();
         assert_eq!(args.net_filter, Some("fe80::/10".into()));
     }
+
+    #[test]
+    fn clap_parse_long_help_only() {
+        let args = Args::try_parse_from(["iftoprs", "--help"]).unwrap();
+        assert!(args.help);
+        assert!(!args.version);
+    }
+
+    #[test]
+    fn clap_parse_long_version_only() {
+        let args = Args::try_parse_from(["iftoprs", "--version"]).unwrap();
+        assert!(args.version);
+        assert!(!args.help);
+    }
+
+    #[test]
+    fn parse_cidr_non_numeric_prefix_invalid() {
+        let args = args_with_net_filter("10.0.0.0/xx");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn clap_parse_config_long_equals() {
+        let args = Args::try_parse_from(["iftoprs", "--config=/tmp/x.toml"]).unwrap();
+        assert_eq!(args.config, Some("/tmp/x.toml".into()));
+    }
+
+    #[test]
+    fn clap_parse_hide_ports_and_no_bars() {
+        let args = Args::try_parse_from(["iftoprs", "--hide-ports", "--no-bars"]).unwrap();
+        assert!(args.hide_ports);
+        assert!(args.no_bars);
+    }
 }

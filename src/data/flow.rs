@@ -552,4 +552,30 @@ mod tests {
         assert_eq!(n.src_port, 1);
         assert_eq!(n.dst_port, 65535);
     }
+
+    #[test]
+    fn direction_copy_eq() {
+        let a = Direction::Sent;
+        let b = a;
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn protocol_debug_other() {
+        let s = format!("{:?}", Protocol::Other(99));
+        assert!(s.contains("99") || s.contains("Other"));
+    }
+
+    #[test]
+    fn flow_key_protocol_field_preserved_normalize() {
+        let k = FlowKey {
+            src: "10.0.0.2".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 80,
+            dst_port: 443,
+            protocol: Protocol::Icmp,
+        };
+        let (n, _) = k.normalize();
+        assert_eq!(n.protocol, Protocol::Icmp);
+    }
 }

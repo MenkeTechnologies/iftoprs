@@ -386,4 +386,23 @@ mod tests {
         h.add_sent(200);
         assert_eq!(h.total_sent, 300);
     }
+
+    #[test]
+    fn recv_deque_bounded_after_rotations() {
+        let mut h = FlowHistory::new();
+        for _ in 0..60 {
+            h.add_recv(1);
+            h.rotate();
+        }
+        assert!(h.recv.len() <= 40);
+    }
+
+    #[test]
+    fn avg_sent_10s_matches_window_total() {
+        let mut h = FlowHistory::new();
+        h.add_sent(10);
+        h.rotate();
+        h.add_sent(20);
+        assert_eq!(h.avg_sent_10s(), 30.0);
+    }
 }

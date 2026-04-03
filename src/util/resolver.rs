@@ -506,4 +506,14 @@ mod tests {
             let _ = r.resolve(addr);
         }
     }
+
+    #[test]
+    fn port_to_service_ftp_control() {
+        assert_eq!(port_to_service(21, true), Some("ftp"));
+    }
+
+    #[test]
+    fn port_to_service_pop3() {
+        assert_eq!(port_to_service(110, true), Some("pop3"));
+    }
 }

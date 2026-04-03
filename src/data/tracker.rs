@@ -538,4 +538,30 @@ mod tests {
         let keys = t.flow_keys();
         assert_eq!(keys.len(), 2);
     }
+
+    #[test]
+    fn record_zero_bytes_no_panic() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 0);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 0);
+    }
+
+    #[test]
+    fn tracker_clone_sees_same_flow_after_record() {
+        let t = FlowTracker::new();
+        let t2 = t.clone();
+        t.record(test_key(9), Direction::Received, 999);
+        let (_, totals) = t2.snapshot();
+        assert_eq!(totals.cumulative_recv, 999);
+    }
+
+    #[test]
+    fn snapshot_recv_rates_sum_across_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Received, 100);
+        t.record(test_key(2), Direction::Received, 200);
+        let (_, totals) = t.snapshot();
+        assert!(totals.recv_2s >= 300.0);
+    }
 }

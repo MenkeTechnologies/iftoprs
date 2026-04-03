@@ -390,4 +390,19 @@ mod tests {
     fn megacorp_theme_swatch_len() {
         assert_eq!(Theme::swatch(ThemeName::Megacorp).len(), 6);
     }
+
+    #[test]
+    fn every_theme_name_debug_is_single_token() {
+        for &name in ThemeName::ALL {
+            let d = format!("{:?}", name);
+            assert!(!d.contains(' '), "{name:?}");
+        }
+    }
+
+    #[test]
+    fn zaibatsu_from_name_has_indexed_host_colors() {
+        let t = Theme::from_name(ThemeName::Zaibatsu);
+        assert!(matches!(t.host_src, Color::Indexed(_)));
+        assert!(matches!(t.host_dst, Color::Indexed(_)));
+    }
 }

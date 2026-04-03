@@ -334,4 +334,26 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert!(!p2.dns_resolution);
     }
+
+    #[test]
+    fn prefs_show_processes_false_roundtrip() {
+        let p = Prefs {
+            show_processes: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.show_processes);
+    }
+
+    #[test]
+    fn prefs_show_header_false_roundtrip() {
+        let p = Prefs {
+            show_header: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.show_header);
+    }
 }

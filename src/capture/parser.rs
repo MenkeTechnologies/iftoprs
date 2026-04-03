@@ -1357,4 +1357,83 @@ mod tests {
         let result = parse_ethernet(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Tcp);
     }
+
+    #[test]
+    fn parse_raw_ipv4_ttl_zero() {
+        let mut raw = vec![0u8; 28];
+        raw[0] = 0x45;
+        raw[2] = 0;
+        raw[3] = 28;
+        raw[8] = 0;
+        raw[9] = 17;
+        raw[12..16].copy_from_slice(&[10, 0, 0, 1]);
+        raw[16..20].copy_from_slice(&[10, 0, 0, 2]);
+        raw[20] = 0x12;
+        raw[21] = 0x34;
+        raw[22] = 0x56;
+        raw[23] = 0x78;
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash16() {
+        let net: IpAddr = "172.16.0.0".parse().unwrap();
+        assert!(ip_in_network("172.16.255.255".parse().unwrap(), net, 16));
+        assert!(!ip_in_network("172.17.0.1".parse().unwrap(), net, 16));
+    }
+
+    #[test]
+    fn direction_ipv4_private_to_public_canonical_key_and_direction() {
+        let local: IpAddr = "10.0.0.0".parse().unwrap();
+        let pkt = make_ipv4_tcp_packet([10, 0, 0, 50], [1, 1, 1, 1], 49152, 443);
+        let result = parse_ethernet(&pkt, Some((local, 8))).unwrap();
+        // Canonical order is 1.1.1.1 < 10.0.0.50 → key swaps vs packet; Sent flips to Received.
+        assert_eq!(result.key.src, "1.1.1.1".parse::<IpAddr>().unwrap());
+        assert_eq!(result.key.dst, "10.0.0.50".parse::<IpAddr>().unwrap());
+        assert_eq!(result.direction, Direction::Received);
+    }
+
+    #[test]
+    fn parse_ethernet_ipv4_fragment_id_field_present() {
+        let mut pkt = vec![0u8; 44];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        pkt[14] = 0x45;
+        pkt[18] = 0x12;
+        pkt[19] = 0x34; // identification
+        pkt[16] = 0x00;
+        pkt[17] = 30;
+        pkt[23] = 6;
+        pkt[26..30].copy_from_slice(&[192, 168, 1, 1]);
+        pkt[30..34].copy_from_slice(&[192, 168, 1, 2]);
+        pkt[34] = 0x00;
+        pkt[35] = 0x16;
+        pkt[36] = 0x00;
+        pkt[37] = 0x50;
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+    }
+
+    #[test]
+    fn parse_vlan_ipv6_minimal_udp() {
+        let mut pkt = vec![0u8; 18 + 44];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
+        pkt[16] = 0x86;
+        pkt[17] = 0xdd;
+        pkt[18] = 0x60;
+        pkt[22] = 0;
+        pkt[23] = 4;
+        pkt[24] = 17;
+        pkt[25] = 64;
+        pkt[41] = 1;
+        pkt[57] = 2;
+        pkt[58] = 0;
+        pkt[59] = 0x35;
+        pkt[60] = 0x00;
+        pkt[61] = 0x35;
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+    }
 }

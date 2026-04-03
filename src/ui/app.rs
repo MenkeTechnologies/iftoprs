@@ -3645,4 +3645,10 @@ mod tests_extended {
         let app = make_app();
         assert!(app.custom_themes.is_empty());
     }
+
+    #[test]
+    fn sort_reverse_default_false() {
+        let app = make_app();
+        assert!(!app.sort_reverse);
+    }
 }

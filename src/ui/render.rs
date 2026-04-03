@@ -2474,4 +2474,24 @@ mod tests {
         let f = rate_to_frac(1.0);
         assert!(f > 0.0 && f <= 1.0);
     }
+
+    #[test]
+    fn draw_process_filter_active_on_flows_tab() {
+        let mut app = make_test_app();
+        app.view_tab = crate::ui::app::ViewTab::Flows;
+        app.process_filter = Some("nginx".into());
+        app.flows = vec![make_test_flow(1)];
+        let backend = ratatui::backend::TestBackend::new(120, 28);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_alert_threshold_nonzero_in_header() {
+        let mut app = make_test_app();
+        app.alert_threshold = 1_000_000.0;
+        let backend = ratatui::backend::TestBackend::new(100, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
 }

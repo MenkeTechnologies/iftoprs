@@ -384,4 +384,22 @@ mod tests {
         let s = sparkline(&data, 1);
         assert_eq!(s.chars().count(), 1);
     }
+
+    #[test]
+    fn readable_total_gigabyte_range() {
+        let r = readable_total(3_500_000_000, false);
+        assert!(r.contains("GB"));
+    }
+
+    #[test]
+    fn readable_size_bytes_megabyte_exact_from_table() {
+        assert_eq!(readable_size(1_500_000.0, true), "1.50MB");
+    }
+
+    #[test]
+    fn sparkline_three_plateau() {
+        let s = sparkline(&[10, 10, 10], 10);
+        let c: Vec<char> = s.chars().collect();
+        assert!(c.iter().all(|&x| x == c[0]));
+    }
 }
