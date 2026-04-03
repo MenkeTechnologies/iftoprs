@@ -696,4 +696,24 @@ mod tests {
         assert_eq!(flows.len(), 1);
         assert_eq!(totals.cumulative_sent, 64);
     }
+
+    #[test]
+    fn three_distinct_flow_keys_in_snapshot() {
+        let t = FlowTracker::new();
+        for i in 0..3 {
+            t.record(test_key(3000 + i), Direction::Sent, 10);
+        }
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows.len(), 3);
+    }
+
+    #[test]
+    fn snapshot_recv_40s_sum_matches_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(40), Direction::Received, 111);
+        t.record(test_key(41), Direction::Received, 222);
+        let (flows, totals) = t.snapshot();
+        let sum: f64 = flows.iter().map(|f| f.recv_40s).sum();
+        assert!((totals.recv_40s - sum).abs() < 1e-6);
+    }
 }

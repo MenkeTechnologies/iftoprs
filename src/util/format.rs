@@ -479,4 +479,23 @@ mod tests {
         let c: Vec<char> = s.chars().collect();
         assert!(c.iter().all(|&x| x == c[0]));
     }
+
+    #[test]
+    fn readable_total_exactly_one_gigabyte() {
+        assert_eq!(readable_total(1_000_000_000, false), "1.00GB");
+    }
+
+    #[test]
+    fn sparkline_strictly_descending_heights() {
+        let s = sparkline(&[100, 75, 50, 25, 1], 10);
+        let c: Vec<char> = s.chars().collect();
+        assert!(c[0] > c[1]);
+        assert!(c[1] > c[2]);
+        assert!(c[3] > c[4]);
+    }
+
+    #[test]
+    fn readable_size_bits_two_gigabit() {
+        assert_eq!(readable_size(250_000_000.0, false), "2.00Gb");
+    }
 }

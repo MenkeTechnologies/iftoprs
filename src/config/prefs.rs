@@ -451,4 +451,26 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert_eq!(p2.theme, ThemeName::Zaibatsu);
     }
+
+    #[test]
+    fn prefs_refresh_rate_ten_roundtrip() {
+        let p = Prefs {
+            refresh_rate: 10,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.refresh_rate, 10);
+    }
+
+    #[test]
+    fn prefs_alert_threshold_negative_roundtrip() {
+        let p = Prefs {
+            alert_threshold: -1.0,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!((p2.alert_threshold + 1.0).abs() < f64::EPSILON);
+    }
 }

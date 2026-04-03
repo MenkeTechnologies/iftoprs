@@ -497,4 +497,27 @@ mod tests {
         h.add_recv(15);
         assert_eq!(h.avg_recv_10s(), 20.0);
     }
+
+    #[test]
+    fn peak_sent_monotonic_across_rotations() {
+        let mut h = FlowHistory::new();
+        h.add_sent(100);
+        h.rotate();
+        h.add_sent(200);
+        h.rotate();
+        h.add_sent(50);
+        h.rotate();
+        assert_eq!(h.peak_sent, 200.0);
+    }
+
+    #[test]
+    fn avg_sent_40s_full_window_after_many_slots() {
+        let mut h = FlowHistory::new();
+        for i in 0..10 {
+            h.add_sent((i + 1) * 10);
+            h.rotate();
+        }
+        let sum: u64 = (1..=10).map(|i| i * 10).sum();
+        assert_eq!(h.avg_sent_40s(), sum as f64);
+    }
 }

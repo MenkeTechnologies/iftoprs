@@ -521,4 +521,9 @@ mod tests {
     fn port_to_service_high_ephemeral_port_returns_none() {
         assert!(port_to_service(49152, true).is_none());
     }
+
+    #[test]
+    fn port_to_service_imap_tcp() {
+        assert_eq!(port_to_service(143, true), Some("imap"));
+    }
 }

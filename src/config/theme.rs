@@ -464,4 +464,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::VoidWalker);
         assert_ne!(t.rate_2s, t.rate_40s);
     }
+
+    #[test]
+    fn glitch_pop_theme_bar_and_scale_indexed() {
+        let t = Theme::from_name(ThemeName::GlitchPop);
+        assert!(matches!(t.bar_color, Color::Indexed(_)));
+        assert!(matches!(t.scale_line, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn night_city_display_name_has_space() {
+        assert!(ThemeName::NightCity.display_name().contains(' '));
+    }
 }

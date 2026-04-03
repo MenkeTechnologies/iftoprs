@@ -844,4 +844,34 @@ mod tests {
         assert_eq!(addr, "2600::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 56);
     }
+
+    #[test]
+    fn clap_parse_interface_short_equals_form() {
+        let args = Args::try_parse_from(["iftoprs", "-i=en0"]).unwrap();
+        assert_eq!(args.interface.as_deref(), Some("en0"));
+    }
+
+    #[test]
+    fn parse_cidr_ipv4_cgnat_slash10() {
+        let args = args_with_net_filter("100.64.0.0/10");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "100.64.0.0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 10);
+    }
+
+    #[test]
+    fn clap_parse_no_bars_no_dns_combo() {
+        let args = Args::try_parse_from(["iftoprs", "-b", "-n", "-N"]).unwrap();
+        assert!(args.no_bars);
+        assert!(args.no_dns);
+        assert!(args.no_port_names);
+    }
+
+    #[test]
+    fn parse_cidr_ipv6_slash48_site_prefix() {
+        let args = args_with_net_filter("2001:db8::/48");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2001:db8::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 48);
+    }
 }

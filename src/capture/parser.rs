@@ -1572,4 +1572,13 @@ mod tests {
         ));
         assert!(!ip_in_network("2001:db8:2::1".parse().unwrap(), net, 64));
     }
+
+    #[test]
+    fn ip_in_network_ipv6_slash48_same_site() {
+        let net: IpAddr = "2001:db8::".parse().unwrap();
+        // /48 fixes 2001:0db8:0000 — 2001:db8::1 is inside; 2001:db8:1::1 is not (third hextet ≠ 0).
+        assert!(ip_in_network("2001:db8::1".parse().unwrap(), net, 48));
+        assert!(!ip_in_network("2001:db8:1::1".parse().unwrap(), net, 48));
+        assert!(!ip_in_network("2001:db9::1".parse().unwrap(), net, 48));
+    }
 }

@@ -1057,4 +1057,16 @@ mod tests {
         handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
         assert!(!app.theme_chooser.active);
     }
+
+    #[test]
+    fn theme_chooser_two_down_one_up_net_increments_once() {
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        let start = app.theme_chooser.selected;
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollUp));
+        assert_eq!(app.theme_chooser.selected, start + 1);
+        assert!(app.theme_chooser.active);
+    }
 }
