@@ -645,6 +645,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_cidr_ipv6_ula_fd00_slash8() {
+        let args = args_with_net_filter("fd00::/8");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "fd00::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 8);
+    }
+
+    #[test]
     fn parse_cidr_ipv4_class_c() {
         let args = args_with_net_filter("203.0.113.0/24");
         let (addr, p) = args.parse_net_filter().unwrap();

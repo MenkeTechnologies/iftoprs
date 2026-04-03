@@ -297,6 +297,7 @@ mod tests {
     #[test]
     fn readable_total_exactly_one_million_bytes() {
         assert_eq!(readable_total(1_000_000, true), "1MB");
+        assert_eq!(readable_total(1_000_000, false), "1MB");
     }
 
     #[test]

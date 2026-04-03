@@ -485,6 +485,17 @@ mod tests {
     }
 
     #[test]
+    fn prefs_theme_iftopcolor_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::Iftopcolor,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::Iftopcolor);
+    }
+
+    #[test]
     fn prefs_refresh_rate_ten_roundtrip() {
         let p = Prefs {
             refresh_rate: 10,

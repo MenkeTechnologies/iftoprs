@@ -552,6 +552,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_leading_zero_port_parses_as_decimal() {
+        let m = parse_etc_services_text("ssh 022/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

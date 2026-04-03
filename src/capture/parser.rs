@@ -1787,4 +1787,34 @@ mod tests {
         pkt[13] = 0x00;
         assert!(parse_ethernet(&pkt, None).is_none());
     }
+
+    #[test]
+    fn ip_in_network_ipv4_prefix_len_above_32_requires_exact_host_match() {
+        let net: IpAddr = "198.51.100.10".parse().unwrap();
+        assert!(ip_in_network("198.51.100.10".parse().unwrap(), net, 64));
+        assert!(!ip_in_network("198.51.100.11".parse().unwrap(), net, 64));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_prefix_len_above_128_requires_exact_host_match() {
+        let net: IpAddr = "2001:db8::1".parse().unwrap();
+        assert!(ip_in_network("2001:db8::1".parse().unwrap(), net, 200));
+        assert!(!ip_in_network("2001:db8::2".parse().unwrap(), net, 200));
+    }
+
+    #[test]
+    fn parse_loopback_af_inet_minimum_ipv4_icmp() {
+        let mut pkt = vec![0u8; 24];
+        pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET
+        pkt[4] = 0x45; // IPv4, IHL 5
+        pkt[6] = 0x00;
+        pkt[7] = 20; // total length
+        pkt[4 + 9] = 1; // ICMP
+        pkt[4 + 12..4 + 16].copy_from_slice(&[10, 0, 0, 1]);
+        pkt[4 + 16..4 + 20].copy_from_slice(&[10, 0, 0, 2]);
+        let r = parse_loopback(&pkt, None).unwrap();
+        assert_eq!(r.key.protocol, Protocol::Icmp);
+        assert_eq!(r.key.src_port, 0);
+        assert_eq!(r.key.dst_port, 0);
+    }
 }

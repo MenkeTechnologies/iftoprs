@@ -114,6 +114,11 @@ mod tests {
     }
 
     #[test]
+    fn protocol_from_esp_is_other() {
+        assert_eq!(Protocol::from_ip_next_header(50), Protocol::Other(50));
+    }
+
+    #[test]
     fn protocol_from_zero_is_other() {
         assert_eq!(Protocol::from_ip_next_header(0), Protocol::Other(0));
     }

@@ -772,4 +772,15 @@ mod tests {
         }
         assert_eq!(h.avg_recv_10s(), 45.0);
     }
+
+    #[test]
+    fn avg_recv_10s_with_three_slots_partial() {
+        let mut h = FlowHistory::new();
+        h.add_recv(1);
+        h.rotate();
+        h.add_recv(2);
+        h.rotate();
+        h.add_recv(4);
+        assert_eq!(h.avg_recv_10s(), 7.0);
+    }
 }
