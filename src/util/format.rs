@@ -320,4 +320,28 @@ mod tests {
     fn readable_size_bytes_just_under_kilobyte() {
         assert_eq!(readable_size(999.0, true), "999B");
     }
+
+    #[test]
+    fn readable_size_bits_one_megabit_exact() {
+        assert_eq!(readable_size(125_000.0, false), "1.00Mb");
+    }
+
+    #[test]
+    fn readable_total_boundary_kb() {
+        let r = readable_total(999_999, false);
+        assert!(r.contains("KB") || r.contains("MB"));
+    }
+
+    #[test]
+    fn sparkline_max_width_exceeds_len() {
+        let s = sparkline(&[1, 2, 3], 100);
+        assert_eq!(s.chars().count(), 3);
+    }
+
+    #[test]
+    fn sparkline_all_max_except_one_zero() {
+        let s = sparkline(&[0, 100, 100, 100], 10);
+        let chars: Vec<char> = s.chars().collect();
+        assert_eq!(chars[0], ' ');
+    }
 }

@@ -460,4 +460,143 @@ mod tests {
         let args = Args::try_parse_from(["iftoprs", "--completions", "fish"]).unwrap();
         assert_eq!(args.completions, Some(Shell::Fish));
     }
+
+    #[test]
+    fn clap_parse_completions_elvish() {
+        let args = Args::try_parse_from(["iftoprs", "--completions", "elvish"]).unwrap();
+        assert_eq!(args.completions, Some(Shell::Elvish));
+    }
+
+    #[test]
+    fn clap_parse_completions_powershell() {
+        let args = Args::try_parse_from(["iftoprs", "--completions", "powershell"]).unwrap();
+        assert_eq!(args.completions, Some(Shell::PowerShell));
+    }
+
+    #[test]
+    fn clap_parse_long_help() {
+        let args = Args::try_parse_from(["iftoprs", "--help"]).unwrap();
+        assert!(args.help);
+    }
+
+    #[test]
+    fn clap_parse_long_version() {
+        let args = Args::try_parse_from(["iftoprs", "--version"]).unwrap();
+        assert!(args.version);
+    }
+
+    #[test]
+    fn clap_parse_list_interfaces() {
+        let args = Args::try_parse_from(["iftoprs", "--list-interfaces"]).unwrap();
+        assert!(args.list_interfaces);
+    }
+
+    #[test]
+    fn clap_parse_list_interfaces_short() {
+        let args = Args::try_parse_from(["iftoprs", "-l"]).unwrap();
+        assert!(args.list_interfaces);
+    }
+
+    #[test]
+    fn clap_parse_list_colors() {
+        let args = Args::try_parse_from(["iftoprs", "--list-colors"]).unwrap();
+        assert!(args.list_colors);
+    }
+
+    #[test]
+    fn clap_parse_hide_ports() {
+        let args = Args::try_parse_from(["iftoprs", "--hide-ports"]).unwrap();
+        assert!(args.hide_ports);
+    }
+
+    #[test]
+    fn clap_parse_hide_ports_short() {
+        let args = Args::try_parse_from(["iftoprs", "-P"]).unwrap();
+        assert!(args.hide_ports);
+    }
+
+    #[test]
+    fn clap_parse_no_port_names() {
+        let args = Args::try_parse_from(["iftoprs", "--no-port-names"]).unwrap();
+        assert!(args.no_port_names);
+    }
+
+    #[test]
+    fn clap_parse_promiscuous() {
+        let args = Args::try_parse_from(["iftoprs", "--promiscuous"]).unwrap();
+        assert!(args.promiscuous);
+    }
+
+    #[test]
+    fn clap_parse_promiscuous_short() {
+        let args = Args::try_parse_from(["iftoprs", "-p"]).unwrap();
+        assert!(args.promiscuous);
+    }
+
+    #[test]
+    fn clap_parse_interface_long_equals() {
+        let args = Args::try_parse_from(["iftoprs", "--interface=eth0"]).unwrap();
+        assert_eq!(args.interface, Some("eth0".into()));
+    }
+
+    #[test]
+    fn clap_parse_net_filter_long_equals() {
+        let args = Args::try_parse_from(["iftoprs", "--net-filter=172.16.0.0/12"]).unwrap();
+        assert_eq!(args.net_filter, Some("172.16.0.0/12".into()));
+    }
+
+    #[test]
+    fn clap_parse_capture_bundle() {
+        let args = Args::try_parse_from([
+            "iftoprs",
+            "-i",
+            "wlan0",
+            "-f",
+            "udp",
+            "-F",
+            "10.0.0.0/8",
+            "-n",
+            "-p",
+            "-B",
+        ])
+        .unwrap();
+        assert_eq!(args.interface, Some("wlan0".into()));
+        assert_eq!(args.filter, Some("udp".into()));
+        assert_eq!(args.net_filter, Some("10.0.0.0/8".into()));
+        assert!(args.no_dns);
+        assert!(args.promiscuous);
+        assert!(args.bytes);
+    }
+
+    #[test]
+    fn parse_valid_cidr_v6_slash48() {
+        let args = args_with_net_filter("2001:db8:beef::/48");
+        let (addr, prefix) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2001:db8:beef::".parse::<IpAddr>().unwrap());
+        assert_eq!(prefix, 48);
+    }
+
+    #[test]
+    fn parse_cidr_trailing_slash_invalid() {
+        let args = args_with_net_filter("10.0.0.0/");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_cidr_double_slash_invalid() {
+        let args = args_with_net_filter("10.0.0.0//24");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn clap_parse_no_processes() {
+        let args = Args::try_parse_from(["iftoprs", "--no-processes"]).unwrap();
+        assert!(args.no_processes);
+    }
+
+    #[test]
+    fn clap_parse_no_processes_short() {
+        let args = Args::try_parse_from(["iftoprs", "-Z"]).unwrap();
+        assert!(args.no_processes);
+    }
 }

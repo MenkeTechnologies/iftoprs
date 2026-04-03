@@ -458,4 +458,40 @@ mod tests {
         assert!(swapped);
         assert_eq!(n.src, "0.0.0.0".parse::<std::net::IpAddr>().unwrap());
     }
+
+    #[test]
+    fn normalize_ipv6_loopback_vs_multicast_order() {
+        let k = FlowKey {
+            src: "ff02::1".parse().unwrap(),
+            dst: "::1".parse().unwrap(),
+            src_port: 12345,
+            dst_port: 80,
+            protocol: Protocol::Udp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src, "::1".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.src_port, 80);
+        assert_eq!(n.dst_port, 12345);
+    }
+
+    #[test]
+    fn normalize_port_tie_same_addrs_no_swap() {
+        let k = FlowKey {
+            src: "203.0.113.5".parse().unwrap(),
+            dst: "203.0.113.5".parse().unwrap(),
+            src_port: 9999,
+            dst_port: 9999,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(!swapped);
+        assert_eq!(n.src_port, 9999);
+    }
+
+    #[test]
+    fn protocol_from_icmp_matches_both_numbers() {
+        assert_eq!(Protocol::from_ip_next_header(1), Protocol::Icmp);
+        assert_eq!(Protocol::from_ip_next_header(58), Protocol::Icmp);
+    }
 }

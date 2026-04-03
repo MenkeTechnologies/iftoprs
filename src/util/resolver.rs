@@ -428,4 +428,47 @@ mod tests {
         let cache = r.cache.lock().unwrap();
         assert!(!cache.entries.contains_key(&addr));
     }
+
+    #[test]
+    fn port_to_service_smtp() {
+        let tcp = port_to_service(25, true);
+        let udp = port_to_service(25, false);
+        assert_eq!(tcp, Some("smtp"));
+        assert_eq!(udp, Some("smtp"));
+    }
+
+    #[test]
+    fn port_to_service_ntp() {
+        let result = port_to_service(123, false);
+        assert_eq!(result, Some("ntp"));
+    }
+
+    #[test]
+    fn evict_stale_empty_cache_no_panic() {
+        let mut cache = ResolverCache {
+            entries: HashMap::new(),
+            pending_count: 0,
+        };
+        evict_stale(&mut cache);
+        assert!(cache.entries.is_empty());
+    }
+
+    #[test]
+    fn resolver_new_enabled() {
+        let r = Resolver::new(true);
+        assert!(r.is_enabled());
+    }
+
+    #[test]
+    fn resolver_new_disabled() {
+        let r = Resolver::new(false);
+        assert!(!r.is_enabled());
+    }
+
+    #[test]
+    fn resolver_ipv6_enabled_returns_literal() {
+        let r = Resolver::new(false);
+        let addr: IpAddr = "2001:db8::1".parse().unwrap();
+        assert_eq!(r.resolve(addr), "2001:db8::1");
+    }
 }

@@ -262,4 +262,32 @@ mod tests {
     fn default_refresh_helper() {
         assert_eq!(default_refresh(), 1);
     }
+
+    #[test]
+    fn prefs_invalid_theme_string_yields_default_prefs() {
+        let p: Prefs = toml::from_str(r#"theme = "TotallyUnknownThemeName""#).unwrap_or_default();
+        assert_eq!(p.theme, ThemeName::default());
+    }
+
+    #[test]
+    fn prefs_hover_tooltips_roundtrip() {
+        let p = Prefs {
+            hover_tooltips: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.hover_tooltips);
+    }
+
+    #[test]
+    fn prefs_alert_threshold_roundtrip() {
+        let p = Prefs {
+            alert_threshold: 42.5,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!((p2.alert_threshold - 42.5).abs() < f64::EPSILON);
+    }
 }

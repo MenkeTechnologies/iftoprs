@@ -1067,4 +1067,135 @@ mod tests {
         let result = parse_raw(&raw, Some((local, 32))).unwrap();
         assert_eq!(result.direction, Direction::Received);
     }
+
+    // ── Additional Ethernet / ICMP / VLAN / SLL coverage ──
+
+    #[test]
+    fn parse_ethernet_icmpv4() {
+        let mut pkt = vec![0u8; 44];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        pkt[14] = 0x45;
+        pkt[16] = 0x00;
+        pkt[17] = 28;
+        pkt[23] = 1; // ICMP
+        pkt[26..30].copy_from_slice(&[192, 168, 0, 1]);
+        pkt[30..34].copy_from_slice(&[192, 168, 0, 2]);
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Icmp);
+        assert_eq!(result.len, 28);
+    }
+
+    #[test]
+    fn parse_ethernet_ipv4_extreme_ihl_truncated_ports_zero() {
+        // IHL = 15 → 60-byte header; buffer shorter — TCP ports fall back to 0
+        let mut pkt = vec![0u8; 14 + 20];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        pkt[14] = 0x4f;
+        pkt[16] = 0x00;
+        pkt[17] = 20;
+        pkt[23] = 6;
+        pkt[26..30].copy_from_slice(&[10, 0, 0, 1]);
+        pkt[30..34].copy_from_slice(&[10, 0, 0, 2]);
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.src_port, 0);
+        assert_eq!(result.key.dst_port, 0);
+    }
+
+    #[test]
+    fn parse_vlan_ipv4_udp_full() {
+        let mut pkt = vec![0u8; 18 + 28];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
+        pkt[16] = 0x08;
+        pkt[17] = 0x00;
+        pkt[18] = 0x45;
+        pkt[20] = 0x00;
+        pkt[21] = 28;
+        pkt[27] = 17;
+        pkt[30..34].copy_from_slice(&[10, 10, 10, 1]);
+        pkt[34..38].copy_from_slice(&[10, 10, 10, 2]);
+        pkt[38] = 0x00;
+        pkt[39] = 0x44;
+        pkt[40] = 0x00;
+        pkt[41] = 0x43;
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+        assert_eq!(result.len, 28);
+    }
+
+    #[test]
+    fn parse_sll_icmpv4() {
+        let mut pkt = vec![0u8; 16 + 28];
+        pkt[14] = 0x08;
+        pkt[15] = 0x00;
+        pkt[16] = 0x45;
+        pkt[18] = 0;
+        pkt[19] = 28;
+        pkt[25] = 1;
+        pkt[28..32].copy_from_slice(&[8, 8, 4, 4]);
+        pkt[32..36].copy_from_slice(&[1, 1, 1, 1]);
+        let result = parse_sll(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Icmp);
+    }
+
+    #[test]
+    fn parse_raw_ipv4_total_length_short_buffer_still_parses_header_fields() {
+        // total_len claims 100 but buffer is 28 — parser uses declared total_len for `len` field
+        let mut raw = vec![0u8; 28];
+        raw[0] = 0x45;
+        raw[2] = 0x00;
+        raw[3] = 100;
+        raw[9] = 6;
+        raw[12..16].copy_from_slice(&[1, 1, 1, 1]);
+        raw[16..20].copy_from_slice(&[2, 2, 2, 2]);
+        raw[20] = 0x00;
+        raw[21] = 0x16;
+        raw[22] = 0x00;
+        raw[23] = 0x50;
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.len, 100);
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_prefix127() {
+        let addr: IpAddr = "2001:db8::1".parse().unwrap();
+        let net: IpAddr = "2001:db8::".parse().unwrap();
+        assert!(ip_in_network(addr, net, 127));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_distinct_at_bit_64() {
+        let addr: IpAddr = "2001:db8:1::1".parse().unwrap();
+        let net: IpAddr = "2001:db8::".parse().unwrap();
+        assert!(!ip_in_network(addr, net, 64));
+    }
+
+    #[test]
+    fn parse_loopback_ipv4_short_total_len() {
+        let mut pkt = vec![0u8; 4 + 28];
+        pkt[0..4].copy_from_slice(&2u32.to_ne_bytes());
+        pkt[4] = 0x45;
+        pkt[6] = 0;
+        pkt[7] = 28;
+        pkt[13] = 17;
+        pkt[16..20].copy_from_slice(&[10, 0, 0, 1]);
+        pkt[20..24].copy_from_slice(&[10, 0, 0, 2]);
+        pkt[24] = 0x14;
+        pkt[25] = 0xe9;
+        pkt[26] = 0x14;
+        pkt[27] = 0xe9;
+        let result = parse_loopback(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+    }
+
+    #[test]
+    fn direction_ipv4_both_on_link_local_sent_default() {
+        let local: IpAddr = "169.254.0.0".parse().unwrap();
+        let pkt = make_ipv4_tcp_packet([169, 254, 0, 1], [169, 254, 0, 2], 1024, 1025);
+        let result = parse_ethernet(&pkt, Some((local, 16))).unwrap();
+        assert_eq!(result.direction, Direction::Sent);
+    }
 }
