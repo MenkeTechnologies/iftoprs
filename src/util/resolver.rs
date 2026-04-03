@@ -576,6 +576,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_line_with_only_hash_is_skipped() {
+        let m = parse_etc_services_text("# full line comment only\nssh 22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);

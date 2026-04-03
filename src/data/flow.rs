@@ -756,4 +756,23 @@ mod tests {
     fn protocol_other_wrapping_tcp_number_not_equal_to_tcp_variant() {
         assert_ne!(Protocol::Other(6), Protocol::Tcp);
     }
+
+    #[test]
+    fn protocol_from_ipv6_mobility_header_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(135), Protocol::Other(135));
+    }
+
+    #[test]
+    fn normalize_ipv4_equal_ports_no_swap_when_src_address_lower() {
+        let k = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(!swapped);
+        assert_eq!(n, k);
+    }
 }

@@ -588,4 +588,9 @@ mod tests {
     fn readable_size_bits_one_gigabit_per_second() {
         assert_eq!(readable_size(125_000_000.0, false), "1.00Gb");
     }
+
+    #[test]
+    fn readable_size_bits_half_byte_per_second() {
+        assert_eq!(readable_size(0.5, false), "4b");
+    }
 }

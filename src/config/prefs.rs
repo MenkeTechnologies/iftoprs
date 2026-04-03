@@ -593,4 +593,15 @@ mod tests {
         assert!(!p2.show_header);
         assert!(p2.show_border);
     }
+
+    #[test]
+    fn prefs_custom_themes_empty_map_roundtrip() {
+        let p = Prefs {
+            custom_themes: std::collections::HashMap::new(),
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(p2.custom_themes.is_empty());
+    }
 }

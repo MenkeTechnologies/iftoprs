@@ -943,4 +943,24 @@ mod tests {
         let (flows, _) = t.snapshot();
         assert_eq!(flows.len(), t.flow_keys().len());
     }
+
+    #[test]
+    fn snapshot_flow_total_sent_sum_matches_global_cumulative_sent() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 100);
+        t.record(test_key(2), Direction::Sent, 200);
+        let (flows, totals) = t.snapshot();
+        let sum: u64 = flows.iter().map(|f| f.total_sent).sum();
+        assert_eq!(sum, totals.cumulative_sent);
+    }
+
+    #[test]
+    fn snapshot_flow_total_recv_sum_matches_global_cumulative_recv() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Received, 50);
+        t.record(test_key(2), Direction::Received, 75);
+        let (flows, totals) = t.snapshot();
+        let sum: u64 = flows.iter().map(|f| f.total_recv).sum();
+        assert_eq!(sum, totals.cumulative_recv);
+    }
 }

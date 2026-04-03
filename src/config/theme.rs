@@ -541,4 +541,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::HoloShift);
         assert!(matches!(t.proc_name, Color::Indexed(_)));
     }
+
+    #[test]
+    fn deep_net_theme_help_bg_is_indexed() {
+        let t = Theme::from_name(ThemeName::DeepNet);
+        assert!(matches!(t.help_bg, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn megacorp_theme_bar_color_is_indexed() {
+        let t = Theme::from_name(ThemeName::Megacorp);
+        assert!(matches!(t.bar_color, Color::Indexed(_)));
+    }
 }
