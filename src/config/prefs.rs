@@ -440,4 +440,15 @@ mod tests {
         assert_eq!(p2.pinned.len(), 2);
         assert_eq!(p2.pinned[1].src, "2001:db8::1");
     }
+
+    #[test]
+    fn prefs_theme_zaibatsu_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::Zaibatsu,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::Zaibatsu);
+    }
 }

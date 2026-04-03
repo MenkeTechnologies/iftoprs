@@ -670,4 +670,30 @@ mod tests {
         assert_eq!(totals.cumulative_sent, 1000);
         assert_eq!(totals.cumulative_recv, 0);
     }
+
+    #[test]
+    fn snapshot_sent_40s_sum_matches_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 100);
+        t.record(test_key(2), Direction::Sent, 200);
+        let (flows, totals) = t.snapshot();
+        let sum: f64 = flows.iter().map(|f| f.sent_40s).sum();
+        assert!((totals.sent_40s - sum).abs() < 1e-6);
+    }
+
+    #[test]
+    fn snapshot_icmp_flow_not_recorded_by_tracker() {
+        let t = FlowTracker::new();
+        let key = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 0,
+            dst_port: 0,
+            protocol: Protocol::Icmp,
+        };
+        t.record(key, Direction::Sent, 64);
+        let (flows, totals) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+        assert_eq!(totals.cumulative_sent, 64);
+    }
 }

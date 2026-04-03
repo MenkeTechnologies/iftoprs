@@ -619,6 +619,16 @@ mod tests {
     }
 
     #[test]
+    fn protocol_from_sctp_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(132), Protocol::Other(132));
+    }
+
+    #[test]
+    fn protocol_from_igmp_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(2), Protocol::Other(2));
+    }
+
+    #[test]
     fn normalize_mixed_ipv4_ipv6_reverse_equals_canonical() {
         let v4 = "198.51.100.2".parse::<IpAddr>().unwrap();
         let v6 = "2001:db8::2".parse::<IpAddr>().unwrap();

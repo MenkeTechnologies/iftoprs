@@ -458,4 +458,10 @@ mod tests {
         let c2: CustomThemeColors = serde_json::from_str(&json).unwrap();
         assert_eq!(c2.c3, 3);
     }
+
+    #[test]
+    fn theme_from_name_void_walker_rate_colors_differ() {
+        let t = Theme::from_name(ThemeName::VoidWalker);
+        assert_ne!(t.rate_2s, t.rate_40s);
+    }
 }

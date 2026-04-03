@@ -202,7 +202,7 @@ sudo ./target/release/iftoprs
 
 ### `> CI_AND_QA.sh`
 
-[GitHub Actions](https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml) runs on every push and pull request to `main`:
+[GitHub Actions](https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml) runs on every push and pull request to `main`, and can be started manually (**workflow_dispatch** from the Actions tab).
 
 | Job | Command |
 |:---:|:---|
@@ -210,7 +210,7 @@ sudo ./target/release/iftoprs
 | Clippy | `cargo clippy --all-targets -- -D warnings` |
 | Test | `cargo build` and `cargo test` |
 
-The **Test** job uses **Ubuntu** and **macOS** runners; Linux installs `libpcap-dev`. The repo [`rust-toolchain.toml`](rust-toolchain.toml) pins **stable** Rust with `rustfmt` and `clippy` so local and CI toolchains stay aligned. The workflow uses **least-privilege** `contents: read` permissions and **cancels in-progress runs** on the same branch when a newer commit is pushed, so redundant builds do not pile up.
+The **Test** job uses **Ubuntu** and **macOS** runners; Linux installs `libpcap-dev`. The repo [`rust-toolchain.toml`](rust-toolchain.toml) pins **stable** Rust with `rustfmt` and `clippy` so local and CI toolchains stay aligned. The workflow uses **least-privilege** `contents: read` permissions and **cancels in-progress runs** on the same branch when a newer commit is pushed, so redundant builds do not pile up. Jobs have **timeouts** (format, clippy, and test) so hung runners do not run indefinitely. The test matrix sets **fail-fast: false** so both operating systems finish even when one fails, which makes cross-platform regressions easier to diagnose.
 
 Run the same checks locally before pushing:
 

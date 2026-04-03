@@ -813,4 +813,35 @@ mod tests {
         assert_eq!(addr, "fd00::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 8);
     }
+
+    #[test]
+    fn parse_cidr_ipv4_mapped_ipv6_host_slash128() {
+        let args = args_with_net_filter("::ffff:192.0.2.1/128");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "::ffff:192.0.2.1".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 128);
+    }
+
+    #[test]
+    fn clap_parse_hide_ports_with_list_colors() {
+        let args = Args::try_parse_from(["iftoprs", "-P", "--list-colors"]).unwrap();
+        assert!(args.hide_ports);
+        assert!(args.list_colors);
+    }
+
+    #[test]
+    fn clap_parse_json_no_port_names_no_dns() {
+        let args = Args::try_parse_from(["iftoprs", "--json", "-N", "-n"]).unwrap();
+        assert!(args.json);
+        assert!(args.no_port_names);
+        assert!(args.no_dns);
+    }
+
+    #[test]
+    fn parse_cidr_ipv6_global_slash56() {
+        let args = args_with_net_filter("2600::/56");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2600::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 56);
+    }
 }

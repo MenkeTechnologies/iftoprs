@@ -462,4 +462,21 @@ mod tests {
         assert!(c[0] < c[1]);
         assert!(c[1] < c[3]);
     }
+
+    #[test]
+    fn readable_total_just_below_one_million_bytes_kb() {
+        assert_eq!(readable_total(999_999, false), "1000.0KB");
+    }
+
+    #[test]
+    fn readable_size_gigabytes_bytes_mode() {
+        assert_eq!(readable_size(3_500_000_000.0, true), "3.50GB");
+    }
+
+    #[test]
+    fn sparkline_all_same_nonzero_uniform_blocks() {
+        let s = sparkline(&[7, 7, 7, 7], 10);
+        let c: Vec<char> = s.chars().collect();
+        assert!(c.iter().all(|&x| x == c[0]));
+    }
 }

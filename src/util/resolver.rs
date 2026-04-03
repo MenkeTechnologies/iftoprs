@@ -516,4 +516,9 @@ mod tests {
     fn port_to_service_pop3() {
         assert_eq!(port_to_service(110, true), Some("pop3"));
     }
+
+    #[test]
+    fn port_to_service_high_ephemeral_port_returns_none() {
+        assert!(port_to_service(49152, true).is_none());
+    }
 }

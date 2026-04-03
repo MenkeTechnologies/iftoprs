@@ -1554,4 +1554,22 @@ mod tests {
         assert!(ip_in_network("2001:db8::ffff".parse().unwrap(), net, 32));
         assert!(!ip_in_network("2001:db9::1".parse().unwrap(), net, 32));
     }
+
+    #[test]
+    fn ip_in_network_ipv4_slash24_typical_lan() {
+        let net: IpAddr = "192.168.1.0".parse().unwrap();
+        assert!(ip_in_network("192.168.1.100".parse().unwrap(), net, 24));
+        assert!(!ip_in_network("192.168.2.1".parse().unwrap(), net, 24));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash64_subnet() {
+        let net: IpAddr = "2001:db8:1::".parse().unwrap();
+        assert!(ip_in_network(
+            "2001:db8:1::dead:beef".parse().unwrap(),
+            net,
+            64
+        ));
+        assert!(!ip_in_network("2001:db8:2::1".parse().unwrap(), net, 64));
+    }
 }

@@ -478,4 +478,23 @@ mod tests {
         h.add_sent(100);
         assert_eq!(h.avg_sent_2s(), 120.0);
     }
+
+    #[test]
+    fn rotate_records_both_peaks_when_sent_and_recv_in_slot() {
+        let mut h = FlowHistory::new();
+        h.add_sent(1000);
+        h.add_recv(500);
+        h.rotate();
+        assert_eq!(h.peak_sent, 1000.0);
+        assert_eq!(h.peak_recv, 500.0);
+    }
+
+    #[test]
+    fn avg_recv_10s_matches_sum_over_slots() {
+        let mut h = FlowHistory::new();
+        h.add_recv(5);
+        h.rotate();
+        h.add_recv(15);
+        assert_eq!(h.avg_recv_10s(), 20.0);
+    }
 }
