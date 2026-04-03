@@ -568,6 +568,74 @@ mod tests {
         assert!(parse_sll(&pkt, None).is_none());
     }
 
+    #[test]
+    fn parse_sll_ipv6_udp() {
+        // SLL (16) + IPv6 (40) + first 4 bytes of UDP (ports)
+        let mut pkt = vec![0u8; 16 + 40 + 4];
+        pkt[14] = 0x86;
+        pkt[15] = 0xDD;
+        pkt[16] = 0x60;
+        pkt[20] = 0x00;
+        pkt[21] = 4; // payload length
+        pkt[22] = 17; // UDP
+        pkt[23] = 64;
+        pkt[39] = 1; // src ::1 (last byte)
+        pkt[55] = 2; // dst ::2 (last byte)
+        pkt[56] = 0x00;
+        pkt[57] = 0x35; // src 53
+        pkt[58] = 0x1F;
+        pkt[59] = 0x90; // dst 8080
+        let result = parse_sll(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+        assert_eq!(result.key.src_port, 53);
+        assert_eq!(result.key.dst_port, 8080);
+        assert_eq!(result.len, 44);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn parse_loopback_af_inet6() {
+        let mut pkt = vec![0u8; 4 + 44];
+        pkt[0..4].copy_from_slice(&30u32.to_ne_bytes()); // AF_INET6 on macOS
+        pkt[4] = 0x60;
+        pkt[8] = 0x00;
+        pkt[9] = 4;
+        pkt[10] = 17; // UDP
+        pkt[11] = 64;
+        pkt[27] = 1; // src ::1
+        pkt[43] = 2; // dst ::2
+        pkt[44] = 0x00;
+        pkt[45] = 0x35;
+        pkt[46] = 0x1F;
+        pkt[47] = 0x90;
+        let result = parse_loopback(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+        assert_eq!(result.key.src_port, 53);
+        assert_eq!(result.key.dst_port, 8080);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn parse_loopback_af_inet6_linux() {
+        let mut pkt = vec![0u8; 4 + 44];
+        pkt[0..4].copy_from_slice(&10u32.to_ne_bytes()); // AF_INET6 on Linux
+        pkt[4] = 0x60;
+        pkt[8] = 0x00;
+        pkt[9] = 4;
+        pkt[10] = 17;
+        pkt[11] = 64;
+        pkt[27] = 1;
+        pkt[43] = 2;
+        pkt[44] = 0x00;
+        pkt[45] = 0x35;
+        pkt[46] = 0x1F;
+        pkt[47] = 0x90;
+        let result = parse_loopback(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+        assert_eq!(result.key.src_port, 53);
+        assert_eq!(result.key.dst_port, 8080);
+    }
+
     // ── Direction edge cases ──
 
     #[test]
@@ -664,6 +732,54 @@ mod tests {
         let result = parse_raw(&raw, None).unwrap();
         assert_eq!(result.key.src_port, 0);
         assert_eq!(result.key.dst_port, 0);
+    }
+
+    #[test]
+    fn parse_raw_ipv4_tcp_ports_after_options() {
+        // IHL = 6 → 24-byte IPv4 header; TCP ports start at offset 24, not 20.
+        let mut raw = vec![0u8; 28];
+        raw[0] = 0x46; // version 4, IHL 6
+        raw[2] = 0;
+        raw[3] = 28; // 24-byte IP header + 4 bytes (src/dst port only)
+        raw[9] = 6; // TCP
+        raw[12..16].copy_from_slice(&[10, 0, 0, 1]);
+        raw[16..20].copy_from_slice(&[10, 0, 0, 2]);
+        raw[20..24].copy_from_slice(&[0x01, 0x01, 0x01, 0x01]); // NOP padding
+        raw[24] = 0x30;
+        raw[25] = 0x39; // 12345
+        raw[26] = 0x00;
+        raw[27] = 0x50; // 80
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+        assert_eq!(result.key.src, "10.0.0.1".parse::<IpAddr>().unwrap());
+        assert_eq!(result.key.dst, "10.0.0.2".parse::<IpAddr>().unwrap());
+        assert_eq!(result.key.src_port, 12345);
+        assert_eq!(result.key.dst_port, 80);
+    }
+
+    #[test]
+    fn parse_ethernet_ipv4_tcp_ports_after_options() {
+        // Same IHL=6 layout as `parse_raw_ipv4_tcp_ports_after_options`, with Ethernet prefix.
+        let mut pkt = vec![0u8; 14 + 28];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        pkt[14] = 0x46; // version 4, IHL 6
+        pkt[16] = 0x00;
+        pkt[17] = 28;
+        pkt[23] = 6; // TCP
+        pkt[26..30].copy_from_slice(&[10, 0, 0, 1]);
+        pkt[30..34].copy_from_slice(&[10, 0, 0, 2]);
+        pkt[34..38].copy_from_slice(&[0x01, 0x01, 0x01, 0x01]);
+        pkt[38] = 0x30;
+        pkt[39] = 0x39;
+        pkt[40] = 0x00;
+        pkt[41] = 0x50;
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+        assert_eq!(result.key.src, "10.0.0.1".parse::<IpAddr>().unwrap());
+        assert_eq!(result.key.dst, "10.0.0.2".parse::<IpAddr>().unwrap());
+        assert_eq!(result.key.src_port, 12345);
+        assert_eq!(result.key.dst_port, 80);
     }
 
     #[test]

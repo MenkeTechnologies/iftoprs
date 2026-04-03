@@ -309,4 +309,42 @@ mod tests {
         let (n2, _) = k2.normalize();
         assert_eq!(n1, n2);
     }
+
+    #[test]
+    fn normalize_swaps_ipv6_when_address_order_requires() {
+        let k = FlowKey {
+            src: "2001:db8::2".parse().unwrap(),
+            dst: "2001:db8::1".parse().unwrap(),
+            src_port: 443,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src, "2001:db8::1".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.dst, "2001:db8::2".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.src_port, 80);
+        assert_eq!(n.dst_port, 443);
+    }
+
+    #[test]
+    fn normalize_ipv6_reversed_pair_equals_original() {
+        let k1 = FlowKey {
+            src: "2001:db8::1".parse().unwrap(),
+            dst: "2001:db8::2".parse().unwrap(),
+            src_port: 5000,
+            dst_port: 443,
+            protocol: Protocol::Udp,
+        };
+        let k2 = FlowKey {
+            src: "2001:db8::2".parse().unwrap(),
+            dst: "2001:db8::1".parse().unwrap(),
+            src_port: 443,
+            dst_port: 5000,
+            protocol: Protocol::Udp,
+        };
+        let (n1, _) = k1.normalize();
+        let (n2, _) = k2.normalize();
+        assert_eq!(n1, n2);
+    }
 }
