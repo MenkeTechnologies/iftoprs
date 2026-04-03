@@ -213,6 +213,12 @@ fn determine_direction(src: IpAddr, dst: IpAddr, local_net: Option<(IpAddr, u8)>
 }
 
 pub(crate) fn ip_in_network(addr: IpAddr, network: IpAddr, prefix_len: u8) -> bool {
+    if prefix_len == 0 {
+        return matches!(
+            (addr, network),
+            (IpAddr::V4(_), IpAddr::V4(_)) | (IpAddr::V6(_), IpAddr::V6(_))
+        );
+    }
     match (addr, network) {
         (IpAddr::V4(a), IpAddr::V4(n)) => {
             if prefix_len >= 32 {
@@ -1648,6 +1654,51 @@ mod tests {
         pkt[13] = 0x00;
         pkt[16] = 0x08;
         pkt[17] = 0x00;
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash0_all_addresses_match() {
+        let net: IpAddr = "::".parse().unwrap();
+        assert!(ip_in_network("::1".parse().unwrap(), net, 0));
+        assert!(ip_in_network(
+            "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff".parse().unwrap(),
+            net,
+            0
+        ));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash0_all_match() {
+        let net: IpAddr = "0.0.0.0".parse().unwrap();
+        assert!(ip_in_network("255.255.255.255".parse().unwrap(), net, 0));
+    }
+
+    #[test]
+    fn parse_raw_ipv6_minimum_tcp_ports() {
+        let mut raw = vec![0u8; 44];
+        raw[0] = 0x60;
+        raw[4] = 0x00;
+        raw[5] = 4;
+        raw[6] = 6;
+        raw[7] = 64;
+        raw[23] = 1;
+        raw[39] = 2;
+        raw[40] = 0x01;
+        raw[41] = 0xbb;
+        raw[42] = 0x00;
+        raw[43] = 0x50;
+        let r = parse_raw(&raw, None).unwrap();
+        assert_eq!(r.key.protocol, Protocol::Tcp);
+        assert_eq!(r.key.src_port, 443);
+        assert_eq!(r.key.dst_port, 80);
+    }
+
+    #[test]
+    fn parse_ethernet_too_short_for_vlan_tag() {
+        let mut pkt = vec![0u8; 16];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
         assert!(parse_ethernet(&pkt, None).is_none());
     }
 }

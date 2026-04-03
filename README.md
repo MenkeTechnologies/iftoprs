@@ -228,7 +228,7 @@ The **actions/cache** keys hash **`Cargo.lock`** and **`rust-toolchain.toml`**, 
 
 **Port-to-service** labels read the system **`/etc/services`** file; entries and ordering vary by OS. Unit tests use **`tests/fixtures/minimal_etc_services.txt`** for deterministic expectations, and the parser normalizes **`tcp`** / **`udp`** protocol casing so lookups stay consistent. A few resolver smoke tests assert against the live file when it is readable and **return early** when it is missing or empty (minimal containers, Windows), so CI stays green without pinning OS-specific service names.
 
-Additional **packet parser** and **`/etc/services` parser** unit tests cover VLAN and cooked (**SLL**) frames, ICMP (no L4 ports), invalid IP versions, and CIDR edge cases so regressions show up on **Ubuntu** and **macOS** without live capture hardware.
+Additional **packet parser** and **`/etc/services` parser** unit tests cover VLAN and cooked (**SLL**) frames, ICMP (no L4 ports), invalid IP versions, and CIDR edge cases (including **`/0`**, which matches the full IPv4 or IPv6 space for same-family addresses) so regressions show up on **Ubuntu** and **macOS** without live capture hardware.
 
 ---
 

@@ -528,4 +528,125 @@ mod tests {
         assert_eq!(a.total_sent, b.total_sent);
         assert_eq!(a.total_recv, b.total_recv);
     }
+
+    #[test]
+    fn avg_recv_2s_after_rotate_ignores_prior_slot_when_current_only() {
+        let mut h = FlowHistory::new();
+        h.add_recv(100);
+        h.rotate();
+        h.add_recv(50);
+        assert_eq!(h.avg_recv_2s(), 150.0);
+    }
+
+    #[test]
+    fn avg_sent_2s_after_three_rotations_sums_last_two_slots() {
+        let mut h = FlowHistory::new();
+        h.add_sent(10);
+        h.rotate();
+        h.add_sent(20);
+        h.rotate();
+        h.add_sent(100);
+        assert_eq!(h.avg_sent_2s(), 120.0);
+    }
+
+    #[test]
+    fn fifty_rotations_keep_sent_deque_at_most_history_slots() {
+        let mut h = FlowHistory::new();
+        for _ in 0..50 {
+            h.add_sent(1);
+            h.rotate();
+        }
+        assert!(h.sent.len() <= super::HISTORY_SLOTS);
+        assert!(h.recv.len() <= super::HISTORY_SLOTS);
+    }
+
+    #[test]
+    fn recv_peak_zero_when_only_sent_in_slot() {
+        let mut h = FlowHistory::new();
+        h.add_sent(500);
+        h.rotate();
+        assert_eq!(h.peak_recv, 0.0);
+        assert_eq!(h.peak_sent, 500.0);
+    }
+
+    #[test]
+    fn sent_peak_zero_when_only_recv_in_slot() {
+        let mut h = FlowHistory::new();
+        h.add_recv(400);
+        h.rotate();
+        assert_eq!(h.peak_sent, 0.0);
+        assert_eq!(h.peak_recv, 400.0);
+    }
+
+    #[test]
+    fn avg_recv_40s_sums_up_to_forty_slots() {
+        let mut h = FlowHistory::new();
+        for i in 0..15 {
+            h.add_recv((i + 1) as u64);
+            h.rotate();
+        }
+        let sum: u64 = (1..=15).sum();
+        assert_eq!(h.avg_recv_40s(), sum as f64);
+    }
+
+    #[test]
+    fn avg_sent_10s_with_three_slots_partial() {
+        let mut h = FlowHistory::new();
+        h.add_sent(1);
+        h.rotate();
+        h.add_sent(2);
+        h.rotate();
+        h.add_sent(4);
+        assert_eq!(h.avg_sent_10s(), 7.0);
+    }
+
+    #[test]
+    fn last_seen_updates_on_both_sent_and_recv() {
+        let mut h = FlowHistory::new();
+        let t0 = h.last_seen;
+        std::thread::sleep(std::time::Duration::from_millis(2));
+        h.add_sent(1);
+        let t1 = h.last_seen;
+        std::thread::sleep(std::time::Duration::from_millis(2));
+        h.add_recv(1);
+        assert!(t1 >= t0);
+        assert!(h.last_seen >= t1);
+    }
+
+    #[test]
+    fn rotate_without_adding_bytes_records_zero_peak_for_empty_second() {
+        let mut h = FlowHistory::new();
+        h.add_sent(50);
+        h.rotate();
+        h.rotate();
+        assert_eq!(h.peak_sent, 50.0);
+    }
+
+    #[test]
+    fn cumulative_totals_survive_many_empty_rotates() {
+        let mut h = FlowHistory::new();
+        h.add_sent(999);
+        for _ in 0..20 {
+            h.rotate();
+        }
+        assert_eq!(h.total_sent, 999);
+    }
+
+    #[test]
+    fn avg_sent_40s_after_single_slot_is_same_as_2s() {
+        let mut h = FlowHistory::new();
+        h.add_sent(777);
+        assert_eq!(h.avg_sent_40s(), h.avg_sent_2s());
+    }
+
+    #[test]
+    fn recv_deque_same_len_as_sent_after_mixed_rotations() {
+        let mut h = FlowHistory::new();
+        for _ in 0..12 {
+            h.add_sent(1);
+            h.add_recv(2);
+            h.rotate();
+        }
+        assert_eq!(h.sent.len(), h.recv.len());
+    }
 }

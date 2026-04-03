@@ -451,6 +451,49 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_preserves_hyphenated_service_name() {
+        let m = parse_etc_services_text("my-service 8080/tcp\n");
+        assert_eq!(m.get(&(8080, "tcp")).copied(), Some("my-service"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_numeric_service_name() {
+        let m = parse_etc_services_text("12345 9/tcp\n");
+        assert_eq!(m.get(&(9, "tcp")).copied(), Some("12345"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_leading_hash_skips_entire_line() {
+        let m = parse_etc_services_text("#ssh 22/tcp\n");
+        assert!(m.is_empty());
+    }
+
+    #[test]
+    fn parse_etc_services_text_blank_line_between_entries() {
+        let m = parse_etc_services_text("a 1/tcp\n\nb 2/udp\n");
+        assert_eq!(m.get(&(1, "tcp")).copied(), Some("a"));
+        assert_eq!(m.get(&(2, "udp")).copied(), Some("b"));
+    }
+
+    #[test]
+    fn fixture_port_to_service_distinct_tcp_udp_same_port_number() {
+        assert_eq!(fixture_port_to_service(25, true), Some("smtp"));
+        assert_eq!(fixture_port_to_service(25, false), Some("smtp"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_udp_uppercase_normalized() {
+        let m = parse_etc_services_text("dns 53/UDP\n");
+        assert_eq!(m.get(&(53, "udp")).copied(), Some("dns"));
+    }
+
+    #[test]
+    fn fixture_map_contains_nntp_and_imap_fixture_names() {
+        assert_eq!(fixture_port_to_service(119, true), Some("nntp"));
+        assert_eq!(fixture_port_to_service(143, true), Some("imap"));
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);
