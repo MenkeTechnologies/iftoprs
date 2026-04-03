@@ -815,4 +815,9 @@ mod tests {
     fn protocol_from_hip_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(139), Protocol::Other(139));
     }
+
+    #[test]
+    fn protocol_from_mpls_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(137), Protocol::Other(137));
+    }
 }

@@ -606,6 +606,50 @@ mod tests {
     }
 
     #[test]
+    fn prefs_theme_acid_rain_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::AcidRain,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::AcidRain);
+    }
+
+    #[test]
+    fn prefs_theme_ice_breaker_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::IceBreaker,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::IceBreaker);
+    }
+
+    #[test]
+    fn prefs_theme_rust_belt_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::RustBelt,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::RustBelt);
+    }
+
+    #[test]
+    fn prefs_theme_blade_runner_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::BladeRunner,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::BladeRunner);
+    }
+
+    #[test]
     fn prefs_refresh_rate_ten_roundtrip() {
         let p = Prefs {
             refresh_rate: 10,

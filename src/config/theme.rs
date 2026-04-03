@@ -423,6 +423,18 @@ mod tests {
     }
 
     #[test]
+    fn acid_rain_theme_host_dst_is_indexed() {
+        let t = Theme::from_name(ThemeName::AcidRain);
+        assert!(matches!(t.host_dst, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn rust_belt_theme_peak_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::RustBelt);
+        assert!(matches!(t.peak_label, Color::Indexed(_)));
+    }
+
+    #[test]
     fn megacorp_theme_swatch_len() {
         assert_eq!(Theme::swatch(ThemeName::Megacorp).len(), 6);
     }

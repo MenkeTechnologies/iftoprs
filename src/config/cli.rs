@@ -984,4 +984,10 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_non_numeric_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24abc");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
