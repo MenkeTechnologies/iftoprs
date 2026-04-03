@@ -716,4 +716,19 @@ mod tests {
     fn protocol_from_ah_next_header_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(51), Protocol::Other(51));
     }
+
+    #[test]
+    fn normalize_ipv4_equal_ports_orders_by_lower_address() {
+        let k = FlowKey {
+            src: "10.0.0.2".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 443,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src, "10.0.0.1".parse::<IpAddr>().unwrap());
+        assert_eq!(n.dst, "10.0.0.2".parse::<IpAddr>().unwrap());
+    }
 }

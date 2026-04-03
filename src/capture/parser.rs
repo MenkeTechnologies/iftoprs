@@ -518,6 +518,11 @@ mod tests {
         assert!(parse_raw(&raw, None).is_none());
     }
 
+    #[test]
+    fn parse_raw_ip_version_zero_returns_none() {
+        assert!(parse_raw(&[0u8], None).is_none());
+    }
+
     // ── Loopback parsing ──
 
     #[test]

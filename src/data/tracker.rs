@@ -898,4 +898,16 @@ mod tests {
         assert_eq!(totals.cumulative_sent, 1_000);
         assert_eq!(totals.cumulative_recv, 250);
     }
+
+    #[test]
+    fn four_flows_split_sent_and_recv_cumulative_totals() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 10);
+        t.record(test_key(2), Direction::Sent, 20);
+        t.record(test_key(3), Direction::Received, 5);
+        t.record(test_key(4), Direction::Received, 7);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 30);
+        assert_eq!(totals.cumulative_recv, 12);
+    }
 }

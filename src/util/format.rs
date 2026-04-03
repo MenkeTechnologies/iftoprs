@@ -554,4 +554,10 @@ mod tests {
         // 124.999 B/s → 999.992 b/s, still in the sub-kilobit display bucket (< 1000 b label).
         assert_eq!(readable_size(124.999, false), "1000b");
     }
+
+    #[test]
+    fn readable_size_bits_exactly_one_kilobit_per_second_from_bytes() {
+        // 125 B/s → 1000 b/s → kilobit tier.
+        assert_eq!(readable_size(125.0, false), "1.00kb");
+    }
 }

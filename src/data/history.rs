@@ -702,4 +702,21 @@ mod tests {
         assert_eq!(h.avg_sent_2s(), 0.0);
         assert_eq!(h.avg_recv_2s(), 999.0);
     }
+
+    #[test]
+    fn add_sent_accumulates_within_current_slot() {
+        let mut h = FlowHistory::new();
+        h.add_sent(10);
+        h.add_sent(20);
+        assert_eq!(h.avg_sent_2s(), 30.0);
+    }
+
+    #[test]
+    fn total_sent_and_recv_independent_in_same_slot() {
+        let mut h = FlowHistory::new();
+        h.add_sent(11);
+        h.add_recv(22);
+        assert_eq!(h.total_sent, 11);
+        assert_eq!(h.total_recv, 22);
+    }
 }

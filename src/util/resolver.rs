@@ -540,6 +540,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_allows_trailing_comment_after_port_proto() {
+        let m = parse_etc_services_text("ftp 21/tcp # control\n");
+        assert_eq!(m.get(&(21, "tcp")).copied(), Some("ftp"));
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);
