@@ -2500,4 +2500,61 @@ mod tests {
         let f = rate_to_frac(1e-15);
         assert!((0.0..1.0).contains(&f));
     }
+
+    // ── trunc (string ellipsis for narrow columns) ──
+
+    #[test]
+    fn trunc_empty_returns_empty() {
+        assert_eq!(super::trunc("", 10), "");
+    }
+
+    #[test]
+    fn trunc_shorter_than_limit_unchanged() {
+        assert_eq!(super::trunc("hi", 10), "hi");
+    }
+
+    #[test]
+    fn trunc_exact_limit_unchanged() {
+        assert_eq!(super::trunc("abcd", 4), "abcd");
+    }
+
+    #[test]
+    fn trunc_long_inserts_tilde() {
+        assert_eq!(super::trunc("abcdefghij", 4), "abc~");
+    }
+
+    #[test]
+    fn trunc_max_one_char_returns_first_only() {
+        assert_eq!(super::trunc("hello", 1), "h");
+    }
+
+    #[test]
+    fn trunc_unicode_counts_chars_not_bytes() {
+        let s = "αβγδε";
+        assert_eq!(super::trunc(s, 3), "αβ~");
+    }
+
+    #[test]
+    fn trunc_emoji_counts_scalar_chars() {
+        assert_eq!(super::trunc("a🎉b", 2), "a~");
+    }
+
+    #[test]
+    fn bar_length_saturates_to_cols_at_extreme_rate() {
+        assert_eq!(bar_length(1e30, 50), 50);
+    }
+
+    #[test]
+    fn bar_length_sub_one_col_high_rate() {
+        let bl = bar_length(125_000_000.0, 10);
+        assert!(bl <= 10);
+        assert!(bl > 0);
+    }
+
+    #[test]
+    fn rate_to_frac_at_gigabit_throughput_clamps_one() {
+        // bps * 8 == 1e9 bits/s → log10 == 9 == LOG10_MAX_BITS
+        let f = rate_to_frac(125_000_000.0);
+        assert!((f - 1.0).abs() < 1e-9);
+    }
 }
