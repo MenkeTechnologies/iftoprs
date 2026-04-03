@@ -694,4 +694,12 @@ mod tests {
         h.add_recv(50);
         assert_eq!(h.avg_recv_2s(), 250.0);
     }
+
+    #[test]
+    fn avg_sent_2s_zero_when_only_recv_in_current_slot() {
+        let mut h = FlowHistory::new();
+        h.add_recv(999);
+        assert_eq!(h.avg_sent_2s(), 0.0);
+        assert_eq!(h.avg_recv_2s(), 999.0);
+    }
 }

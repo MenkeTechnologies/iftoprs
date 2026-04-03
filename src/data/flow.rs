@@ -706,4 +706,14 @@ mod tests {
         assert_eq!(n.src_port, 80);
         assert_eq!(n.dst_port, 9000);
     }
+
+    #[test]
+    fn protocol_from_esp_next_header_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(50), Protocol::Other(50));
+    }
+
+    #[test]
+    fn protocol_from_ah_next_header_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(51), Protocol::Other(51));
+    }
 }

@@ -514,4 +514,26 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert!(p2.interface.is_none());
     }
+
+    #[test]
+    fn prefs_bar_style_gradient_roundtrip() {
+        let p = Prefs {
+            bar_style: BarStyle::Gradient,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.bar_style, BarStyle::Gradient);
+    }
+
+    #[test]
+    fn prefs_bar_style_solid_roundtrip() {
+        let p = Prefs {
+            bar_style: BarStyle::Solid,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.bar_style, BarStyle::Solid);
+    }
 }

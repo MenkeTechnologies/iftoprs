@@ -534,6 +534,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_skips_line_with_port_above_u16_max() {
+        let m = parse_etc_services_text("bad 65536/tcp\n");
+        assert!(m.is_empty());
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);

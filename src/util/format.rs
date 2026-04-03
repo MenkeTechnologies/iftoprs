@@ -548,4 +548,10 @@ mod tests {
     fn readable_size_bytes_exactly_one_million_per_second() {
         assert_eq!(readable_size(1_000_000.0, true), "1.00MB");
     }
+
+    #[test]
+    fn readable_size_bits_last_value_before_kb_tier_rounds_to_four_digits() {
+        // 124.999 B/s → 999.992 b/s, still in the sub-kilobit display bucket (< 1000 b label).
+        assert_eq!(readable_size(124.999, false), "1000b");
+    }
 }
