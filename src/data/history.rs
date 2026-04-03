@@ -742,4 +742,13 @@ mod tests {
         h.add_sent(50);
         assert_eq!(h.avg_sent_2s(), 150.0);
     }
+
+    #[test]
+    fn avg_recv_2s_sums_completed_and_current_slot_after_rotate() {
+        let mut h = FlowHistory::new();
+        h.add_recv(200);
+        h.rotate();
+        h.add_recv(50);
+        assert_eq!(h.avg_recv_2s(), 250.0);
+    }
 }

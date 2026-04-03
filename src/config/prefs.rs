@@ -580,4 +580,17 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert_eq!(p2.refresh_rate, 3600);
     }
+
+    #[test]
+    fn prefs_show_header_false_show_border_true_roundtrip() {
+        let p = Prefs {
+            show_header: false,
+            show_border: true,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.show_header);
+        assert!(p2.show_border);
+    }
 }

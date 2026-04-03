@@ -746,4 +746,14 @@ mod tests {
     fn protocol_from_shim6_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(140), Protocol::Other(140));
     }
+
+    #[test]
+    fn protocol_from_reserved_next_header_255_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(255), Protocol::Other(255));
+    }
+
+    #[test]
+    fn protocol_other_wrapping_tcp_number_not_equal_to_tcp_variant() {
+        assert_ne!(Protocol::Other(6), Protocol::Tcp);
+    }
 }

@@ -529,4 +529,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::QuantumFlux);
         assert!(matches!(t.total_label, Color::Indexed(_)));
     }
+
+    #[test]
+    fn night_city_theme_arrow_is_indexed() {
+        let t = Theme::from_name(ThemeName::NightCity);
+        assert!(matches!(t.arrow, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn holo_shift_theme_proc_name_is_indexed() {
+        let t = Theme::from_name(ThemeName::HoloShift);
+        assert!(matches!(t.proc_name, Color::Indexed(_)));
+    }
 }

@@ -324,6 +324,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_loopback_af_inet6_linux_without_ipv6_payload_returns_none() {
+        let mut pkt = vec![0u8; 4];
+        pkt[0..4].copy_from_slice(&10u32.to_ne_bytes()); // AF_INET6 on Linux, no IPv6 body
+        assert!(parse_loopback(&pkt, None).is_none());
+    }
+
+    #[test]
     fn parse_sll_too_short() {
         assert!(parse_sll(&[0; 10], None).is_none());
     }

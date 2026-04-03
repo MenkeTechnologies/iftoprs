@@ -934,4 +934,13 @@ mod tests {
         assert_eq!(totals.cumulative_sent, 0);
         assert_eq!(totals.cumulative_recv, 0);
     }
+
+    #[test]
+    fn snapshot_flow_count_matches_flow_keys_len() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 1);
+        t.record(test_key(2), Direction::Sent, 2);
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows.len(), t.flow_keys().len());
+    }
 }
