@@ -127,6 +127,7 @@ pub fn save_prefs(prefs: &Prefs) {
 
 #[cfg(test)]
 mod tests {
+    use super::super::theme::CustomThemeColors;
     use super::*;
 
     #[test]
@@ -355,5 +356,49 @@ mod tests {
         let s = toml::to_string_pretty(&p).unwrap();
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert!(!p2.show_header);
+    }
+
+    #[test]
+    fn prefs_custom_themes_and_active_roundtrip() {
+        let mut p = Prefs::default();
+        p.custom_themes.insert(
+            "mine".into(),
+            CustomThemeColors {
+                c1: 10,
+                c2: 20,
+                c3: 30,
+                c4: 40,
+                c5: 50,
+                c6: 60,
+            },
+        );
+        p.active_custom_theme = Some("mine".into());
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.active_custom_theme.as_deref(), Some("mine"));
+        let c = p2.custom_themes.get("mine").unwrap();
+        assert_eq!((c.c1, c.c6), (10, 60));
+    }
+
+    #[test]
+    fn prefs_show_ports_false_roundtrip() {
+        let p = Prefs {
+            show_ports: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.show_ports);
+    }
+
+    #[test]
+    fn prefs_show_bars_false_roundtrip() {
+        let p = Prefs {
+            show_bars: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.show_bars);
     }
 }

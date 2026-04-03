@@ -405,4 +405,47 @@ mod tests {
         h.add_sent(20);
         assert_eq!(h.avg_sent_10s(), 30.0);
     }
+
+    #[test]
+    fn rotate_exactly_thirty_nine_times_keeps_at_most_forty_slots() {
+        let mut h = FlowHistory::new();
+        for _ in 0..39 {
+            h.add_sent(1);
+            h.rotate();
+        }
+        assert_eq!(h.sent.len(), 40);
+        assert_eq!(h.recv.len(), 40);
+    }
+
+    #[test]
+    fn peak_recv_tracks_after_sent_only_rotations() {
+        let mut h = FlowHistory::new();
+        h.add_recv(800);
+        h.rotate();
+        h.add_recv(0);
+        h.rotate();
+        assert_eq!(h.peak_recv, 800.0);
+    }
+
+    #[test]
+    fn avg_recv_40s_sums_last_forty_nonzero_slots() {
+        let mut h = FlowHistory::new();
+        for i in 0..5 {
+            h.add_recv(10 * (i + 1));
+            h.rotate();
+        }
+        let sum: u64 = (1..=5).map(|i| 10 * i).sum();
+        assert_eq!(h.avg_recv_40s(), sum as f64);
+    }
+
+    #[test]
+    fn add_sent_after_many_rotates_current_slot_accumulates() {
+        let mut h = FlowHistory::new();
+        for _ in 0..10 {
+            h.rotate();
+        }
+        h.add_sent(99);
+        assert_eq!(*h.sent.back().unwrap(), 99);
+        assert_eq!(h.total_sent, 99);
+    }
 }

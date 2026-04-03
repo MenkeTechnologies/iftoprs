@@ -342,4 +342,32 @@ mod tests {
             let _ = table.by_port.len(); // just verify access
         }
     }
+
+    #[cfg(target_os = "linux")]
+    mod linux_tests {
+        use super::super::parse_proc_net_port;
+
+        #[test]
+        fn parse_proc_net_port_ipv4_hex() {
+            assert_eq!(parse_proc_net_port("0100007F:0016"), Some(22));
+        }
+
+        #[test]
+        fn parse_proc_net_port_ipv6_hex() {
+            assert_eq!(
+                parse_proc_net_port("00000000000000000000000000000000:0050"),
+                Some(80)
+            );
+        }
+
+        #[test]
+        fn parse_proc_net_port_invalid_hex() {
+            assert_eq!(parse_proc_net_port("0100007F:GGGG"), None);
+        }
+
+        #[test]
+        fn parse_proc_net_port_no_colon() {
+            assert_eq!(parse_proc_net_port("nope"), None);
+        }
+    }
 }

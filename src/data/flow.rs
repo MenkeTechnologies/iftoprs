@@ -598,4 +598,46 @@ mod tests {
     fn direction_sent_received_distinct() {
         assert_ne!(Direction::Sent, Direction::Received);
     }
+
+    #[test]
+    fn normalize_mixed_ipv4_and_ipv6_orders_by_u128() {
+        let v4 = "203.0.113.1".parse::<IpAddr>().unwrap();
+        let v6 = "2001:db8::1".parse::<IpAddr>().unwrap();
+        let k = FlowKey {
+            src: v6,
+            dst: v4,
+            src_port: 443,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src, v4);
+        assert_eq!(n.dst, v6);
+        assert_eq!(n.src_port, 80);
+        assert_eq!(n.dst_port, 443);
+    }
+
+    #[test]
+    fn normalize_mixed_ipv4_ipv6_reverse_equals_canonical() {
+        let v4 = "198.51.100.2".parse::<IpAddr>().unwrap();
+        let v6 = "2001:db8::2".parse::<IpAddr>().unwrap();
+        let a = FlowKey {
+            src: v4,
+            dst: v6,
+            src_port: 1000,
+            dst_port: 2000,
+            protocol: Protocol::Udp,
+        };
+        let b = FlowKey {
+            src: v6,
+            dst: v4,
+            src_port: 2000,
+            dst_port: 1000,
+            protocol: Protocol::Udp,
+        };
+        let (na, _) = a.normalize();
+        let (nb, _) = b.normalize();
+        assert_eq!(na, nb);
+    }
 }

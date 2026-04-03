@@ -564,4 +564,64 @@ mod tests {
         let (_, totals) = t.snapshot();
         assert!(totals.recv_2s >= 300.0);
     }
+
+    #[test]
+    fn maybe_rotate_twice_immediately_single_rotation() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 100);
+        t.maybe_rotate();
+        t.maybe_rotate();
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+    }
+
+    #[test]
+    fn flow_evicted_after_sixty_one_seconds_idle() {
+        use std::time::Duration;
+
+        let t = FlowTracker::new();
+        let key = test_key(77);
+        t.record(key, Direction::Sent, 10);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(h) = inner.flows.get_mut(&key) {
+                h.last_seen = std::time::Instant::now() - Duration::from_secs(61);
+            }
+            inner.last_rotation = std::time::Instant::now() - Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        let (flows, _) = t.snapshot();
+        assert!(flows.is_empty());
+    }
+
+    #[test]
+    fn maybe_rotate_resets_current_second_counters() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 1000);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        t.record(test_key(2), Direction::Received, 500);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        let (_, totals) = t.snapshot();
+        assert!(totals.peak_sent >= 1000.0);
+        assert!(totals.peak_recv >= 500.0);
+    }
+
+    #[test]
+    fn snapshot_history_zip_same_length_as_sent_deque() {
+        let t = FlowTracker::new();
+        let key = test_key(3);
+        t.record(key, Direction::Sent, 5);
+        t.record(key, Direction::Received, 7);
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows[0].history.len(), 1);
+        assert_eq!(flows[0].history[0], 12);
+    }
 }

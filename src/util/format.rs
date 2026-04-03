@@ -424,6 +424,7 @@ mod tests {
     fn sparkline_two_nonzero_different_heights() {
         let s = sparkline(&[1, 8], 10);
         assert_eq!(s.chars().count(), 2);
-        assert_ne!(s.chars().nth(0), s.chars().nth(1));
+        let mut chars = s.chars();
+        assert_ne!(chars.next(), chars.next());
     }
 }

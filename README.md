@@ -200,6 +200,26 @@ sudo cargo run --release
 sudo ./target/release/iftoprs
 ```
 
+### `> CI_AND_QA.sh`
+
+[GitHub Actions](https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml) runs on every push and pull request to `main`:
+
+| Job | Command |
+|:---:|:---|
+| Format | `cargo fmt --all --check` |
+| Clippy | `cargo clippy --all-targets -- -D warnings` |
+| Test | `cargo build` and `cargo test` |
+
+The **Test** job uses **Ubuntu** and **macOS** runners; Linux installs `libpcap-dev`. The repo [`rust-toolchain.toml`](rust-toolchain.toml) pins **stable** Rust with `rustfmt` and `clippy` so local and CI toolchains stay aligned.
+
+Run the same checks locally before pushing:
+
+```bash
+cargo fmt --all --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+```
+
 ---
 
 ### `> CLI_OPTIONS.exe`

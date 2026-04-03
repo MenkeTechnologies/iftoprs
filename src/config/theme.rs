@@ -405,4 +405,29 @@ mod tests {
         assert!(matches!(t.host_src, Color::Indexed(_)));
         assert!(matches!(t.host_dst, Color::Indexed(_)));
     }
+
+    #[test]
+    fn palette_values_matches_swatch_indexed_colors() {
+        for &name in ThemeName::ALL {
+            let pal = Theme::palette_values(name);
+            let sw = Theme::swatch(name);
+            for i in 0..6 {
+                assert_eq!(Color::Indexed(pal[i]), sw[i].0);
+            }
+        }
+    }
+
+    #[test]
+    fn from_palette_raw_zero_grayscale_bar_mid() {
+        let t = Theme::from_palette_raw(1, 2, 3, 4, 5, 240);
+        assert!(matches!(t.bar_color, Color::Indexed(240)));
+        assert!(matches!(t.bar_color_mid, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn palette_values_always_six_bytes_per_theme() {
+        for &name in ThemeName::ALL {
+            assert_eq!(Theme::palette_values(name).len(), 6);
+        }
+    }
 }
