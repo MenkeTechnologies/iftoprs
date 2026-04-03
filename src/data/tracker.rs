@@ -726,4 +726,153 @@ mod tests {
         assert_eq!(fa.len(), fb.len());
         assert_eq!(ta.cumulative_sent, tb.cumulative_sent);
     }
+
+    #[test]
+    fn record_other_ip_protocol() {
+        let t = FlowTracker::new();
+        let key = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 0,
+            dst_port: 0,
+            protocol: Protocol::Other(47),
+        };
+        t.record(key, Direction::Received, 100);
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows[0].key.protocol, Protocol::Other(47));
+    }
+
+    #[test]
+    fn flow_not_evicted_when_idle_just_under_sixty_seconds() {
+        use std::time::Duration;
+
+        let t = FlowTracker::new();
+        let key = test_key(88);
+        t.record(key, Direction::Sent, 1);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(h) = inner.flows.get_mut(&key) {
+                h.last_seen = std::time::Instant::now() - Duration::from_secs(59);
+            }
+            inner.last_rotation = std::time::Instant::now() - Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+    }
+
+    #[test]
+    fn snapshot_sent_10s_sum_matches_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 10);
+        t.record(test_key(2), Direction::Sent, 20);
+        let (flows, totals) = t.snapshot();
+        let sum: f64 = flows.iter().map(|f| f.sent_10s).sum();
+        assert!((totals.sent_10s - sum).abs() < 1e-6);
+    }
+
+    #[test]
+    fn snapshot_recv_10s_sum_matches_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(3), Direction::Received, 33);
+        t.record(test_key(4), Direction::Received, 44);
+        let (flows, totals) = t.snapshot();
+        let sum: f64 = flows.iter().map(|f| f.recv_10s).sum();
+        assert!((totals.recv_10s - sum).abs() < 1e-6);
+    }
+
+    #[test]
+    fn record_max_u64_bytes_does_not_panic() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, u64::MAX);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, u64::MAX);
+    }
+
+    #[test]
+    fn two_rotations_increment_slot_count() {
+        let t = FlowTracker::new();
+        let key = test_key(1);
+        t.record(key, Direction::Sent, 10);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        t.record(key, Direction::Sent, 20);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        let (flows, _) = t.snapshot();
+        assert!(flows[0].history.len() >= 2);
+    }
+
+    #[test]
+    fn totals_cumulative_independent_of_maybe_rotate() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 100);
+        t.record(test_key(1), Direction::Received, 50);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 100);
+        assert_eq!(totals.cumulative_recv, 50);
+    }
+
+    #[test]
+    fn flow_keys_contains_recorded_normalized_key() {
+        let t = FlowTracker::new();
+        let key = test_key(1234);
+        t.record(key, Direction::Sent, 1);
+        let keys = t.flow_keys();
+        assert!(keys.contains(&key));
+    }
+
+    #[test]
+    fn snapshot_process_name_none_until_set() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 1);
+        let (flows, _) = t.snapshot();
+        assert!(flows[0].process_name.is_none());
+        assert!(flows[0].pid.is_none());
+    }
+
+    #[test]
+    fn multiple_maybe_rotate_with_empty_tracker_no_panic() {
+        let t = FlowTracker::new();
+        for _ in 0..5 {
+            {
+                let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+                inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+            }
+            t.maybe_rotate();
+        }
+        let (flows, _) = t.snapshot();
+        assert!(flows.is_empty());
+    }
+
+    #[test]
+    fn sent_recv_peaks_independent_after_rotation() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 100);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        t.record(test_key(2), Direction::Received, 9000);
+        {
+            let mut inner = t.inner.lock().unwrap_or_else(|e| e.into_inner());
+            inner.last_rotation = std::time::Instant::now() - std::time::Duration::from_secs(2);
+        }
+        t.maybe_rotate();
+        let (_, totals) = t.snapshot();
+        assert!(totals.peak_sent >= 100.0);
+        assert!(totals.peak_recv >= 9000.0);
+    }
 }

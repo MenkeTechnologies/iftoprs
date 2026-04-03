@@ -1,9 +1,9 @@
 use std::process::Command;
 
+/// Run the `iftoprs` binary built for this test crate. Using `CARGO_BIN_EXE_*` avoids
+/// `cargo run` (which can swallow or mishandle child stdout in some environments).
 fn cargo_bin() -> Command {
-    let mut cmd = Command::new(env!("CARGO"));
-    cmd.args(["run", "--quiet", "--"]);
-    cmd
+    Command::new(env!("CARGO_BIN_EXE_iftoprs"))
 }
 
 #[test]
