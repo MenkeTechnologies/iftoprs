@@ -1,0 +1,19 @@
+# Minimal services(5) data for deterministic port_to_service unit tests.
+# The real /etc/services file varies by OS and distribution (ordering, aliases,
+# and which UDP/TCP pairs exist), so tests use this fixture for exact names.
+
+smtp            25/tcp          mail
+smtp            25/udp          mail
+http            80/tcp          www www-http
+http            80/udp          www www-http
+https           443/tcp         https
+https           443/udp         https
+ssh             22/tcp          ssh
+domain          53/tcp          domain
+domain          53/udp          domain
+telnet          23/tcp          telnet
+ftp             21/tcp          ftp
+pop3            110/tcp         pop3
+ntp             123/udp         ntp
+imap            143/tcp         imap2
+nntp            119/tcp         nntp

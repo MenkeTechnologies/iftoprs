@@ -151,17 +151,32 @@ type ServicesMap = HashMap<(u16, &'static str), &'static str>;
 /// Lazily parsed, globally cached /etc/services.
 fn services_map() -> &'static ServicesMap {
     static MAP: OnceLock<ServicesMap> = OnceLock::new();
-    MAP.get_or_init(parse_etc_services)
+    MAP.get_or_init(parse_etc_services_file)
 }
 
-fn parse_etc_services() -> ServicesMap {
-    // Leak the file contents so entries can be &'static str
+/// Normalize `tcp` / `udp` keys so lookups match files that use `TCP` / `UDP`.
+fn normalize_protocol(proto: &str) -> &'static str {
+    if proto.eq_ignore_ascii_case("tcp") {
+        "tcp"
+    } else if proto.eq_ignore_ascii_case("udp") {
+        "udp"
+    } else {
+        Box::leak(proto.to_ascii_lowercase().into_boxed_str())
+    }
+}
+
+fn parse_etc_services_file() -> ServicesMap {
     let contents = match std::fs::read_to_string("/etc/services") {
         Ok(s) => s,
         Err(_) => return ServicesMap::new(),
     };
     let contents: &'static str = Box::leak(contents.into_boxed_str());
+    parse_etc_services_text(contents)
+}
 
+/// Parse services(5)-style lines. `contents` must be `'static` so service names
+/// can live in a leaked buffer or `include_str!` data.
+fn parse_etc_services_text(contents: &'static str) -> ServicesMap {
     let mut map = ServicesMap::new();
     for line in contents.lines() {
         let line = line.trim();
@@ -183,7 +198,7 @@ fn parse_etc_services() -> ServicesMap {
             Some(p) => p,
             None => continue,
         };
-        let proto = match pp_split.next() {
+        let proto_raw = match pp_split.next() {
             Some(p) => p,
             None => continue,
         };
@@ -191,6 +206,7 @@ fn parse_etc_services() -> ServicesMap {
             Ok(p) => p,
             Err(_) => continue,
         };
+        let proto = normalize_protocol(proto_raw);
         map.entry((port, proto)).or_insert(name);
     }
     map
@@ -205,6 +221,24 @@ pub fn port_to_service(port: u16, tcp: bool) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::OnceLock;
+
+    /// Canonical service names for assertions (see `tests/fixtures/minimal_etc_services.txt`).
+    static FIXTURE_MAP: OnceLock<ServicesMap> = OnceLock::new();
+
+    fn fixture_services_map() -> &'static ServicesMap {
+        FIXTURE_MAP.get_or_init(|| {
+            parse_etc_services_text(include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/fixtures/minimal_etc_services.txt"
+            )))
+        })
+    }
+
+    fn fixture_port_to_service(port: u16, tcp: bool) -> Option<&'static str> {
+        let proto = if tcp { "tcp" } else { "udp" };
+        fixture_services_map().get(&(port, proto)).copied()
+    }
 
     // ── Resolver basic ──
 
@@ -296,31 +330,66 @@ mod tests {
         assert!(!result.is_empty());
     }
 
-    // ── port_to_service ──
+    // ── parse_etc_services_text (deterministic) ──
 
     #[test]
-    fn port_to_service_http() {
-        // /etc/services should have port 80/tcp = http on most systems
-        let result = port_to_service(80, true);
-        assert_eq!(result, Some("http"));
+    fn parse_etc_services_text_empty_yields_empty_map() {
+        let m = parse_etc_services_text("");
+        assert!(m.is_empty());
     }
 
     #[test]
-    fn port_to_service_https() {
-        let result = port_to_service(443, true);
-        assert_eq!(result, Some("https"));
+    fn parse_etc_services_text_skips_comments_and_blanks() {
+        let m = parse_etc_services_text("# header\n\n  \nfoo 7/tcp\n# trailing\nbar 7/udp\n");
+        assert_eq!(m.get(&(7, "tcp")).copied(), Some("foo"));
+        assert_eq!(m.get(&(7, "udp")).copied(), Some("bar"));
     }
 
     #[test]
-    fn port_to_service_ssh() {
-        let result = port_to_service(22, true);
-        assert_eq!(result, Some("ssh"));
+    fn parse_etc_services_text_normalizes_protocol_casing() {
+        let m = parse_etc_services_text("www 80/TCP\n");
+        assert_eq!(m.get(&(80, "tcp")).copied(), Some("www"));
     }
 
     #[test]
-    fn port_to_service_dns_udp() {
-        let result = port_to_service(53, false);
-        assert_eq!(result, Some("domain"));
+    fn parse_etc_services_text_first_line_wins_same_port_proto() {
+        let m = parse_etc_services_text("a 80/tcp\nb 80/tcp\n");
+        assert_eq!(m.get(&(80, "tcp")).copied(), Some("a"));
+    }
+
+    #[test]
+    fn fixture_map_lists_expected_well_known_ports() {
+        let m = fixture_services_map();
+        assert!(m.len() >= 12);
+        assert_eq!(fixture_port_to_service(25, true), Some("smtp"));
+        assert_eq!(fixture_port_to_service(25, false), Some("smtp"));
+        assert_eq!(fixture_port_to_service(80, true), Some("http"));
+        assert_eq!(fixture_port_to_service(80, false), Some("http"));
+        assert_eq!(fixture_port_to_service(443, true), Some("https"));
+        assert_eq!(fixture_port_to_service(443, false), Some("https"));
+        assert_eq!(fixture_port_to_service(22, true), Some("ssh"));
+        assert_eq!(fixture_port_to_service(53, true), Some("domain"));
+        assert_eq!(fixture_port_to_service(53, false), Some("domain"));
+        assert_eq!(fixture_port_to_service(23, true), Some("telnet"));
+        assert_eq!(fixture_port_to_service(21, true), Some("ftp"));
+        assert_eq!(fixture_port_to_service(110, true), Some("pop3"));
+        assert_eq!(fixture_port_to_service(123, false), Some("ntp"));
+        assert_eq!(fixture_port_to_service(143, true), Some("imap"));
+        assert_eq!(fixture_port_to_service(119, true), Some("nntp"));
+    }
+
+    // ── port_to_service (real /etc/services smoke tests) ──
+
+    #[test]
+    fn port_to_service_os_lists_http_80_tcp() {
+        if services_map().is_empty() {
+            // No readable /etc/services (e.g. Windows, minimal containers).
+            return;
+        }
+        assert!(
+            port_to_service(80, true).is_some(),
+            "expected port 80/tcp in system /etc/services"
+        );
     }
 
     #[test]
@@ -332,8 +401,6 @@ mod tests {
     #[test]
     fn port_to_service_zero() {
         let result = port_to_service(0, true);
-        // port 0 may or may not be in /etc/services
-        // just ensure no panic
         let _ = result;
     }
 
@@ -342,7 +409,10 @@ mod tests {
     #[test]
     fn services_map_is_populated() {
         let map = services_map();
-        // Should have at least a few standard entries
+        if map.is_empty() {
+            return;
+        }
+        // Should have at least a few standard entries when /etc/services is present
         assert!(map.len() > 10);
     }
 
@@ -430,20 +500,6 @@ mod tests {
     }
 
     #[test]
-    fn port_to_service_smtp() {
-        let tcp = port_to_service(25, true);
-        let udp = port_to_service(25, false);
-        assert_eq!(tcp, Some("smtp"));
-        assert_eq!(udp, Some("smtp"));
-    }
-
-    #[test]
-    fn port_to_service_ntp() {
-        let result = port_to_service(123, false);
-        assert_eq!(result, Some("ntp"));
-    }
-
-    #[test]
     fn evict_stale_empty_cache_no_panic() {
         let mut cache = ResolverCache {
             entries: HashMap::new(),
@@ -473,29 +529,12 @@ mod tests {
     }
 
     #[test]
-    fn port_to_service_http_udp() {
-        assert_eq!(port_to_service(80, false), Some("http"));
-    }
-
-    #[test]
-    fn port_to_service_https_udp() {
-        assert_eq!(port_to_service(443, false), Some("https"));
-    }
-
-    #[test]
     fn services_map_contains_ssh() {
         let m = services_map();
+        if m.is_empty() {
+            return;
+        }
         assert!(m.contains_key(&(22, "tcp")));
-    }
-
-    #[test]
-    fn port_to_service_domain_tcp() {
-        assert_eq!(port_to_service(53, true), Some("domain"));
-    }
-
-    #[test]
-    fn port_to_service_telnet() {
-        assert_eq!(port_to_service(23, true), Some("telnet"));
     }
 
     #[test]
@@ -508,27 +547,7 @@ mod tests {
     }
 
     #[test]
-    fn port_to_service_ftp_control() {
-        assert_eq!(port_to_service(21, true), Some("ftp"));
-    }
-
-    #[test]
-    fn port_to_service_pop3() {
-        assert_eq!(port_to_service(110, true), Some("pop3"));
-    }
-
-    #[test]
     fn port_to_service_high_ephemeral_port_returns_none() {
         assert!(port_to_service(49152, true).is_none());
-    }
-
-    #[test]
-    fn port_to_service_imap_tcp() {
-        assert_eq!(port_to_service(143, true), Some("imap"));
-    }
-
-    #[test]
-    fn port_to_service_nntp_tcp() {
-        assert_eq!(port_to_service(119, true), Some("nntp"));
     }
 }

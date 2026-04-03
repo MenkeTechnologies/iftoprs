@@ -224,6 +224,8 @@ cargo test --locked
 
 The **actions/cache** keys hash **`Cargo.lock`** and **`rust-toolchain.toml`**, so upgrading the pinned toolchain or changing dependencies invalidates old `target/` artifacts instead of reusing a stale build. Each cache step also sets **`restore-keys`** to a runner-specific prefix so a prior job’s cache can partially warm the next build when the exact key misses. The **Test** job sets **`RUST_BACKTRACE=1`** so panics print useful stack traces in CI logs.
 
+**Port-to-service** labels read the system **`/etc/services`** file; entries and ordering vary by OS. Unit tests use **`tests/fixtures/minimal_etc_services.txt`** for deterministic expectations, and the parser normalizes **`tcp`** / **`udp`** protocol casing so lookups stay consistent.
+
 ---
 
 ### `> CLI_OPTIONS.exe`

@@ -1285,6 +1285,20 @@ fn cargo_lock_exists() {
 }
 
 #[test]
+fn minimal_etc_services_fixture_exists_for_tests() {
+    let path = std::path::Path::new("tests/fixtures/minimal_etc_services.txt");
+    assert!(
+        path.exists(),
+        "fixture used by resolver unit tests must be present"
+    );
+    let content = std::fs::read_to_string(path).unwrap();
+    assert!(
+        content.contains("smtp") && content.contains("25/tcp"),
+        "fixture should list smtp on 25/tcp"
+    );
+}
+
+#[test]
 fn cargo_toml_has_package_name() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
     assert!(content.contains("name = \"iftoprs\""));
