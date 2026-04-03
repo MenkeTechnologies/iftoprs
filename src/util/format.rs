@@ -194,8 +194,7 @@ mod tests {
 
     #[test]
     fn readable_total_exactly_1000() {
-        let r = readable_total(1000, false);
-        assert!(r.contains("KB"));
+        assert_eq!(readable_total(1000, false), "1.0KB");
     }
 
     #[test]
@@ -426,5 +425,29 @@ mod tests {
         assert_eq!(s.chars().count(), 2);
         let mut chars = s.chars();
         assert_ne!(chars.next(), chars.next());
+    }
+
+    #[test]
+    fn sparkline_three_values_spans_blocks() {
+        let s = sparkline(&[1, 50, 100], 10);
+        assert_eq!(s.chars().count(), 3);
+        let v: Vec<char> = s.chars().collect();
+        assert_ne!(v[0], v[2]);
+    }
+
+    #[test]
+    fn readable_size_bits_sub_one_kb_stays_b() {
+        assert_eq!(readable_size(124.0, false), "992b");
+    }
+
+    #[test]
+    fn readable_size_bytes_sub_one_kb_stays_b() {
+        assert_eq!(readable_size(999.4, true), "999B");
+    }
+
+    #[test]
+    fn sparkline_singleton_nonzero_is_tallest_block() {
+        let s = sparkline(&[42], 5);
+        assert_eq!(s, "█");
     }
 }

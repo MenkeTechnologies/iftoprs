@@ -1525,4 +1525,33 @@ mod tests {
         let result = parse_raw(&raw, Some((local, 32))).unwrap();
         assert_eq!(result.direction, Direction::Sent);
     }
+
+    #[test]
+    fn ip_in_network_ipv6_slash127_host_in_subnet() {
+        let net: IpAddr = "2001:db8::".parse().unwrap();
+        let host: IpAddr = "2001:db8::1".parse().unwrap();
+        assert!(ip_in_network(host, net, 127));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash31_point_to_point_pair() {
+        let net: IpAddr = "192.0.2.0".parse().unwrap();
+        assert!(ip_in_network("192.0.2.0".parse().unwrap(), net, 31));
+        assert!(ip_in_network("192.0.2.1".parse().unwrap(), net, 31));
+        assert!(!ip_in_network("192.0.2.2".parse().unwrap(), net, 31));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash32_host_only() {
+        let net: IpAddr = "198.51.100.5".parse().unwrap();
+        assert!(ip_in_network("198.51.100.5".parse().unwrap(), net, 32));
+        assert!(!ip_in_network("198.51.100.6".parse().unwrap(), net, 32));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash32_documentation() {
+        let net: IpAddr = "2001:db8::".parse().unwrap();
+        assert!(ip_in_network("2001:db8::ffff".parse().unwrap(), net, 32));
+        assert!(!ip_in_network("2001:db9::1".parse().unwrap(), net, 32));
+    }
 }

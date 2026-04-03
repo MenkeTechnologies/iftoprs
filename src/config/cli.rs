@@ -717,4 +717,61 @@ mod tests {
         assert!(args.list_interfaces);
         assert!(args.list_colors);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_ula_slash48() {
+        let args = args_with_net_filter("fd00::/48");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "fd00::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 48);
+    }
+
+    #[test]
+    fn clap_parse_bytes_and_no_dns() {
+        let args = Args::try_parse_from(["iftoprs", "-B", "-n"]).unwrap();
+        assert!(args.bytes);
+        assert!(args.no_dns);
+    }
+
+    #[test]
+    fn clap_parse_json_and_no_processes() {
+        let args = Args::try_parse_from(["iftoprs", "--json", "-Z"]).unwrap();
+        assert!(args.json);
+        assert!(args.no_processes);
+    }
+
+    #[test]
+    fn clap_parse_no_port_names_short() {
+        let args = Args::try_parse_from(["iftoprs", "-N"]).unwrap();
+        assert!(args.no_port_names);
+    }
+
+    #[test]
+    fn clap_parse_filter_expression() {
+        let args = Args::try_parse_from(["iftoprs", "-f", "tcp port 443"]).unwrap();
+        assert_eq!(args.filter.as_deref(), Some("tcp port 443"));
+    }
+
+    #[test]
+    fn clap_parse_promiscuous_bytes_hide_ports() {
+        let args = Args::try_parse_from(["iftoprs", "-p", "-B", "-P"]).unwrap();
+        assert!(args.promiscuous);
+        assert!(args.bytes);
+        assert!(args.hide_ports);
+    }
+
+    #[test]
+    fn clap_parse_config_short_interface() {
+        let args = Args::try_parse_from(["iftoprs", "-c", "/tmp/c.toml", "-i", "eth0"]).unwrap();
+        assert_eq!(args.config.as_deref(), Some("/tmp/c.toml"));
+        assert_eq!(args.interface.as_deref(), Some("eth0"));
+    }
+
+    #[test]
+    fn parse_cidr_ipv4_multicast_slash24() {
+        let args = args_with_net_filter("224.0.0.0/24");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "224.0.0.0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 24);
+    }
 }
