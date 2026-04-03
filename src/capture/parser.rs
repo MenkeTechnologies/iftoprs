@@ -843,5 +843,228 @@ mod tests {
         pkt[61] = 0x90; // dst 8080
         let result = parse_ethernet(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
+        assert_eq!(result.len, 44);
+        assert_eq!(result.key.src_port, 53);
+        assert_eq!(result.key.dst_port, 8080);
+    }
+
+    // ── Negative / truncation paths ──
+
+    #[test]
+    fn parse_raw_ipv4_too_short() {
+        let mut raw = vec![0u8; 19];
+        raw[0] = 0x45;
+        assert!(parse_raw(&raw, None).is_none());
+    }
+
+    #[test]
+    fn parse_raw_ipv6_too_short() {
+        let mut raw = vec![0u8; 39];
+        raw[0] = 0x60;
+        assert!(parse_raw(&raw, None).is_none());
+    }
+
+    #[test]
+    fn parse_ethernet_ipv4_payload_too_short_for_header() {
+        let mut pkt = vec![0u8; 14 + 19];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        pkt[14] = 0x45;
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_ethernet_arp_ethertype_returns_none() {
+        let mut pkt = vec![0u8; 64];
+        pkt[12] = 0x08;
+        pkt[13] = 0x06; // ARP
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_raw_ipv4_sctp_protocol() {
+        let mut raw = vec![0u8; 28];
+        raw[0] = 0x45;
+        raw[2] = 0;
+        raw[3] = 28;
+        raw[9] = 132; // SCTP
+        raw[12..16].copy_from_slice(&[10, 0, 0, 1]);
+        raw[16..20].copy_from_slice(&[10, 0, 0, 2]);
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Other(132));
+    }
+
+    #[test]
+    fn parse_raw_ipv6_icmpv6() {
+        let mut raw = vec![0u8; 44];
+        raw[0] = 0x60;
+        raw[4] = 0x00;
+        raw[5] = 4;
+        raw[6] = 58; // ICMPv6
+        raw[7] = 64;
+        raw[23] = 1;
+        raw[39] = 2;
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Icmp);
+        assert_eq!(result.key.src_port, 0);
+    }
+
+    #[test]
+    fn parse_raw_ipv6_routing_next_header_still_parses_addresses() {
+        let mut raw = vec![0u8; 44];
+        raw[0] = 0x60;
+        raw[4] = 0x00;
+        raw[5] = 4;
+        raw[6] = 47; // GRE — not TCP/UDP; ports zero
+        raw[7] = 64;
+        raw[23] = 1;
+        raw[39] = 2;
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Other(47));
+        assert_eq!(result.key.src_port, 0);
+        assert_eq!(result.key.dst_port, 0);
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash31() {
+        let addr: IpAddr = "192.0.2.1".parse().unwrap();
+        let net: IpAddr = "192.0.2.0".parse().unwrap();
+        assert!(ip_in_network(addr, net, 31));
+        let other: IpAddr = "192.0.2.3".parse().unwrap();
+        assert!(!ip_in_network(other, net, 31));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash1_entire_half_internet() {
+        let addr: IpAddr = "127.0.0.1".parse().unwrap();
+        let net: IpAddr = "0.0.0.0".parse().unwrap();
+        assert!(ip_in_network(addr, net, 1));
+    }
+
+    #[test]
+    fn parse_raw_ipv4_udp_ports_after_options() {
+        let mut raw = vec![0u8; 28];
+        raw[0] = 0x46;
+        raw[2] = 0;
+        raw[3] = 28;
+        raw[9] = 17; // UDP
+        raw[12..16].copy_from_slice(&[10, 0, 0, 1]);
+        raw[16..20].copy_from_slice(&[10, 0, 0, 2]);
+        raw[20..24].copy_from_slice(&[0x01, 0x01, 0x01, 0x01]);
+        raw[24] = 0x12;
+        raw[25] = 0x34;
+        raw[26] = 0x56;
+        raw[27] = 0x78;
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+        assert_eq!(result.key.src_port, 0x1234);
+        assert_eq!(result.key.dst_port, 0x5678);
+    }
+
+    #[test]
+    fn parse_ethernet_vlan_ipv4_tcp_ports_after_options() {
+        let mut pkt = vec![0u8; 18 + 28];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
+        pkt[16] = 0x08;
+        pkt[17] = 0x00;
+        pkt[18] = 0x46;
+        pkt[20] = 0x00;
+        pkt[21] = 28;
+        pkt[27] = 6;
+        pkt[30..34].copy_from_slice(&[10, 0, 0, 1]);
+        pkt[34..38].copy_from_slice(&[10, 0, 0, 2]);
+        pkt[38..42].copy_from_slice(&[0x01, 0x01, 0x01, 0x01]);
+        pkt[42] = 0x00;
+        pkt[43] = 0x16;
+        pkt[44] = 0x01;
+        pkt[45] = 0xbb;
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+        assert_eq!(result.key.src_port, 22);
+        assert_eq!(result.key.dst_port, 443);
+    }
+
+    #[test]
+    fn parse_sll_ipv4_tcp_ports_after_options() {
+        let mut pkt = vec![0u8; 16 + 28];
+        pkt[14] = 0x08;
+        pkt[15] = 0x00;
+        pkt[16] = 0x46;
+        pkt[18] = 0x00;
+        pkt[19] = 28;
+        pkt[25] = 6;
+        pkt[28..32].copy_from_slice(&[172, 16, 0, 1]);
+        pkt[32..36].copy_from_slice(&[172, 16, 0, 2]);
+        pkt[36..40].copy_from_slice(&[0x01, 0x01, 0x01, 0x01]);
+        pkt[40] = 0x13;
+        pkt[41] = 0xc0;
+        pkt[42] = 0x14;
+        pkt[43] = 0x50;
+        let result = parse_sll(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+        assert_eq!(result.key.src_port, 0x13c0);
+        assert_eq!(result.key.dst_port, 0x1450);
+    }
+
+    #[test]
+    fn direction_ipv6_udp_with_local_net() {
+        let local: IpAddr = "2001:db8::".parse().unwrap();
+        let mut raw = vec![0u8; 44];
+        raw[0] = 0x60;
+        raw[4] = 0x00;
+        raw[5] = 4;
+        raw[6] = 17;
+        raw[7] = 64;
+        // src 2001:db8::1
+        raw[8] = 0x20;
+        raw[9] = 0x01;
+        raw[10] = 0x0d;
+        raw[11] = 0xb8;
+        raw[22] = 0x00;
+        raw[23] = 0x01;
+        // dst 2001:db9::1
+        raw[24] = 0x20;
+        raw[25] = 0x01;
+        raw[26] = 0x0d;
+        raw[27] = 0xb9;
+        raw[38] = 0x00;
+        raw[39] = 0x01;
+        raw[40] = 0x00;
+        raw[41] = 0x35;
+        raw[42] = 0x00;
+        raw[43] = 0x35;
+        let result = parse_raw(&raw, Some((local, 32))).unwrap();
+        assert_eq!(result.direction, Direction::Sent);
+        assert_eq!(result.key.protocol, Protocol::Udp);
+    }
+
+    #[test]
+    fn direction_ipv6_udp_received_from_internet() {
+        let local: IpAddr = "2001:db8::".parse().unwrap();
+        let mut raw = vec![0u8; 44];
+        raw[0] = 0x60;
+        raw[4] = 0x00;
+        raw[5] = 4;
+        raw[6] = 17;
+        raw[7] = 64;
+        // src 2001:db9::5
+        raw[8] = 0x20;
+        raw[9] = 0x01;
+        raw[10] = 0x0d;
+        raw[11] = 0xb9;
+        raw[23] = 5;
+        // dst 2001:db8::2
+        raw[24] = 0x20;
+        raw[25] = 0x01;
+        raw[26] = 0x0d;
+        raw[27] = 0xb8;
+        raw[39] = 2;
+        raw[40] = 0;
+        raw[41] = 0x35;
+        raw[42] = 0x01;
+        raw[43] = 0xbb;
+        let result = parse_raw(&raw, Some((local, 32))).unwrap();
+        assert_eq!(result.direction, Direction::Received);
     }
 }

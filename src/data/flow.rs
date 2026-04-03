@@ -347,4 +347,115 @@ mod tests {
         let (n2, _) = k2.normalize();
         assert_eq!(n1, n2);
     }
+
+    #[test]
+    fn normalize_identical_endpoints_same_port_no_swap() {
+        let k = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 80,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(!swapped);
+        assert_eq!(n.src_port, 80);
+        assert_eq!(n.dst_port, 80);
+    }
+
+    #[test]
+    fn normalize_same_ip_sorts_by_port_when_dst_port_lower() {
+        let k = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 443,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src_port, 80);
+        assert_eq!(n.dst_port, 443);
+    }
+
+    #[test]
+    fn normalize_same_ipv6_sorts_by_port() {
+        let k = FlowKey {
+            src: "fe80::1".parse().unwrap(),
+            dst: "fe80::1".parse().unwrap(),
+            src_port: 5353,
+            dst_port: 53,
+            protocol: Protocol::Udp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src_port, 53);
+        assert_eq!(n.dst_port, 5353);
+    }
+
+    #[test]
+    fn normalize_ipv4_port_tie_breaker_when_addrs_equal() {
+        // Same IP; lower port should be canonical src_port after normalize.
+        let k = FlowKey {
+            src: "192.0.2.1".parse().unwrap(),
+            dst: "192.0.2.1".parse().unwrap(),
+            src_port: 1024,
+            dst_port: 1025,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(!swapped);
+        assert_eq!(n.src_port, 1024);
+        assert_eq!(n.dst_port, 1025);
+    }
+
+    #[test]
+    fn normalize_preserves_protocol_across_swap() {
+        let k = FlowKey {
+            src: "10.0.0.2".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 22,
+            dst_port: 22,
+            protocol: Protocol::Other(132),
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.protocol, Protocol::Other(132));
+    }
+
+    #[test]
+    fn normalize_double_swap_is_identity_for_key() {
+        let k = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 100,
+            dst_port: 200,
+            protocol: Protocol::Udp,
+        };
+        let (n1, _) = k.normalize();
+        let rev = FlowKey {
+            src: k.dst,
+            dst: k.src,
+            src_port: k.dst_port,
+            dst_port: k.src_port,
+            protocol: k.protocol,
+        };
+        let (n2, _) = rev.normalize();
+        assert_eq!(n1, n2);
+    }
+
+    #[test]
+    fn normalize_ipv4_broadcast_vs_host_order() {
+        let k = FlowKey {
+            src: "255.255.255.255".parse().unwrap(),
+            dst: "0.0.0.0".parse().unwrap(),
+            src_port: 1,
+            dst_port: 2,
+            protocol: Protocol::Udp,
+        };
+        let (n, swapped) = k.normalize();
+        // 0.0.0.0 < 255.255.255.255 as u32
+        assert!(swapped);
+        assert_eq!(n.src, "0.0.0.0".parse::<std::net::IpAddr>().unwrap());
+    }
 }

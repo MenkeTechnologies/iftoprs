@@ -294,4 +294,48 @@ mod tests {
         }
         assert!(h.recv.len() <= 40);
     }
+
+    #[test]
+    fn add_sent_and_recv_same_slot() {
+        let mut h = FlowHistory::new();
+        h.add_sent(10);
+        h.add_recv(20);
+        assert_eq!(h.total_sent, 10);
+        assert_eq!(h.total_recv, 20);
+        assert_eq!(*h.sent.back().unwrap(), 10);
+        assert_eq!(*h.recv.back().unwrap(), 20);
+    }
+
+    #[test]
+    fn avg_sent_40s_respects_slot_cap() {
+        let mut h = FlowHistory::new();
+        for i in 0..45 {
+            h.add_sent(100 + i);
+            h.rotate();
+        }
+        // Only last 40 non-empty slots contribute; window sums last 40 slots
+        let a = h.avg_sent_40s();
+        assert!(a > 0.0);
+        assert!(a < 45.0 * 200.0);
+    }
+
+    #[test]
+    fn peak_sent_not_updated_from_empty_slot_after_rotate() {
+        let mut h = FlowHistory::new();
+        h.add_sent(100);
+        h.rotate();
+        h.add_sent(0);
+        h.rotate();
+        assert_eq!(h.peak_sent, 100.0);
+    }
+
+    #[test]
+    fn rotate_preserves_total_counters() {
+        let mut h = FlowHistory::new();
+        h.add_sent(50);
+        h.add_recv(25);
+        h.rotate();
+        assert_eq!(h.total_sent, 50);
+        assert_eq!(h.total_recv, 25);
+    }
 }

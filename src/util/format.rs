@@ -275,4 +275,49 @@ mod tests {
         assert_eq!(chars[0], ' ');
         assert_eq!(chars[4], ' ');
     }
+
+    #[test]
+    fn sparkline_max_width_zero_returns_empty() {
+        let s = sparkline(&[1, 2, 3, 4], 0);
+        assert_eq!(s, "");
+    }
+
+    #[test]
+    fn sparkline_single_nonzero_max() {
+        let s = sparkline(&[u64::MAX], 5);
+        assert_eq!(s, "█");
+    }
+
+    #[test]
+    fn sparkline_very_large_values() {
+        let s = sparkline(&[1_000_000, 2_000_000, 3_000_000], 3);
+        assert_eq!(s.chars().count(), 3);
+        assert_eq!(s.chars().last().unwrap(), '█');
+    }
+
+    #[test]
+    fn readable_total_exactly_one_million_bytes() {
+        let r = readable_total(1_000_000, true);
+        assert!(r.contains("MB"));
+    }
+
+    #[test]
+    fn readable_total_one_byte() {
+        assert_eq!(readable_total(1, false), "1B");
+    }
+
+    #[test]
+    fn sparkline_two_values_min_max() {
+        // max=16 so 1 maps to block 0 (▁) and 16 maps to block 7 (█)
+        let s = sparkline(&[1, 16], 10);
+        assert_eq!(s.chars().count(), 2);
+        let chars: Vec<char> = s.chars().collect();
+        assert_eq!(chars[0], '▁');
+        assert_eq!(chars[1], '█');
+    }
+
+    #[test]
+    fn readable_size_bytes_just_under_kilobyte() {
+        assert_eq!(readable_size(999.0, true), "999B");
+    }
 }

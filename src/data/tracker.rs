@@ -425,4 +425,47 @@ mod tests {
         assert_eq!(flows[0].total_sent, 100);
         assert_eq!(flows[0].total_recv, 50);
     }
+
+    #[test]
+    fn snapshot_history_is_sent_plus_recv_per_slot() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key, Direction::Sent, 30);
+        t.record(key, Direction::Received, 70);
+        let (flows, _) = t.snapshot();
+        let last = *flows[0].history.last().unwrap();
+        assert_eq!(last, 100);
+    }
+
+    #[test]
+    fn totals_aggregate_window_rates_across_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 1000);
+        t.record(test_key(2), Direction::Received, 500);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 1000);
+        assert_eq!(totals.cumulative_recv, 500);
+        assert!(totals.sent_2s >= 1000.0);
+        assert!(totals.recv_2s >= 500.0);
+    }
+
+    #[test]
+    fn record_many_bytes_single_flow() {
+        let t = FlowTracker::new();
+        let key = test_key(42);
+        for _ in 0..100 {
+            t.record(key, Direction::Sent, 1500);
+        }
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 150_000);
+    }
+
+    #[test]
+    fn flow_keys_ordering_is_stable_len() {
+        let t = FlowTracker::new();
+        for i in 0..5 {
+            t.record(test_key(1000 + i), Direction::Sent, 1);
+        }
+        assert_eq!(t.flow_keys().len(), 5);
+    }
 }
