@@ -222,6 +222,8 @@ cargo clippy --all-targets --locked -- -D warnings
 cargo test --locked
 ```
 
+**Testing:** Unit tests in `src/` focus on **deterministic** behavior (flow keys, packet and **`/etc/services`** parsing, bandwidth history, preferences). **Linux** and **macOS** each run **additional** unit tests for OS-specific helpers (`parse_proc_net_port` vs `extract_local_port`). Integration tests in **`tests/integration.rs`** drive the real **`iftoprs`** binary via **`CARGO_BIN_EXE_iftoprs`**.
+
 **`Cargo.lock` is committed** to the repository (this is an application, not a library-only crate) so clean checkouts and CI always have a lockfile. CI uses **`--locked`** so the build fails if `Cargo.lock` is out of date with `Cargo.toml` instead of silently refreshing lockfile entries on the runner. After changing dependencies in `Cargo.toml`, run `cargo build` or `cargo update` locally and commit the updated `Cargo.lock`.
 
 The **actions/cache** keys hash **`Cargo.lock`** and **`rust-toolchain.toml`**, so upgrading the pinned toolchain or changing dependencies invalidates old `target/` artifacts instead of reusing a stale build. Each cache step also sets **`restore-keys`** to a runner-specific prefix so a prior job’s cache can partially warm the next build when the exact key misses. The **Test** job sets **`RUST_BACKTRACE=1`** so panics print useful stack traces in CI logs.

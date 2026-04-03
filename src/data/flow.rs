@@ -109,6 +109,16 @@ mod tests {
     }
 
     #[test]
+    fn protocol_from_zero_is_other() {
+        assert_eq!(Protocol::from_ip_next_header(0), Protocol::Other(0));
+    }
+
+    #[test]
+    fn protocol_from_max_u8_is_other() {
+        assert_eq!(Protocol::from_ip_next_header(255), Protocol::Other(255));
+    }
+
+    #[test]
     fn protocol_display() {
         assert_eq!(format!("{}", Protocol::Tcp), "TCP");
         assert_eq!(format!("{}", Protocol::Udp), "UDP");

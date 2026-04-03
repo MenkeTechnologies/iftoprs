@@ -271,6 +271,16 @@ mod tests {
     }
 
     #[test]
+    fn prefs_deserialize_invalid_toml_fails() {
+        assert!(toml::from_str::<Prefs>("not valid toml {{{").is_err());
+    }
+
+    #[test]
+    fn prefs_deserialize_wrong_type_for_refresh_rate_fails() {
+        assert!(toml::from_str::<Prefs>(r#"refresh_rate = "five""#).is_err());
+    }
+
+    #[test]
     fn prefs_hover_tooltips_roundtrip() {
         let p = Prefs {
             hover_tooltips: false,

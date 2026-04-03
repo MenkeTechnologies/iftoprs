@@ -357,6 +357,15 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_mixed_families_prefix_zero_returns_false() {
+        assert!(!ip_in_network(
+            "192.0.2.1".parse().unwrap(),
+            "::1".parse().unwrap(),
+            0
+        ));
+    }
+
+    #[test]
     fn direction_with_local_net() {
         let local: IpAddr = "192.168.1.0".parse().unwrap();
         let pkt = make_ipv4_tcp_packet([192, 168, 1, 5], [8, 8, 8, 8], 5000, 443);

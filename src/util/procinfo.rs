@@ -334,6 +334,11 @@ mod tests {
         }
 
         #[test]
+        fn extract_local_port_ipv4_max_port() {
+            assert_eq!(extract_local_port("127.0.0.1:65535"), Some(65535));
+        }
+
+        #[test]
         fn refresh_proc_table_lsof_populates() {
             refresh_proc_table_lsof();
             // After refresh, cache should exist (may be empty if no sockets)
@@ -368,6 +373,21 @@ mod tests {
         #[test]
         fn parse_proc_net_port_no_colon() {
             assert_eq!(parse_proc_net_port("nope"), None);
+        }
+
+        #[test]
+        fn parse_proc_net_port_hex_max_u16() {
+            assert_eq!(parse_proc_net_port("0100007F:FFFF"), Some(65535));
+        }
+
+        #[test]
+        fn parse_proc_net_port_hex_zero_port() {
+            assert_eq!(parse_proc_net_port("00000000:0000"), Some(0));
+        }
+
+        #[test]
+        fn parse_proc_net_port_ephemeral_hex() {
+            assert_eq!(parse_proc_net_port("0100007F:C000"), Some(49152));
         }
     }
 }
