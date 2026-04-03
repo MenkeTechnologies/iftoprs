@@ -731,4 +731,9 @@ mod tests {
         assert_eq!(n.src, "10.0.0.1".parse::<IpAddr>().unwrap());
         assert_eq!(n.dst, "10.0.0.2".parse::<IpAddr>().unwrap());
     }
+
+    #[test]
+    fn protocol_from_ipv6_routing_header_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(43), Protocol::Other(43));
+    }
 }

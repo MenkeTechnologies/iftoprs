@@ -224,6 +224,20 @@ mod tests {
     }
 
     #[test]
+    fn empty_tracker_snapshot_rate_totals_and_peaks_are_zero() {
+        let t = FlowTracker::new();
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.sent_2s, 0.0);
+        assert_eq!(totals.sent_10s, 0.0);
+        assert_eq!(totals.sent_40s, 0.0);
+        assert_eq!(totals.recv_2s, 0.0);
+        assert_eq!(totals.recv_10s, 0.0);
+        assert_eq!(totals.recv_40s, 0.0);
+        assert_eq!(totals.peak_sent, 0.0);
+        assert_eq!(totals.peak_recv, 0.0);
+    }
+
+    #[test]
     fn record_sent_packet() {
         let t = FlowTracker::new();
         let key = test_key(5000);

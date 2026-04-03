@@ -547,4 +547,26 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert_eq!(p2.bar_style, BarStyle::Solid);
     }
+
+    #[test]
+    fn prefs_active_custom_theme_none_omitted_from_toml() {
+        let p = Prefs::default();
+        let s = toml::to_string_pretty(&p).unwrap();
+        assert!(!s.contains("active_custom_theme"));
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(p2.active_custom_theme.is_none());
+    }
+
+    #[test]
+    fn prefs_use_bytes_true_and_show_ports_false_roundtrip() {
+        let p = Prefs {
+            use_bytes: true,
+            show_ports: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(p2.use_bytes);
+        assert!(!p2.show_ports);
+    }
 }

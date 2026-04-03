@@ -565,4 +565,17 @@ mod tests {
     fn readable_size_bytes_two_terabytes_per_second() {
         assert_eq!(readable_size(2_000_000_000_000.0, true), "2.00TB");
     }
+
+    #[test]
+    fn readable_total_exactly_ten_kilobytes() {
+        assert_eq!(readable_total(10_000, false), "10.0KB");
+    }
+
+    #[test]
+    fn sparkline_min_max_span_uses_full_block_range() {
+        let s = sparkline(&[0, 1, 2, 3, 4, 5, 6, 7], 20);
+        let blocks: Vec<char> = s.chars().collect();
+        assert!(blocks.iter().any(|&c| c == '▁' || c == ' '));
+        assert!(blocks.contains(&'█'));
+    }
 }

@@ -509,4 +509,12 @@ mod tests {
         let t = Theme::from_name(ThemeName::DarkSignal);
         assert!(matches!(t.cum_label, Color::Indexed(_)));
     }
+
+    #[test]
+    fn bio_hazard_theme_rate_columns_are_indexed() {
+        let t = Theme::from_name(ThemeName::BioHazard);
+        assert!(matches!(t.rate_2s, Color::Indexed(_)));
+        assert!(matches!(t.rate_10s, Color::Indexed(_)));
+        assert!(matches!(t.rate_40s, Color::Indexed(_)));
+    }
 }

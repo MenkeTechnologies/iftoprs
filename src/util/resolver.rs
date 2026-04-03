@@ -552,6 +552,24 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_port_65535_valid() {
+        let m = parse_etc_services_text("maxp 65535/tcp\n");
+        assert_eq!(m.get(&(65535, "tcp")).copied(), Some("maxp"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_single_line_without_trailing_newline() {
+        let m = parse_etc_services_text("echo 7/tcp");
+        assert_eq!(m.get(&(7, "tcp")).copied(), Some("echo"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_slash_in_service_name_token() {
+        let m = parse_etc_services_text("a/b 99/tcp\n");
+        assert_eq!(m.get(&(99, "tcp")).copied(), Some("a/b"));
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);
