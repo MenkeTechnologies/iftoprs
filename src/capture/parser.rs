@@ -1588,4 +1588,66 @@ mod tests {
         assert!(ip_in_network("172.31.255.255".parse().unwrap(), net, 12));
         assert!(!ip_in_network("172.32.0.1".parse().unwrap(), net, 12));
     }
+
+    #[test]
+    fn parse_ethernet_ipv4_icmp_ports_zero() {
+        let mut pkt = vec![0u8; 42];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        pkt[14] = 0x45;
+        pkt[16] = 0x00;
+        pkt[17] = 28;
+        pkt[23] = 1;
+        pkt[26..30].copy_from_slice(&[192, 0, 2, 1]);
+        pkt[30..34].copy_from_slice(&[192, 0, 2, 2]);
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Icmp);
+        assert_eq!(result.key.src_port, 0);
+        assert_eq!(result.key.dst_port, 0);
+        assert_eq!(result.len, 28);
+    }
+
+    #[test]
+    fn parse_raw_rejects_invalid_ip_version() {
+        let mut raw = vec![0u8; 24];
+        raw[0] = 0x55;
+        assert!(parse_raw(&raw, None).is_none());
+    }
+
+    #[test]
+    fn parse_ipv4_datagram_too_short_returns_none() {
+        let mut pkt = vec![0u8; 33];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        pkt[14] = 0x45;
+        pkt[16] = 0x00;
+        pkt[17] = 19;
+        pkt[23] = 6;
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_prefix_128_requires_exact_address() {
+        let net: IpAddr = "2001:db8::1".parse().unwrap();
+        assert!(ip_in_network("2001:db8::1".parse().unwrap(), net, 128));
+        assert!(!ip_in_network("2001:db8::2".parse().unwrap(), net, 128));
+    }
+
+    #[test]
+    fn parse_sll_unknown_ethertype_returns_none() {
+        let mut pkt = vec![0u8; 20];
+        pkt[14] = 0x08;
+        pkt[15] = 0x06;
+        assert!(parse_sll(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_vlan_inner_too_short_returns_none() {
+        let mut pkt = vec![0u8; 18];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
+        pkt[16] = 0x08;
+        pkt[17] = 0x00;
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
 }

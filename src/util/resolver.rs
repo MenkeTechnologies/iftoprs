@@ -358,6 +358,99 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_skips_non_numeric_port() {
+        let m = parse_etc_services_text("bad abc/tcp\n");
+        assert!(m.is_empty());
+    }
+
+    #[test]
+    fn parse_etc_services_text_skips_line_without_slash_in_port_field() {
+        let m = parse_etc_services_text("echo 7 tcp\n");
+        assert!(m.is_empty());
+    }
+
+    #[test]
+    fn parse_etc_services_text_skips_single_token_line() {
+        let m = parse_etc_services_text("onlyname\n");
+        assert!(m.is_empty());
+    }
+
+    #[test]
+    fn parse_etc_services_text_accepts_tabs_between_fields() {
+        let m = parse_etc_services_text("echo\t7/tcp\n");
+        assert_eq!(m.get(&(7, "tcp")).copied(), Some("echo"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_udp_lowercase_explicit() {
+        let m = parse_etc_services_text("domain 53/udp\n");
+        assert_eq!(m.get(&(53, "udp")).copied(), Some("domain"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_port_max_u16() {
+        let m = parse_etc_services_text("hi 65535/tcp\n");
+        assert_eq!(m.get(&(65535, "tcp")).copied(), Some("hi"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_port_zero_parses() {
+        let m = parse_etc_services_text("reserved 0/tcp\n");
+        assert_eq!(m.get(&(0, "tcp")).copied(), Some("reserved"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_non_tcp_udp_protocol_lowercased() {
+        let m = parse_etc_services_text("sctp-svc 2905/SCTP\n");
+        assert_eq!(m.get(&(2905, "sctp")).copied(), Some("sctp-svc"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_multiple_spaces_between_columns() {
+        let m = parse_etc_services_text("ssh     22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_trailing_comment_after_aliases_ignored_as_fields() {
+        // Third whitespace field is an alias, not a comment — still one port/proto pair
+        let m = parse_etc_services_text("www 80/tcp www-http\n");
+        assert_eq!(m.get(&(80, "tcp")).copied(), Some("www"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_crlf_line_endings() {
+        let m = parse_etc_services_text("a 1/tcp\r\nb 2/udp\r\n");
+        assert_eq!(m.get(&(1, "tcp")).copied(), Some("a"));
+        assert_eq!(m.get(&(2, "udp")).copied(), Some("b"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_only_comment_lines() {
+        let m = parse_etc_services_text("# a\n# b\n");
+        assert!(m.is_empty());
+    }
+
+    #[test]
+    fn parse_etc_services_text_mixed_leading_whitespace() {
+        let m = parse_etc_services_text("  \t  ssh 22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_duplicate_udp_and_tcp_distinct_keys() {
+        let m = parse_etc_services_text("a 7/tcp\nb 7/udp\n");
+        assert_eq!(m.get(&(7, "tcp")).copied(), Some("a"));
+        assert_eq!(m.get(&(7, "udp")).copied(), Some("b"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_extra_slashes_after_proto_use_first_two_segments() {
+        let m = parse_etc_services_text("x 99/tcp/extra\n");
+        assert_eq!(m.get(&(99, "tcp")).copied(), Some("x"));
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);
