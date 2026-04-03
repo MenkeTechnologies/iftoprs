@@ -958,4 +958,16 @@ mod tests {
         assert!(args.version);
         assert_eq!(args.interface.as_deref(), Some("lo"));
     }
+
+    #[test]
+    fn parse_net_filter_multiple_slashes_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24/32");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_empty_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

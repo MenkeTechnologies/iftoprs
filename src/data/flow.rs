@@ -790,4 +790,14 @@ mod tests {
     fn protocol_from_l2tp_next_header_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(115), Protocol::Other(115));
     }
+
+    #[test]
+    fn protocol_from_ipv6_no_next_header_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(59), Protocol::Other(59));
+    }
+
+    #[test]
+    fn protocol_from_dccp_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(33), Protocol::Other(33));
+    }
 }

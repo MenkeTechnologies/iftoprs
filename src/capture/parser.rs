@@ -1810,6 +1810,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash26_typical_isp_allocation() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.0.0.15".parse().unwrap(), net, 26));
+        assert!(!ip_in_network("10.0.1.0".parse().unwrap(), net, 26));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash56_link_local_subnet() {
+        let net: IpAddr = "fe80::".parse().unwrap();
+        assert!(ip_in_network("fe80::1".parse().unwrap(), net, 56));
+        assert!(!ip_in_network("fe90::1".parse().unwrap(), net, 56));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET

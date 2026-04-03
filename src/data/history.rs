@@ -650,6 +650,13 @@ mod tests {
     }
 
     #[test]
+    fn avg_recv_40s_after_single_slot_is_same_as_2s() {
+        let mut h = FlowHistory::new();
+        h.add_recv(888);
+        assert_eq!(h.avg_recv_40s(), h.avg_recv_2s());
+    }
+
+    #[test]
     fn recv_deque_same_len_as_sent_after_mixed_rotations() {
         let mut h = FlowHistory::new();
         for _ in 0..12 {

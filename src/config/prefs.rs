@@ -518,6 +518,28 @@ mod tests {
     }
 
     #[test]
+    fn prefs_theme_synth_wave_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::SynthWave,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::SynthWave);
+    }
+
+    #[test]
+    fn prefs_theme_plasma_core_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::PlasmaCore,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::PlasmaCore);
+    }
+
+    #[test]
     fn prefs_refresh_rate_ten_roundtrip() {
         let p = Prefs {
             refresh_rate: 10,

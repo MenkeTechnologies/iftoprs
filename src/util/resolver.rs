@@ -564,6 +564,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_skips_whitespace_only_line_between_entries() {
+        let m = parse_etc_services_text("a 1/tcp\n   \n\t\nb 2/udp\n");
+        assert_eq!(m.get(&(1, "tcp")).copied(), Some("a"));
+        assert_eq!(m.get(&(2, "udp")).copied(), Some("b"));
+        assert_eq!(m.len(), 2);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
