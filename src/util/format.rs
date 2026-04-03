@@ -296,8 +296,7 @@ mod tests {
 
     #[test]
     fn readable_total_exactly_one_million_bytes() {
-        let r = readable_total(1_000_000, true);
-        assert!(r.contains("MB"));
+        assert_eq!(readable_total(1_000_000, true), "1MB");
     }
 
     #[test]
@@ -449,5 +448,18 @@ mod tests {
     fn sparkline_singleton_nonzero_is_tallest_block() {
         let s = sparkline(&[42], 5);
         assert_eq!(s, "█");
+    }
+
+    #[test]
+    fn readable_size_megabytes_mode_two_decimals() {
+        assert_eq!(readable_size(2_500_000.0, true), "2.50MB");
+    }
+
+    #[test]
+    fn sparkline_four_steps_monotonic_increasing() {
+        let s = sparkline(&[1, 2, 3, 4], 10);
+        let c: Vec<char> = s.chars().collect();
+        assert!(c[0] < c[1]);
+        assert!(c[1] < c[3]);
     }
 }

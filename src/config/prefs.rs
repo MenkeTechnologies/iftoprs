@@ -401,4 +401,43 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert!(!p2.show_bars);
     }
+
+    #[test]
+    fn prefs_theme_quantum_flux_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::QuantumFlux,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::QuantumFlux);
+    }
+
+    #[test]
+    fn prefs_use_bytes_true_roundtrip() {
+        let p = Prefs {
+            use_bytes: true,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(p2.use_bytes);
+    }
+
+    #[test]
+    fn prefs_two_pinned_flows_roundtrip() {
+        let mut p = Prefs::default();
+        p.pinned.push(crate::ui::app::PinnedFlow {
+            src: "192.0.2.1".into(),
+            dst: "192.0.2.2".into(),
+        });
+        p.pinned.push(crate::ui::app::PinnedFlow {
+            src: "2001:db8::1".into(),
+            dst: "2001:db8::2".into(),
+        });
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.pinned.len(), 2);
+        assert_eq!(p2.pinned[1].src, "2001:db8::1");
+    }
 }

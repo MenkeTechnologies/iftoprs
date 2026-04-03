@@ -430,4 +430,32 @@ mod tests {
             assert_eq!(Theme::palette_values(name).len(), 6);
         }
     }
+
+    #[test]
+    fn from_name_night_city_help_colors_indexed() {
+        let t = Theme::from_name(ThemeName::NightCity);
+        assert!(matches!(t.help_title, Color::Indexed(_)));
+        assert!(matches!(t.help_val, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn from_name_laser_grid_select_bg_is_fixed_gray() {
+        let t = Theme::from_name(ThemeName::LaserGrid);
+        assert_eq!(t.select_bg, Color::Indexed(236));
+    }
+
+    #[test]
+    fn custom_theme_colors_serde_roundtrip() {
+        let c = CustomThemeColors {
+            c1: 1,
+            c2: 2,
+            c3: 3,
+            c4: 4,
+            c5: 5,
+            c6: 6,
+        };
+        let json = serde_json::to_string(&c).unwrap();
+        let c2: CustomThemeColors = serde_json::from_str(&json).unwrap();
+        assert_eq!(c2.c3, 3);
+    }
 }

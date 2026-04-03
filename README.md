@@ -220,6 +220,8 @@ cargo clippy --all-targets -- -D warnings
 cargo test
 ```
 
+The **actions/cache** keys hash **`Cargo.lock`** and **`rust-toolchain.toml`**, so upgrading the pinned toolchain or changing dependencies invalidates old `target/` artifacts instead of reusing a stale build.
+
 ---
 
 ### `> CLI_OPTIONS.exe`

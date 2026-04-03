@@ -495,12 +495,14 @@ mod tests {
     fn clap_parse_list_interfaces_short() {
         let args = Args::try_parse_from(["iftoprs", "-l"]).unwrap();
         assert!(args.list_interfaces);
+        assert!(!args.list_colors);
     }
 
     #[test]
     fn clap_parse_list_colors() {
         let args = Args::try_parse_from(["iftoprs", "--list-colors"]).unwrap();
         assert!(args.list_colors);
+        assert!(!args.list_interfaces);
     }
 
     #[test]
@@ -773,5 +775,42 @@ mod tests {
         let (addr, p) = args.parse_net_filter().unwrap();
         assert_eq!(addr, "224.0.0.0".parse::<IpAddr>().unwrap());
         assert_eq!(p, 24);
+    }
+
+    #[test]
+    fn parse_cidr_ipv6_link_local_fe80_slash10() {
+        let args = args_with_net_filter("fe80::/10");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "fe80::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 10);
+    }
+
+    #[test]
+    fn clap_parse_filter_long_equals_icmp() {
+        let args = Args::try_parse_from(["iftoprs", "--filter=icmp"]).unwrap();
+        assert_eq!(args.filter.as_deref(), Some("icmp"));
+    }
+
+    #[test]
+    fn clap_parse_no_bars_short_long_combo() {
+        let args = Args::try_parse_from(["iftoprs", "-b", "--bytes"]).unwrap();
+        assert!(args.no_bars);
+        assert!(args.bytes);
+    }
+
+    #[test]
+    fn parse_cidr_ipv4_private_class_b() {
+        let args = args_with_net_filter("172.20.0.0/16");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "172.20.0.0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 16);
+    }
+
+    #[test]
+    fn parse_cidr_ipv6_unique_local_fd_slash8() {
+        let args = args_with_net_filter("fd00::/8");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "fd00::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 8);
     }
 }

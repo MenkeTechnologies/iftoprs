@@ -624,4 +624,50 @@ mod tests {
         assert_eq!(flows[0].history.len(), 1);
         assert_eq!(flows[0].history[0], 12);
     }
+
+    #[test]
+    fn snapshot_totals_window_sent_matches_sum_of_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(10), Direction::Sent, 50);
+        t.record(test_key(11), Direction::Sent, 60);
+        let (flows, totals) = t.snapshot();
+        let sum: f64 = flows.iter().map(|f| f.sent_2s).sum();
+        assert!((totals.sent_2s - sum).abs() < 1e-6);
+    }
+
+    #[test]
+    fn snapshot_totals_window_recv_matches_sum_of_flows() {
+        let t = FlowTracker::new();
+        t.record(test_key(20), Direction::Received, 400);
+        t.record(test_key(21), Direction::Received, 500);
+        let (flows, totals) = t.snapshot();
+        let sum: f64 = flows.iter().map(|f| f.recv_2s).sum();
+        assert!((totals.recv_2s - sum).abs() < 1e-6);
+    }
+
+    #[test]
+    fn record_udp_protocol_flow_key() {
+        let t = FlowTracker::new();
+        let key = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 53,
+            dst_port: 5353,
+            protocol: Protocol::Udp,
+        };
+        t.record(key, Direction::Sent, 128);
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+        assert_eq!(flows[0].key.protocol, Protocol::Udp);
+    }
+
+    #[test]
+    fn cumulative_totals_track_only_recorded_directions() {
+        let t = FlowTracker::new();
+        let key = test_key(88);
+        t.record(key, Direction::Sent, 1000);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 1000);
+        assert_eq!(totals.cumulative_recv, 0);
+    }
 }
