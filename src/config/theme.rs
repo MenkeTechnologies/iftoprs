@@ -417,6 +417,12 @@ mod tests {
     }
 
     #[test]
+    fn data_stream_theme_bar_color_is_indexed() {
+        let t = Theme::from_name(ThemeName::DataStream);
+        assert!(matches!(t.bar_color, Color::Indexed(_)));
+    }
+
+    #[test]
     fn megacorp_theme_swatch_len() {
         assert_eq!(Theme::swatch(ThemeName::Megacorp).len(), 6);
     }

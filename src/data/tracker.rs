@@ -1004,4 +1004,15 @@ mod tests {
         t.record(lo, Direction::Sent, 20);
         assert_eq!(t.flow_keys().len(), 2);
     }
+
+    #[test]
+    fn same_endpoints_different_protocol_are_distinct_flows() {
+        let t = FlowTracker::new();
+        let tcp_k = test_key(5000);
+        let mut udp_k = test_key(5000);
+        udp_k.protocol = Protocol::Udp;
+        t.record(tcp_k, Direction::Sent, 10);
+        t.record(udp_k, Direction::Sent, 20);
+        assert_eq!(t.flow_keys().len(), 2);
+    }
 }

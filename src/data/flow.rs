@@ -810,4 +810,9 @@ mod tests {
     fn protocol_from_ipv6_encapsulation_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(41), Protocol::Other(41));
     }
+
+    #[test]
+    fn protocol_from_hip_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(139), Protocol::Other(139));
+    }
 }

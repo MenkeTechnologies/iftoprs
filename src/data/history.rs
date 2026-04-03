@@ -809,4 +809,14 @@ mod tests {
         // 12 slots ending with 0 in newest; window takes all → 1+2+…+11+0 = 66.
         assert_eq!(h.avg_sent_40s(), 66.0);
     }
+
+    #[test]
+    fn avg_recv_40s_sums_eleven_slots_when_only_eleven_exist() {
+        let mut h = FlowHistory::new();
+        for i in 1..=11 {
+            h.add_recv(i);
+            h.rotate();
+        }
+        assert_eq!(h.avg_recv_40s(), 66.0);
+    }
 }

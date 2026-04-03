@@ -562,6 +562,50 @@ mod tests {
     }
 
     #[test]
+    fn prefs_theme_darkwave_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::Darkwave,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::Darkwave);
+    }
+
+    #[test]
+    fn prefs_theme_data_stream_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::DataStream,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::DataStream);
+    }
+
+    #[test]
+    fn prefs_theme_laser_grid_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::LaserGrid,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::LaserGrid);
+    }
+
+    #[test]
+    fn prefs_theme_megacorp_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::Megacorp,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::Megacorp);
+    }
+
+    #[test]
     fn prefs_refresh_rate_ten_roundtrip() {
         let p = Prefs {
             refresh_rate: 10,

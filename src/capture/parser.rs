@@ -1831,6 +1831,13 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash17_half_class_b() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.0.127.255".parse().unwrap(), net, 17));
+        assert!(!ip_in_network("10.0.128.0".parse().unwrap(), net, 17));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET
