@@ -516,6 +516,17 @@ mod tests {
     }
 
     #[test]
+    fn readable_total_just_under_one_tb_rounds_to_1000_tb() {
+        // Last TB branch: float rounding can show 1000.00 TB at the u64 edge.
+        assert_eq!(readable_total(999_999_999_999_999, false), "1000.00TB");
+    }
+
+    #[test]
+    fn readable_total_just_under_one_tb_in_gb_branch_rounds_to_1000_gb() {
+        assert_eq!(readable_total(999_999_999_999, false), "1000.00GB");
+    }
+
+    #[test]
     fn readable_size_bytes_one_tenth_below_kb_boundary() {
         assert_eq!(readable_size(999.4, true), "999B");
     }

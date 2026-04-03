@@ -659,4 +659,28 @@ mod tests {
         }
         assert_eq!(h.sent.len(), h.recv.len());
     }
+
+    #[test]
+    fn peak_sent_retains_max_rate_across_slots() {
+        let mut h = FlowHistory::new();
+        h.add_sent(100);
+        h.rotate();
+        h.add_sent(500);
+        h.rotate();
+        h.add_sent(200);
+        h.rotate();
+        assert_eq!(h.peak_sent, 500.0);
+    }
+
+    #[test]
+    fn peak_recv_retains_max_rate_across_slots() {
+        let mut h = FlowHistory::new();
+        h.add_recv(10);
+        h.rotate();
+        h.add_recv(400);
+        h.rotate();
+        h.add_recv(50);
+        h.rotate();
+        assert_eq!(h.peak_recv, 400.0);
+    }
 }

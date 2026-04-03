@@ -888,4 +888,14 @@ mod tests {
         assert_eq!(totals.cumulative_sent, 300);
         assert_eq!(totals.cumulative_recv, 700);
     }
+
+    #[test]
+    fn two_distinct_flows_accumulate_global_totals() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 1_000);
+        t.record(test_key(2), Direction::Received, 250);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 1_000);
+        assert_eq!(totals.cumulative_recv, 250);
+    }
 }

@@ -660,4 +660,50 @@ mod tests {
         let (nb, _) = b.normalize();
         assert_eq!(na, nb);
     }
+
+    #[test]
+    fn normalize_ipv4_same_address_equal_ports_identity() {
+        let ip = "192.0.2.10".parse::<IpAddr>().unwrap();
+        let k = FlowKey {
+            src: ip,
+            dst: ip,
+            src_port: 443,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(!swapped);
+        assert_eq!(n, k);
+    }
+
+    #[test]
+    fn normalize_ipv6_same_address_equal_ports_identity() {
+        let ip = "2001:db8::7".parse::<IpAddr>().unwrap();
+        let k = FlowKey {
+            src: ip,
+            dst: ip,
+            src_port: 53,
+            dst_port: 53,
+            protocol: Protocol::Udp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(!swapped);
+        assert_eq!(n, k);
+    }
+
+    #[test]
+    fn normalize_ipv4_same_address_lower_port_becomes_src() {
+        let ip = "10.0.0.1".parse::<IpAddr>().unwrap();
+        let k = FlowKey {
+            src: ip,
+            dst: ip,
+            src_port: 9000,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src_port, 80);
+        assert_eq!(n.dst_port, 9000);
+    }
 }

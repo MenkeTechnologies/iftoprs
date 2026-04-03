@@ -224,7 +224,7 @@ cargo test --locked
 
 **Testing:** Unit tests in `src/` focus on **deterministic** behavior (flow keys, packet and **`/etc/services`** parsing, bandwidth history, preferences, **TUI** helpers such as **`trunc`** and **rate→bar** scaling in `ui/render.rs`). **Linux** and **macOS** each run **additional** unit tests for OS-specific helpers (`parse_proc_net_port` vs `extract_local_port`). Integration tests in **`tests/integration.rs`** drive the real **`iftoprs`** binary via **`CARGO_BIN_EXE_iftoprs`**.
 
-**Test output:** `cargo test` prints one **`running N tests`** line per test binary (library, **`iftoprs`** binary harness, and integration crate). Those counts are not duplicates: the library and binary runs both execute the shared `iftoprs` library tests, so summing the three lines is the number of individual test executions in one full run (integration is separate).
+**Test output:** `cargo test` prints one **`running N tests`** line per test binary (library, **`iftoprs`** binary harness, and integration crate). Summing those three numbers is the total **test executions** in one full run. The library and binary harnesses both run the crate’s unit tests (with a small difference if `main.rs` adds extra tests), so that sum is **not** a count of unique `#[test]` functions.
 
 **`Cargo.lock` is committed** to the repository (this is an application, not a library-only crate) so clean checkouts and CI always have a lockfile. CI uses **`--locked`** so the build fails if `Cargo.lock` is out of date with `Cargo.toml` instead of silently refreshing lockfile entries on the runner. After changing dependencies in `Cargo.toml`, run `cargo build` or `cargo update` locally and commit the updated `Cargo.lock`.
 

@@ -494,4 +494,24 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert_eq!(p2.theme, ThemeName::NeonNoir);
     }
+
+    #[test]
+    fn prefs_empty_pinned_array_roundtrip() {
+        let p = Prefs {
+            pinned: Vec::new(),
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(p2.pinned.is_empty());
+    }
+
+    #[test]
+    fn prefs_interface_none_omitted_from_toml() {
+        let p = Prefs::default();
+        let s = toml::to_string_pretty(&p).unwrap();
+        assert!(!s.contains("interface"));
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(p2.interface.is_none());
+    }
 }
