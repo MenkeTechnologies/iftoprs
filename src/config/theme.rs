@@ -379,4 +379,15 @@ mod tests {
         let n = ThemeName::NeonSprawl;
         assert_ne!(n.display_name(), format!("{:?}", n));
     }
+
+    #[test]
+    fn iftopcolor_theme_renders() {
+        let t = Theme::from_name(ThemeName::Iftopcolor);
+        assert!(matches!(t.bar_color, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn megacorp_theme_swatch_len() {
+        assert_eq!(Theme::swatch(ThemeName::Megacorp).len(), 6);
+    }
 }

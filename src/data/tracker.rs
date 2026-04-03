@@ -501,4 +501,41 @@ mod tests {
         assert_eq!(totals.peak_sent, 0.0);
         assert_eq!(totals.peak_recv, 0.0);
     }
+
+    #[test]
+    fn record_ipv6_flow_key() {
+        let t = FlowTracker::new();
+        let key = FlowKey {
+            src: "2001:db8::1".parse().unwrap(),
+            dst: "2001:db8::2".parse().unwrap(),
+            src_port: 443,
+            dst_port: 50000,
+            protocol: Protocol::Tcp,
+        };
+        t.record(key, Direction::Sent, 1400);
+        let (flows, totals) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+        assert_eq!(totals.cumulative_sent, 1400);
+    }
+
+    #[test]
+    fn set_process_info_twice_last_wins() {
+        let t = FlowTracker::new();
+        let key = test_key(42);
+        t.record(key, Direction::Sent, 100);
+        t.set_process_info(&key, 1, "old".into());
+        t.set_process_info(&key, 2, "new".into());
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows[0].pid, Some(2));
+        assert_eq!(flows[0].process_name.as_deref(), Some("new"));
+    }
+
+    #[test]
+    fn snapshot_preserves_multiple_flow_keys() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 10);
+        t.record(test_key(2), Direction::Received, 20);
+        let keys = t.flow_keys();
+        assert_eq!(keys.len(), 2);
+    }
 }

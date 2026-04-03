@@ -525,4 +525,31 @@ mod tests {
         assert_eq!(k.src_port, 1);
         assert_eq!(copy.src_port, 99);
     }
+
+    #[test]
+    fn protocol_other_max_display() {
+        assert_eq!(format!("{}", Protocol::Other(255)), "Proto(255)");
+    }
+
+    #[test]
+    fn protocol_eq_ignores_other_inner_when_same() {
+        assert_eq!(Protocol::Other(7), Protocol::Other(7));
+        assert_ne!(Protocol::Other(7), Protocol::Other(8));
+    }
+
+    #[test]
+    fn normalize_ipv4_port_only_tiebreak() {
+        let k = FlowKey {
+            src: "10.0.0.2".parse().unwrap(),
+            dst: "10.0.0.1".parse().unwrap(),
+            src_port: 65535,
+            dst_port: 1,
+            protocol: Protocol::Udp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src, "10.0.0.1".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.src_port, 1);
+        assert_eq!(n.dst_port, 65535);
+    }
 }

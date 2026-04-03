@@ -312,4 +312,26 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert!(!p2.port_resolution);
     }
+
+    #[test]
+    fn prefs_bar_style_ascii_roundtrip() {
+        let p = Prefs {
+            bar_style: crate::ui::app::BarStyle::Ascii,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.bar_style, crate::ui::app::BarStyle::Ascii);
+    }
+
+    #[test]
+    fn prefs_dns_resolution_false_roundtrip() {
+        let p = Prefs {
+            dns_resolution: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.dns_resolution);
+    }
 }

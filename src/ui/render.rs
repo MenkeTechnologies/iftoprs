@@ -2448,4 +2448,30 @@ mod tests {
         let expected = (rate_to_frac(bps) * cols as f64).round() as u16;
         assert_eq!(bar_length(bps, cols), expected);
     }
+
+    #[test]
+    fn draw_frozen_order_indicator() {
+        let mut app = make_test_app();
+        app.flows = vec![make_test_flow(3), make_test_flow(1)];
+        app.frozen_order = true;
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_screen_filter_active() {
+        let mut app = make_test_app();
+        app.screen_filter = Some("tcp".into());
+        app.flows = vec![make_test_flow(80)];
+        let backend = ratatui::backend::TestBackend::new(120, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn rate_to_frac_one_byte_per_sec() {
+        let f = rate_to_frac(1.0);
+        assert!(f > 0.0 && f <= 1.0);
+    }
 }

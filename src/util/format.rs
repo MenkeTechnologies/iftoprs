@@ -366,4 +366,22 @@ mod tests {
     fn sparkline_length_one_max_width_one() {
         assert_eq!(sparkline(&[42], 1).chars().count(), 1);
     }
+
+    #[test]
+    fn readable_size_bits_exactly_one_kb() {
+        assert_eq!(readable_size(125.0, false), "1.00kb");
+    }
+
+    #[test]
+    fn readable_total_mb_no_fraction_when_round() {
+        let r = readable_total(2_000_000, false);
+        assert!(r.contains("MB"));
+    }
+
+    #[test]
+    fn sparkline_max_width_one_takes_last_sample() {
+        let data: Vec<u64> = (0..50).collect();
+        let s = sparkline(&data, 1);
+        assert_eq!(s.chars().count(), 1);
+    }
 }

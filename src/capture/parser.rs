@@ -1268,4 +1268,93 @@ mod tests {
         let result = parse_raw(&raw, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Tcp);
     }
+
+    #[test]
+    fn ip_in_network_ipv4_slash30() {
+        let net: IpAddr = "192.0.2.0".parse().unwrap();
+        assert!(ip_in_network("192.0.2.1".parse().unwrap(), net, 30));
+        assert!(!ip_in_network("192.0.2.4".parse().unwrap(), net, 30));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_unique_local() {
+        let addr: IpAddr = "fd00::1".parse().unwrap();
+        let net: IpAddr = "fd00::".parse().unwrap();
+        assert!(ip_in_network(addr, net, 8));
+    }
+
+    #[test]
+    fn parse_vlan_ipv4_icmp_echo() {
+        let mut pkt = vec![0u8; 18 + 28];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
+        pkt[16] = 0x08;
+        pkt[17] = 0x00;
+        pkt[18] = 0x45;
+        pkt[20] = 0x00;
+        pkt[21] = 28;
+        pkt[27] = 1; // ICMP
+        pkt[30..34].copy_from_slice(&[8, 8, 8, 8]);
+        pkt[34..38].copy_from_slice(&[1, 1, 1, 1]);
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Icmp);
+    }
+
+    #[test]
+    fn parse_raw_ipv4_udp_equal_ports_after_options() {
+        let mut raw = vec![0u8; 28];
+        raw[0] = 0x46;
+        raw[2] = 0;
+        raw[3] = 28;
+        raw[9] = 17;
+        raw[12..16].copy_from_slice(&[1, 1, 1, 1]);
+        raw[16..20].copy_from_slice(&[2, 2, 2, 2]);
+        raw[20..24].copy_from_slice(&[0x01, 0x01, 0x01, 0x01]);
+        raw[24] = 0x00;
+        raw[25] = 0x45; // src 69
+        raw[26] = 0x00;
+        raw[27] = 0x45; // dst 69
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+        assert_eq!(result.key.src_port, 69);
+        assert_eq!(result.key.dst_port, 69);
+    }
+
+    #[test]
+    fn parse_raw_ipv6_hop_limit_1() {
+        let mut raw = vec![0u8; 44];
+        raw[0] = 0x60;
+        raw[4] = 0x00;
+        raw[5] = 4;
+        raw[6] = 17;
+        raw[7] = 1;
+        raw[23] = 1;
+        raw[39] = 2;
+        raw[40] = 0;
+        raw[41] = 0x35;
+        raw[42] = 0x01;
+        raw[43] = 0xbb;
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+    }
+
+    #[test]
+    fn parse_ethernet_ipv4_tos_byte_nonzero() {
+        let mut pkt = vec![0u8; 44];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00;
+        pkt[14] = 0x45;
+        pkt[15] = 0x88; // DSCP / ECN
+        pkt[16] = 0x00;
+        pkt[17] = 30;
+        pkt[23] = 6;
+        pkt[26..30].copy_from_slice(&[10, 0, 0, 1]);
+        pkt[30..34].copy_from_slice(&[10, 0, 0, 2]);
+        pkt[34] = 0x00;
+        pkt[35] = 0x16;
+        pkt[36] = 0x00;
+        pkt[37] = 0x50;
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+    }
 }

@@ -633,4 +633,33 @@ mod tests {
         assert!(args.no_dns);
         assert!(args.bytes);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_loopback() {
+        let args = args_with_net_filter("::1/128");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "::1".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 128);
+    }
+
+    #[test]
+    fn parse_cidr_ipv4_class_c() {
+        let args = args_with_net_filter("203.0.113.0/24");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "203.0.113.0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 24);
+    }
+
+    #[test]
+    fn clap_parse_no_dns_and_interface_separate() {
+        let args = Args::try_parse_from(["iftoprs", "-n", "-i", "lo0"]).unwrap();
+        assert!(args.no_dns);
+        assert_eq!(args.interface, Some("lo0".into()));
+    }
+
+    #[test]
+    fn clap_parse_net_filter_short_capital_f() {
+        let args = Args::try_parse_from(["iftoprs", "-F", "fe80::/10"]).unwrap();
+        assert_eq!(args.net_filter, Some("fe80::/10".into()));
+    }
 }

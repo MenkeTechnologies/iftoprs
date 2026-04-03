@@ -487,4 +487,23 @@ mod tests {
         let m = services_map();
         assert!(m.contains_key(&(22, "tcp")));
     }
+
+    #[test]
+    fn port_to_service_domain_tcp() {
+        assert_eq!(port_to_service(53, true), Some("domain"));
+    }
+
+    #[test]
+    fn port_to_service_telnet() {
+        assert_eq!(port_to_service(23, true), Some("telnet"));
+    }
+
+    #[test]
+    fn resolve_multiple_ips_no_panic() {
+        let r = Resolver::new(false);
+        for s in ["1.1.1.1", "8.8.8.8", "::1"] {
+            let addr: IpAddr = s.parse().unwrap();
+            let _ = r.resolve(addr);
+        }
+    }
 }

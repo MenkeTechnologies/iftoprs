@@ -367,4 +367,23 @@ mod tests {
         h.add_recv(333);
         assert_eq!(h.avg_recv_2s(), 333.0);
     }
+
+    #[test]
+    fn sent_deque_never_exceeds_history_slots_after_many_rotates() {
+        let mut h = FlowHistory::new();
+        for _ in 0..100 {
+            h.add_sent(1);
+            h.rotate();
+        }
+        assert!(h.sent.len() <= 40);
+    }
+
+    #[test]
+    fn total_sent_accumulates_across_rotations() {
+        let mut h = FlowHistory::new();
+        h.add_sent(100);
+        h.rotate();
+        h.add_sent(200);
+        assert_eq!(h.total_sent, 300);
+    }
 }

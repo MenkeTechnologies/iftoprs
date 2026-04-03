@@ -3615,4 +3615,34 @@ mod tests_extended {
         app.update_snapshot(vec![f2], zero_totals());
         assert_eq!(app.process_snapshots.len(), 1); // unchanged
     }
+
+    #[test]
+    fn view_tab_equality() {
+        assert_eq!(ViewTab::Flows, ViewTab::Flows);
+        assert_ne!(ViewTab::Flows, ViewTab::Processes);
+    }
+
+    #[test]
+    fn pinned_flow_default_empty() {
+        let app = make_app();
+        assert!(app.pinned.is_empty());
+    }
+
+    #[test]
+    fn hover_tooltips_default_from_prefs() {
+        let app = make_app();
+        assert!(app.hover_tooltips);
+    }
+
+    #[test]
+    fn refresh_rate_minimum_one() {
+        let app = make_app();
+        assert!(app.refresh_rate >= 1);
+    }
+
+    #[test]
+    fn custom_themes_default_empty() {
+        let app = make_app();
+        assert!(app.custom_themes.is_empty());
+    }
 }
