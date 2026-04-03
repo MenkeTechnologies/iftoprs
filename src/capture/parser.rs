@@ -1198,4 +1198,74 @@ mod tests {
         let result = parse_ethernet(&pkt, Some((local, 16))).unwrap();
         assert_eq!(result.direction, Direction::Sent);
     }
+
+    #[test]
+    fn parse_raw_invalid_ip_version_returns_none() {
+        let raw = vec![0x50u8; 40]; // version 5
+        assert!(parse_raw(&raw, None).is_none());
+    }
+
+    #[test]
+    fn parse_ethernet_ipv6_udp_normalized_ports() {
+        let mut pkt = vec![0u8; 14 + 44];
+        pkt[12] = 0x86;
+        pkt[13] = 0xdd;
+        pkt[14] = 0x60;
+        pkt[18] = 0x00;
+        pkt[19] = 4; // payload length
+        pkt[20] = 17; // UDP
+        pkt[21] = 64;
+        pkt[37] = 1; // src ::1
+        pkt[53] = 2; // dst ::2
+        pkt[54] = 0x1f;
+        pkt[55] = 0x90; // src 8080
+        pkt[56] = 0x00;
+        pkt[57] = 0x50; // dst 80
+        let result = parse_ethernet(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+        // ::1 < ::2 so key order preserves ::1 → ::2 with original ports
+        assert_eq!(result.key.src_port, 8080);
+        assert_eq!(result.key.dst_port, 80);
+    }
+
+    #[test]
+    fn parse_sll_ipv6_tcp() {
+        // SLL (16) + IPv6 (40) + TCP ports — TCP starts at byte 56
+        let mut pkt = vec![0u8; 16 + 40 + 4];
+        pkt[14] = 0x86;
+        pkt[15] = 0xdd;
+        pkt[16] = 0x60;
+        pkt[18] = 0x00;
+        pkt[19] = 4;
+        pkt[22] = 6;
+        pkt[23] = 64;
+        pkt[39] = 1; // src ::1
+        pkt[55] = 2; // dst ::2
+        pkt[56] = 0x00;
+        pkt[57] = 0x16; // src port 22
+        pkt[58] = 0x00;
+        pkt[59] = 0x50; // dst port 80
+        let result = parse_sll(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+        assert_eq!(result.key.src_port, 22);
+        assert_eq!(result.key.dst_port, 80);
+    }
+
+    #[test]
+    fn parse_raw_ipv4_max_ttl() {
+        let mut raw = vec![0u8; 28];
+        raw[0] = 0x45;
+        raw[2] = 0;
+        raw[3] = 28;
+        raw[8] = 255; // TTL
+        raw[9] = 6;
+        raw[12..16].copy_from_slice(&[1, 1, 1, 1]);
+        raw[16..20].copy_from_slice(&[2, 2, 2, 2]);
+        raw[20] = 0;
+        raw[21] = 0x16;
+        raw[22] = 0;
+        raw[23] = 0x50;
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+    }
 }

@@ -2336,6 +2336,31 @@ mod tests {
         app.cycle_refresh_rate();
         // If we got here, save_prefs is correctly a no-op
     }
+
+    #[test]
+    fn line_display_cycle_returns_to_start() {
+        let mut d = LineDisplay::TwoLine;
+        for _ in 0..4 {
+            d = d.next();
+        }
+        assert_eq!(d, LineDisplay::TwoLine);
+    }
+
+    #[test]
+    fn sort_column_all_pairwise_distinct() {
+        let cols = [
+            SortColumn::Avg2s,
+            SortColumn::Avg10s,
+            SortColumn::Avg40s,
+            SortColumn::SrcName,
+            SortColumn::DstName,
+        ];
+        for i in 0..cols.len() {
+            for j in (i + 1)..cols.len() {
+                assert_ne!(cols[i], cols[j]);
+            }
+        }
+    }
 }
 
 #[cfg(test)]

@@ -468,4 +468,37 @@ mod tests {
         }
         assert_eq!(t.flow_keys().len(), 5);
     }
+
+    #[test]
+    fn snapshot_history_matches_single_slot_totals() {
+        let t = FlowTracker::new();
+        let key = test_key(1);
+        t.record(key, Direction::Sent, 100);
+        t.record(key, Direction::Received, 50);
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows[0].history.len(), 1);
+        assert_eq!(flows[0].history[0], 150);
+    }
+
+    #[test]
+    fn record_alternating_directions_same_key() {
+        let t = FlowTracker::new();
+        let key = test_key(7);
+        for _ in 0..20 {
+            t.record(key, Direction::Sent, 10);
+            t.record(key, Direction::Received, 5);
+        }
+        let (flows, totals) = t.snapshot();
+        assert_eq!(flows.len(), 1);
+        assert_eq!(totals.cumulative_sent, 200);
+        assert_eq!(totals.cumulative_recv, 100);
+    }
+
+    #[test]
+    fn total_stats_peak_defaults_zero() {
+        let t = FlowTracker::new();
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.peak_sent, 0.0);
+        assert_eq!(totals.peak_recv, 0.0);
+    }
 }

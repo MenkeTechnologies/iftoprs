@@ -358,4 +358,25 @@ mod tests {
         assert_eq!(t.bar_color, t2.bar_color);
         assert_eq!(t.host_src, t2.host_src);
     }
+
+    #[test]
+    fn theme_name_json_roundtrip_all_variants() {
+        for &name in ThemeName::ALL {
+            let json = serde_json::to_string(&name).unwrap();
+            let back: ThemeName = serde_json::from_str(&json).unwrap();
+            assert_eq!(back, name);
+        }
+    }
+
+    #[test]
+    fn theme_from_name_zaibatsu_has_indexed_colors() {
+        let t = Theme::from_name(ThemeName::Zaibatsu);
+        assert!(matches!(t.bar_color, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn display_name_never_equals_debug_string() {
+        let n = ThemeName::NeonSprawl;
+        assert_ne!(n.display_name(), format!("{:?}", n));
+    }
 }

@@ -599,4 +599,38 @@ mod tests {
         let args = Args::try_parse_from(["iftoprs", "-Z"]).unwrap();
         assert!(args.no_processes);
     }
+
+    #[test]
+    fn clap_rejects_unknown_shell_for_completions() {
+        assert!(Args::try_parse_from(["iftoprs", "--completions", "notashell"]).is_err());
+    }
+
+    #[test]
+    fn parse_valid_cidr_ipv4_loopback() {
+        let args = args_with_net_filter("127.0.0.0/8");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "127.0.0.0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 8);
+    }
+
+    #[test]
+    fn parse_valid_cidr_multicast() {
+        let args = args_with_net_filter("224.0.0.0/4");
+        let (_, p) = args.parse_net_filter().unwrap();
+        assert_eq!(p, 4);
+    }
+
+    #[test]
+    fn clap_parse_filter_long_equals() {
+        let args = Args::try_parse_from(["iftoprs", "--filter=udp port 53"]).unwrap();
+        assert_eq!(args.filter, Some("udp port 53".into()));
+    }
+
+    #[test]
+    fn clap_parse_json_with_other_flags() {
+        let args = Args::try_parse_from(["iftoprs", "--json", "-n", "-B"]).unwrap();
+        assert!(args.json);
+        assert!(args.no_dns);
+        assert!(args.bytes);
+    }
 }

@@ -290,4 +290,26 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert!((p2.alert_threshold - 42.5).abs() < f64::EPSILON);
     }
+
+    #[test]
+    fn prefs_show_cumulative_roundtrip() {
+        let p = Prefs {
+            show_cumulative: true,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(p2.show_cumulative);
+    }
+
+    #[test]
+    fn prefs_port_resolution_false_roundtrip() {
+        let p = Prefs {
+            port_resolution: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.port_resolution);
+    }
 }

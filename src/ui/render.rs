@@ -2391,4 +2391,61 @@ mod tests {
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
     }
+
+    #[test]
+    fn draw_theme_chooser_active() {
+        use crate::config::theme::ThemeName;
+        let mut app = make_test_app();
+        app.theme_chooser.open(ThemeName::BladeRunner);
+        assert!(app.theme_chooser.active);
+        let backend = ratatui::backend::TestBackend::new(100, 36);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_interface_chooser_active() {
+        let mut app = make_test_app();
+        app.interface_chooser.active = true;
+        app.interface_chooser.selected = 0;
+        app.interface_chooser.interfaces = vec!["lo0".into(), "en0".into(), "eth0".into()];
+        let backend = ratatui::backend::TestBackend::new(100, 30);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_show_ports_false() {
+        let mut app = make_test_app();
+        app.show_ports = false;
+        app.flows = vec![make_test_flow(80)];
+        let backend = ratatui::backend::TestBackend::new(100, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn draw_show_dns_false() {
+        let mut app = make_test_app();
+        app.show_dns = false;
+        app.flows = vec![make_test_flow(443)];
+        let backend = ratatui::backend::TestBackend::new(100, 24);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+    }
+
+    #[test]
+    fn rate_to_frac_small_positive_nonzero() {
+        // Enough bytes/s that bps*8 has a positive log10
+        let f = rate_to_frac(0.2);
+        assert!(f > 0.0 && f < 1.0);
+    }
+
+    #[test]
+    fn bar_length_matches_frac_times_cols() {
+        let cols = 40u16;
+        let bps = 500_000.0;
+        let expected = (rate_to_frac(bps) * cols as f64).round() as u16;
+        assert_eq!(bar_length(bps, cols), expected);
+    }
 }

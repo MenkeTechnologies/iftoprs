@@ -471,4 +471,20 @@ mod tests {
         let addr: IpAddr = "2001:db8::1".parse().unwrap();
         assert_eq!(r.resolve(addr), "2001:db8::1");
     }
+
+    #[test]
+    fn port_to_service_http_udp() {
+        assert_eq!(port_to_service(80, false), Some("http"));
+    }
+
+    #[test]
+    fn port_to_service_https_udp() {
+        assert_eq!(port_to_service(443, false), Some("https"));
+    }
+
+    #[test]
+    fn services_map_contains_ssh() {
+        let m = services_map();
+        assert!(m.contains_key(&(22, "tcp")));
+    }
 }

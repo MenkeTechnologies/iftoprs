@@ -344,4 +344,26 @@ mod tests {
         let chars: Vec<char> = s.chars().collect();
         assert_eq!(chars[0], ' ');
     }
+
+    #[test]
+    fn readable_size_bytes_terabit_tier() {
+        let r = readable_size(3_000_000_000_000.0, true);
+        assert!(r.contains("TB"));
+    }
+
+    #[test]
+    fn readable_size_bits_gigabit_tier() {
+        let r = readable_size(125_000_000.0, false);
+        assert!(r.contains("Gb"));
+    }
+
+    #[test]
+    fn readable_total_zero_bytes_explicit() {
+        assert_eq!(readable_total(0, true), "0B");
+    }
+
+    #[test]
+    fn sparkline_length_one_max_width_one() {
+        assert_eq!(sparkline(&[42], 1).chars().count(), 1);
+    }
 }

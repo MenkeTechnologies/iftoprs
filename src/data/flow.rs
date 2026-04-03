@@ -494,4 +494,35 @@ mod tests {
         assert_eq!(Protocol::from_ip_next_header(1), Protocol::Icmp);
         assert_eq!(Protocol::from_ip_next_header(58), Protocol::Icmp);
     }
+
+    #[test]
+    fn normalize_ipv6_documentation_prefix() {
+        let k = FlowKey {
+            src: "2001:db8::dead".parse().unwrap(),
+            dst: "2001:db8::beef".parse().unwrap(),
+            src_port: 53,
+            dst_port: 5353,
+            protocol: Protocol::Udp,
+        };
+        let (n, swapped) = k.normalize();
+        // 0xbeef < 0xdead in the low bits → canonical address is beef first
+        assert!(swapped);
+        assert_eq!(n.src, "2001:db8::beef".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.src_port, 5353);
+    }
+
+    #[test]
+    fn flow_key_copy_leaves_original_unchanged() {
+        let k = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 1,
+            dst_port: 2,
+            protocol: Protocol::Tcp,
+        };
+        let mut copy = k;
+        copy.src_port = 99;
+        assert_eq!(k.src_port, 1);
+        assert_eq!(copy.src_port, 99);
+    }
 }

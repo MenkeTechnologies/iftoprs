@@ -338,4 +338,33 @@ mod tests {
         assert_eq!(h.total_sent, 50);
         assert_eq!(h.total_recv, 25);
     }
+
+    #[test]
+    fn recv_peak_tracks_across_rotations() {
+        let mut h = FlowHistory::new();
+        h.add_recv(10);
+        h.rotate();
+        h.add_recv(200);
+        h.rotate();
+        h.add_recv(5);
+        assert_eq!(h.peak_recv, 200.0);
+    }
+
+    #[test]
+    fn sent_and_recv_peaks_independent() {
+        let mut h = FlowHistory::new();
+        h.add_sent(1000);
+        h.rotate();
+        h.add_recv(5000);
+        h.rotate();
+        assert_eq!(h.peak_sent, 1000.0);
+        assert_eq!(h.peak_recv, 5000.0);
+    }
+
+    #[test]
+    fn avg_recv_2s_single_slot_matches_back() {
+        let mut h = FlowHistory::new();
+        h.add_recv(333);
+        assert_eq!(h.avg_recv_2s(), 333.0);
+    }
 }
