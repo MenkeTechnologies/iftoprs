@@ -570,6 +570,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_two_character_service_name() {
+        let m = parse_etc_services_text("me 9/tcp\n");
+        assert_eq!(m.get(&(9, "tcp")).copied(), Some("me"));
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);

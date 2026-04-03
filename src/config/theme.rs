@@ -517,4 +517,16 @@ mod tests {
         assert!(matches!(t.rate_10s, Color::Indexed(_)));
         assert!(matches!(t.rate_40s, Color::Indexed(_)));
     }
+
+    #[test]
+    fn overlock_theme_scale_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::Overlock);
+        assert!(matches!(t.scale_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn quantum_flux_theme_total_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::QuantumFlux);
+        assert!(matches!(t.total_label, Color::Indexed(_)));
+    }
 }

@@ -578,4 +578,9 @@ mod tests {
         assert!(blocks.iter().any(|&c| c == '▁' || c == ' '));
         assert!(blocks.contains(&'█'));
     }
+
+    #[test]
+    fn readable_size_bytes_five_hundred_kilobytes_per_second() {
+        assert_eq!(readable_size(500_000.0, true), "500.00KB");
+    }
 }

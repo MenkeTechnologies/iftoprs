@@ -736,4 +736,14 @@ mod tests {
     fn protocol_from_ipv6_routing_header_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(43), Protocol::Other(43));
     }
+
+    #[test]
+    fn protocol_from_ip_in_ip_encapsulation_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(4), Protocol::Other(4));
+    }
+
+    #[test]
+    fn protocol_from_shim6_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(140), Protocol::Other(140));
+    }
 }

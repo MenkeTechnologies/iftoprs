@@ -569,4 +569,15 @@ mod tests {
         assert!(p2.use_bytes);
         assert!(!p2.show_ports);
     }
+
+    #[test]
+    fn prefs_refresh_rate_one_hour_roundtrip() {
+        let p = Prefs {
+            refresh_rate: 3600,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.refresh_rate, 3600);
+    }
 }
