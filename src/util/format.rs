@@ -508,4 +508,22 @@ mod tests {
     fn readable_size_zero_point_one_bytes_shows_zero() {
         assert_eq!(readable_size(0.1, true), "0B");
     }
+
+    #[test]
+    fn readable_total_just_under_one_gb_rounds_to_1000_mb() {
+        // 999_999_999 B is just under 1 GB; MB branch uses {:.0} on the megabyte value.
+        assert_eq!(readable_total(999_999_999, false), "1000MB");
+    }
+
+    #[test]
+    fn readable_size_bytes_one_tenth_below_kb_boundary() {
+        assert_eq!(readable_size(999.4, true), "999B");
+    }
+
+    #[test]
+    fn sparkline_two_identical_nonzero_plateau() {
+        let s = sparkline(&[42, 42, 42], 10);
+        let c: Vec<char> = s.chars().collect();
+        assert!(c.iter().all(|&x| x == c[0]));
+    }
 }

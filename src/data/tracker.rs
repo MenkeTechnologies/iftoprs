@@ -875,4 +875,17 @@ mod tests {
         assert!(totals.peak_sent >= 100.0);
         assert!(totals.peak_recv >= 9000.0);
     }
+
+    #[test]
+    fn interleaved_sent_recv_on_one_flow_accumulates_both_totals() {
+        let t = FlowTracker::new();
+        let key = test_key(42);
+        for _ in 0..100 {
+            t.record(key, Direction::Sent, 3);
+            t.record(key, Direction::Received, 7);
+        }
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 300);
+        assert_eq!(totals.cumulative_recv, 700);
+    }
 }

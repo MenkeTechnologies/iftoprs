@@ -482,4 +482,19 @@ mod tests {
         let t = Theme::from_name(ThemeName::PlasmaCore);
         assert_eq!(t.bar_text, Color::Black);
     }
+
+    #[test]
+    fn custom_theme_colors_all_255_roundtrip() {
+        let c = CustomThemeColors {
+            c1: 255,
+            c2: 255,
+            c3: 255,
+            c4: 255,
+            c5: 255,
+            c6: 255,
+        };
+        let json = serde_json::to_string(&c).unwrap();
+        let back: CustomThemeColors = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.c6, 255);
+    }
 }

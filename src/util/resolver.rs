@@ -494,6 +494,34 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_dotted_service_name() {
+        let m = parse_etc_services_text("svc.name 12345/tcp\n");
+        assert_eq!(m.get(&(12345, "tcp")).copied(), Some("svc.name"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_underscore_service_name() {
+        let m = parse_etc_services_text("my_svc 9000/udp\n");
+        assert_eq!(m.get(&(9000, "udp")).copied(), Some("my_svc"));
+    }
+
+    #[test]
+    fn fixture_port_to_service_ntp_udp_fixture() {
+        assert_eq!(fixture_port_to_service(123, false), Some("ntp"));
+    }
+
+    #[test]
+    fn fixture_port_to_service_https_udp_fixture() {
+        assert_eq!(fixture_port_to_service(443, false), Some("https"));
+    }
+
+    #[test]
+    fn parse_etc_services_text_utf8_service_name_bytes() {
+        let m = parse_etc_services_text("café 9/tcp\n");
+        assert_eq!(m.get(&(9, "tcp")).copied(), Some("café"));
+    }
+
+    #[test]
     fn fixture_map_lists_expected_well_known_ports() {
         let m = fixture_services_map();
         assert!(m.len() >= 12);

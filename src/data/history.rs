@@ -633,6 +633,16 @@ mod tests {
     }
 
     #[test]
+    fn cumulative_recv_totals_survive_many_empty_rotates() {
+        let mut h = FlowHistory::new();
+        h.add_recv(888);
+        for _ in 0..20 {
+            h.rotate();
+        }
+        assert_eq!(h.total_recv, 888);
+    }
+
+    #[test]
     fn avg_sent_40s_after_single_slot_is_same_as_2s() {
         let mut h = FlowHistory::new();
         h.add_sent(777);
