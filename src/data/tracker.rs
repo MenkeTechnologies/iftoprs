@@ -992,4 +992,16 @@ mod tests {
         let (flows, _) = t.snapshot();
         assert_eq!(flows.len(), 2);
     }
+
+    #[test]
+    fn same_ips_different_src_ports_are_distinct_flows() {
+        let t = FlowTracker::new();
+        let mut hi = test_key(443);
+        hi.src_port = 5000;
+        let mut lo = test_key(443);
+        lo.src_port = 5001;
+        t.record(hi, Direction::Sent, 10);
+        t.record(lo, Direction::Sent, 20);
+        assert_eq!(t.flow_keys().len(), 2);
+    }
 }

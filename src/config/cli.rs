@@ -970,4 +970,12 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_cidr_ipv4_broadcast_slash32() {
+        let args = args_with_net_filter("255.255.255.255/32");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "255.255.255.255".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 32);
+    }
 }

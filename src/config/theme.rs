@@ -405,6 +405,18 @@ mod tests {
     }
 
     #[test]
+    fn night_city_theme_total_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::NightCity);
+        assert!(matches!(t.total_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn void_walker_theme_help_border_is_indexed() {
+        let t = Theme::from_name(ThemeName::VoidWalker);
+        assert!(matches!(t.help_border, Color::Indexed(_)));
+    }
+
+    #[test]
     fn megacorp_theme_swatch_len() {
         assert_eq!(Theme::swatch(ThemeName::Megacorp).len(), 6);
     }

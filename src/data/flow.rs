@@ -800,4 +800,14 @@ mod tests {
     fn protocol_from_dccp_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(33), Protocol::Other(33));
     }
+
+    #[test]
+    fn protocol_from_rsvp_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(46), Protocol::Other(46));
+    }
+
+    #[test]
+    fn protocol_from_ipv6_encapsulation_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(41), Protocol::Other(41));
+    }
 }

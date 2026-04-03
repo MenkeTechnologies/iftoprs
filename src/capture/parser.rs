@@ -1824,6 +1824,13 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash28_sixteen_addresses() {
+        let net: IpAddr = "198.51.100.0".parse().unwrap();
+        assert!(ip_in_network("198.51.100.15".parse().unwrap(), net, 28));
+        assert!(!ip_in_network("198.51.100.16".parse().unwrap(), net, 28));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET

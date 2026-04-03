@@ -572,6 +572,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_comma_inside_service_name_parses() {
+        let m = parse_etc_services_text("svc,alias 2222/tcp\n");
+        assert_eq!(m.get(&(2222, "tcp")).copied(), Some("svc,alias"));
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
