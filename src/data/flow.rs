@@ -578,4 +578,24 @@ mod tests {
         let (n, _) = k.normalize();
         assert_eq!(n.protocol, Protocol::Icmp);
     }
+
+    #[test]
+    fn normalize_ipv6_same_address_ports_descending() {
+        let k = FlowKey {
+            src: "fe80::1".parse().unwrap(),
+            dst: "fe80::1".parse().unwrap(),
+            src_port: 40000,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src_port, 80);
+        assert_eq!(n.dst_port, 40000);
+    }
+
+    #[test]
+    fn direction_sent_received_distinct() {
+        assert_ne!(Direction::Sent, Direction::Received);
+    }
 }

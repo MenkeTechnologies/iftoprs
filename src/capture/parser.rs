@@ -1436,4 +1436,93 @@ mod tests {
         let result = parse_ethernet(&pkt, None).unwrap();
         assert_eq!(result.key.protocol, Protocol::Udp);
     }
+
+    #[test]
+    fn ip_in_network_ipv4_slash8_boundary() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.255.255.255".parse().unwrap(), net, 8));
+        assert!(!ip_in_network("11.0.0.1".parse().unwrap(), net, 8));
+    }
+
+    #[test]
+    fn parse_raw_ipv4_minimum_datagram_tcp() {
+        let mut raw = vec![0u8; 40];
+        raw[0] = 0x45;
+        raw[2] = 0;
+        raw[3] = 40;
+        raw[9] = 6;
+        raw[12..16].copy_from_slice(&[0, 0, 0, 0]);
+        raw[16..20].copy_from_slice(&[255, 255, 255, 255]);
+        raw[20] = 0x00;
+        raw[21] = 0x16;
+        raw[22] = 0x00;
+        raw[23] = 0x50;
+        let result = parse_raw(&raw, None).unwrap();
+        assert_eq!(result.len, 40);
+        assert_eq!(result.key.protocol, Protocol::Tcp);
+    }
+
+    #[test]
+    fn parse_sll_ipv4_udp_minimum() {
+        let mut pkt = vec![0u8; 16 + 28];
+        pkt[14] = 0x08;
+        pkt[15] = 0x00;
+        pkt[16] = 0x45;
+        pkt[18] = 0;
+        pkt[19] = 28;
+        pkt[25] = 17;
+        pkt[28..32].copy_from_slice(&[0, 0, 0, 0]);
+        pkt[32..36].copy_from_slice(&[255, 255, 255, 255]);
+        pkt[36] = 0x13;
+        pkt[37] = 0x88;
+        pkt[38] = 0x13;
+        pkt[39] = 0x89;
+        let result = parse_sll(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+    }
+
+    #[test]
+    fn parse_loopback_ipv4_protocol_udp_ports() {
+        let mut pkt = vec![0u8; 4 + 28];
+        pkt[0..4].copy_from_slice(&2u32.to_ne_bytes());
+        pkt[4] = 0x45;
+        pkt[6] = 0;
+        pkt[7] = 28;
+        pkt[13] = 17;
+        pkt[16..20].copy_from_slice(&[0, 0, 0, 0]);
+        pkt[20..24].copy_from_slice(&[255, 255, 255, 255]);
+        pkt[24] = 0x14;
+        pkt[25] = 0xe9;
+        pkt[26] = 0x14;
+        pkt[27] = 0xea;
+        let result = parse_loopback(&pkt, None).unwrap();
+        assert_eq!(result.key.protocol, Protocol::Udp);
+    }
+
+    #[test]
+    fn direction_ipv6_same_prefix_sent_when_src_local() {
+        let local: IpAddr = "2001:db8::".parse().unwrap();
+        let mut raw = vec![0u8; 44];
+        raw[0] = 0x60;
+        raw[4] = 0x00;
+        raw[5] = 4;
+        raw[6] = 17;
+        raw[7] = 64;
+        raw[8] = 0x20;
+        raw[9] = 0x01;
+        raw[10] = 0x0d;
+        raw[11] = 0xb8;
+        raw[23] = 1;
+        raw[24] = 0x20;
+        raw[25] = 0x01;
+        raw[26] = 0x0d;
+        raw[27] = 0xb9;
+        raw[39] = 1;
+        raw[40] = 0;
+        raw[41] = 0x35;
+        raw[42] = 0x00;
+        raw[43] = 0x35;
+        let result = parse_raw(&raw, Some((local, 32))).unwrap();
+        assert_eq!(result.direction, Direction::Sent);
+    }
 }

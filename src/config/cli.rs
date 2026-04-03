@@ -695,4 +695,26 @@ mod tests {
         assert!(args.hide_ports);
         assert!(args.no_bars);
     }
+
+    #[test]
+    fn parse_cidr_ipv4_host_max_slash32() {
+        let args = args_with_net_filter("192.0.2.255/32");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "192.0.2.255".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 32);
+    }
+
+    #[test]
+    fn clap_parse_promiscuous_and_no_dns() {
+        let args = Args::try_parse_from(["iftoprs", "-p", "-n"]).unwrap();
+        assert!(args.promiscuous);
+        assert!(args.no_dns);
+    }
+
+    #[test]
+    fn clap_parse_list_interfaces_and_list_colors() {
+        let args = Args::try_parse_from(["iftoprs", "-l", "--list-colors"]).unwrap();
+        assert!(args.list_interfaces);
+        assert!(args.list_colors);
+    }
 }

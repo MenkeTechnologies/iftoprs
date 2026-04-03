@@ -402,4 +402,28 @@ mod tests {
         let c: Vec<char> = s.chars().collect();
         assert!(c.iter().all(|&x| x == c[0]));
     }
+
+    #[test]
+    fn readable_size_bits_terabit_tier() {
+        let r = readable_size(125_000_000_000.0, false);
+        assert!(r.contains("Tb"));
+    }
+
+    #[test]
+    fn readable_total_terabyte_range() {
+        let r = readable_total(5_000_000_000_000, false);
+        assert!(r.contains("TB"));
+    }
+
+    #[test]
+    fn readable_size_bytes_exactly_1000_boundary() {
+        assert_eq!(readable_size(1000.0, true), "1.00KB");
+    }
+
+    #[test]
+    fn sparkline_two_nonzero_different_heights() {
+        let s = sparkline(&[1, 8], 10);
+        assert_eq!(s.chars().count(), 2);
+        assert_ne!(s.chars().nth(0), s.chars().nth(1));
+    }
 }
