@@ -369,6 +369,17 @@ mod tests {
     }
 
     #[test]
+    fn prefs_show_border_false_roundtrip() {
+        let p = Prefs {
+            show_border: false,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!(!p2.show_border);
+    }
+
+    #[test]
     fn prefs_custom_themes_and_active_roundtrip() {
         let mut p = Prefs::default();
         p.custom_themes.insert(

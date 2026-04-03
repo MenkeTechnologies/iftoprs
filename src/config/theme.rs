@@ -497,4 +497,16 @@ mod tests {
         let back: CustomThemeColors = serde_json::from_str(&json).unwrap();
         assert_eq!(back.c6, 255);
     }
+
+    #[test]
+    fn megacorp_theme_peak_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::Megacorp);
+        assert!(matches!(t.peak_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn dark_signal_theme_cum_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::DarkSignal);
+        assert!(matches!(t.cum_label, Color::Indexed(_)));
+    }
 }

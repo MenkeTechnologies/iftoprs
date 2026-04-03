@@ -557,6 +557,13 @@ mod tests {
         assert!(parse_loopback(&pkt, None).is_none());
     }
 
+    #[test]
+    fn parse_loopback_af_zero_returns_none() {
+        let mut pkt = vec![0u8; 8];
+        pkt[0..4].copy_from_slice(&0u32.to_ne_bytes());
+        assert!(parse_loopback(&pkt, None).is_none());
+    }
+
     // ── SLL parsing ──
 
     #[test]

@@ -719,4 +719,18 @@ mod tests {
         assert_eq!(h.total_sent, 11);
         assert_eq!(h.total_recv, 22);
     }
+
+    #[test]
+    fn add_recv_zero_leaves_total_recv_zero() {
+        let mut h = FlowHistory::new();
+        h.add_recv(0);
+        assert_eq!(h.total_recv, 0);
+    }
+
+    #[test]
+    fn add_sent_zero_leaves_total_sent_zero() {
+        let mut h = FlowHistory::new();
+        h.add_sent(0);
+        assert_eq!(h.total_sent, 0);
+    }
 }

@@ -910,4 +910,14 @@ mod tests {
         assert_eq!(totals.cumulative_sent, 30);
         assert_eq!(totals.cumulative_recv, 12);
     }
+
+    #[test]
+    fn record_zero_bytes_leaves_cumulative_unchanged() {
+        let t = FlowTracker::new();
+        t.record(test_key(1), Direction::Sent, 0);
+        t.record(test_key(2), Direction::Received, 0);
+        let (_, totals) = t.snapshot();
+        assert_eq!(totals.cumulative_sent, 0);
+        assert_eq!(totals.cumulative_recv, 0);
+    }
 }

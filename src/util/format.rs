@@ -560,4 +560,9 @@ mod tests {
         // 125 B/s → 1000 b/s → kilobit tier.
         assert_eq!(readable_size(125.0, false), "1.00kb");
     }
+
+    #[test]
+    fn readable_size_bytes_two_terabytes_per_second() {
+        assert_eq!(readable_size(2_000_000_000_000.0, true), "2.00TB");
+    }
 }
