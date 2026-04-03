@@ -977,4 +977,19 @@ mod tests {
         assert_eq!(sum_sent, totals.cumulative_sent);
         assert_eq!(sum_recv, totals.cumulative_recv);
     }
+
+    #[test]
+    fn reverse_flow_key_without_normalize_is_distinct_flow() {
+        let t = FlowTracker::new();
+        let a = test_key(5000);
+        let mut b = a;
+        b.src = a.dst;
+        b.dst = a.src;
+        b.src_port = a.dst_port;
+        b.dst_port = a.src_port;
+        t.record(a, Direction::Sent, 100);
+        t.record(b, Direction::Sent, 200);
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows.len(), 2);
+    }
 }

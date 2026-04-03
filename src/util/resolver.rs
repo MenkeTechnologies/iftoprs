@@ -558,6 +558,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_skips_line_with_empty_port_proto_token() {
+        let m = parse_etc_services_text("ssh /tcp\n");
+        assert!(m.is_empty());
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

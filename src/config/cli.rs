@@ -794,6 +794,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_cidr_ipv6_global_unicast_2001_db8_slash32() {
+        let args = args_with_net_filter("2001:db8::/32");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2001:db8::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 32);
+    }
+
+    #[test]
     fn clap_parse_filter_long_equals_icmp() {
         let args = Args::try_parse_from(["iftoprs", "--filter=icmp"]).unwrap();
         assert_eq!(args.filter.as_deref(), Some("icmp"));

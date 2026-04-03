@@ -785,4 +785,9 @@ mod tests {
         assert!(!swapped);
         assert_eq!(n, k);
     }
+
+    #[test]
+    fn protocol_from_l2tp_next_header_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(115), Protocol::Other(115));
+    }
 }

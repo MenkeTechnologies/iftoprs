@@ -496,6 +496,28 @@ mod tests {
     }
 
     #[test]
+    fn prefs_theme_chrome_heart_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::ChromeHeart,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::ChromeHeart);
+    }
+
+    #[test]
+    fn prefs_interface_some_roundtrip() {
+        let p = Prefs {
+            interface: Some("en0".into()),
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.interface.as_deref(), Some("en0"));
+    }
+
+    #[test]
     fn prefs_refresh_rate_ten_roundtrip() {
         let p = Prefs {
             refresh_rate: 10,

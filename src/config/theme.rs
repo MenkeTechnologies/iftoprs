@@ -393,6 +393,12 @@ mod tests {
     }
 
     #[test]
+    fn steel_nerve_theme_scale_line_is_indexed() {
+        let t = Theme::from_name(ThemeName::SteelNerve);
+        assert!(matches!(t.scale_line, Color::Indexed(_)));
+    }
+
+    #[test]
     fn megacorp_theme_swatch_len() {
         assert_eq!(Theme::swatch(ThemeName::Megacorp).len(), 6);
     }

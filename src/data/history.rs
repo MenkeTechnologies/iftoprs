@@ -704,6 +704,14 @@ mod tests {
     }
 
     #[test]
+    fn avg_recv_2s_zero_when_only_sent_in_current_slot() {
+        let mut h = FlowHistory::new();
+        h.add_sent(888);
+        assert_eq!(h.avg_recv_2s(), 0.0);
+        assert_eq!(h.avg_sent_2s(), 888.0);
+    }
+
+    #[test]
     fn add_sent_accumulates_within_current_slot() {
         let mut h = FlowHistory::new();
         h.add_sent(10);

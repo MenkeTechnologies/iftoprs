@@ -446,6 +446,12 @@ mod tests {
     }
 
     #[test]
+    fn readable_size_bits_high_byte_rate_crosses_into_kilobits_tier() {
+        // 999 B/s → 7992 b/s, above the 1000 b/s threshold for the kb branch.
+        assert_eq!(readable_size(999.0, false), "7.99kb");
+    }
+
+    #[test]
     fn readable_size_bytes_sub_one_kb_stays_b() {
         assert_eq!(readable_size(999.4, true), "999B");
     }
