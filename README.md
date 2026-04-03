@@ -206,19 +206,21 @@ sudo ./target/release/iftoprs
 
 | Job | Command |
 |:---:|:---|
-| Format | `cargo fmt --all --check` |
-| Clippy | `cargo clippy --all-targets -- -D warnings` |
-| Test | `cargo build` and `cargo test` |
+| Format | `cargo --locked fmt --all --check` |
+| Clippy | `cargo clippy --all-targets --locked -- -D warnings` |
+| Test | `cargo build --locked` and `cargo test --locked` |
 
 The **Test** job uses **Ubuntu** and **macOS** runners; Linux installs `libpcap-dev`. The repo [`rust-toolchain.toml`](rust-toolchain.toml) pins **stable** Rust with `rustfmt` and `clippy` so local and CI toolchains stay aligned. The workflow uses **least-privilege** `contents: read` permissions and **cancels in-progress runs** on the same branch when a newer commit is pushed, so redundant builds do not pile up. Jobs have **timeouts** (format, clippy, and test) so hung runners do not run indefinitely. The test matrix sets **fail-fast: false** so both operating systems finish even when one fails, which makes cross-platform regressions easier to diagnose.
 
 Run the same checks locally before pushing:
 
 ```bash
-cargo fmt --all --check
-cargo clippy --all-targets -- -D warnings
-cargo test
+cargo --locked fmt --all --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo test --locked
 ```
+
+CI uses **`--locked`** so the build fails if `Cargo.lock` is out of date with `Cargo.toml` instead of silently refreshing lockfile entries on the runner.
 
 The **actions/cache** keys hash **`Cargo.lock`** and **`rust-toolchain.toml`**, so upgrading the pinned toolchain or changing dependencies invalidates old `target/` artifacts instead of reusing a stale build. Each cache step also sets **`restore-keys`** to a runner-specific prefix so a prior job’s cache can partially warm the next build when the exact key misses. The **Test** job sets **`RUST_BACKTRACE=1`** so panics print useful stack traces in CI logs.
 

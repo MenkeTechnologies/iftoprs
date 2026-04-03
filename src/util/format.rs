@@ -498,4 +498,14 @@ mod tests {
     fn readable_size_bits_two_gigabit() {
         assert_eq!(readable_size(250_000_000.0, false), "2.00Gb");
     }
+
+    #[test]
+    fn readable_total_exactly_one_terabyte() {
+        assert_eq!(readable_total(1_000_000_000_000, false), "1.00TB");
+    }
+
+    #[test]
+    fn readable_size_zero_point_one_bytes_shows_zero() {
+        assert_eq!(readable_size(0.1, true), "0B");
+    }
 }

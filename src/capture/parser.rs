@@ -1581,4 +1581,11 @@ mod tests {
         assert!(!ip_in_network("2001:db8:1::1".parse().unwrap(), net, 48));
         assert!(!ip_in_network("2001:db9::1".parse().unwrap(), net, 48));
     }
+
+    #[test]
+    fn ip_in_network_ipv4_slash12_private_b_range() {
+        let net: IpAddr = "172.16.0.0".parse().unwrap();
+        assert!(ip_in_network("172.31.255.255".parse().unwrap(), net, 12));
+        assert!(!ip_in_network("172.32.0.1".parse().unwrap(), net, 12));
+    }
 }

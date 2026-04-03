@@ -874,4 +874,43 @@ mod tests {
         assert_eq!(addr, "2001:db8::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 48);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_multicast_ff00_slash8() {
+        let args = args_with_net_filter("ff00::/8");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "ff00::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 8);
+    }
+
+    #[test]
+    fn clap_parse_bytes_short_only() {
+        let args = Args::try_parse_from(["iftoprs", "-B"]).unwrap();
+        assert!(args.bytes);
+        assert!(!args.json);
+    }
+
+    #[test]
+    fn clap_parse_promiscuous_list_interfaces() {
+        let args = Args::try_parse_from(["iftoprs", "-p", "-l"]).unwrap();
+        assert!(args.promiscuous);
+        assert!(args.list_interfaces);
+    }
+
+    #[test]
+    fn parse_cidr_ipv4_link_local_169_slash16() {
+        let args = args_with_net_filter("169.254.0.0/16");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "169.254.0.0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 16);
+    }
+
+    #[test]
+    fn clap_parse_config_file_with_filter() {
+        let args =
+            Args::try_parse_from(["iftoprs", "-c", "/path/prefs.toml", "-f", "host 192.0.2.1"])
+                .unwrap();
+        assert_eq!(args.config.as_deref(), Some("/path/prefs.toml"));
+        assert_eq!(args.filter.as_deref(), Some("host 192.0.2.1"));
+    }
 }

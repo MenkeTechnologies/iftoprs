@@ -716,4 +716,14 @@ mod tests {
         let sum: f64 = flows.iter().map(|f| f.recv_40s).sum();
         assert!((totals.recv_40s - sum).abs() < 1e-6);
     }
+
+    #[test]
+    fn flow_tracker_default_matches_new() {
+        let a = FlowTracker::new();
+        let b = FlowTracker::default();
+        let (fa, ta) = a.snapshot();
+        let (fb, tb) = b.snapshot();
+        assert_eq!(fa.len(), fb.len());
+        assert_eq!(ta.cumulative_sent, tb.cumulative_sent);
+    }
 }

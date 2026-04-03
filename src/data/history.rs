@@ -520,4 +520,12 @@ mod tests {
         let sum: u64 = (1..=10).map(|i| i * 10).sum();
         assert_eq!(h.avg_sent_40s(), sum as f64);
     }
+
+    #[test]
+    fn flow_history_default_matches_new_totals() {
+        let a = FlowHistory::new();
+        let b = FlowHistory::default();
+        assert_eq!(a.total_sent, b.total_sent);
+        assert_eq!(a.total_recv, b.total_recv);
+    }
 }

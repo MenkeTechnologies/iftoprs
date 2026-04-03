@@ -473,4 +473,15 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert!((p2.alert_threshold + 1.0).abs() < f64::EPSILON);
     }
+
+    #[test]
+    fn prefs_theme_neon_noir_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::NeonNoir,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::NeonNoir);
+    }
 }

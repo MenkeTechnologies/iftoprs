@@ -2494,4 +2494,10 @@ mod tests {
         let mut terminal = ratatui::Terminal::new(backend).unwrap();
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
     }
+
+    #[test]
+    fn rate_to_frac_tiny_positive_non_negative() {
+        let f = rate_to_frac(1e-15);
+        assert!((0.0..1.0).contains(&f));
+    }
 }

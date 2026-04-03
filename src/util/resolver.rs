@@ -526,4 +526,9 @@ mod tests {
     fn port_to_service_imap_tcp() {
         assert_eq!(port_to_service(143, true), Some("imap"));
     }
+
+    #[test]
+    fn port_to_service_nntp_tcp() {
+        assert_eq!(port_to_service(119, true), Some("nntp"));
+    }
 }

@@ -476,4 +476,10 @@ mod tests {
     fn night_city_display_name_has_space() {
         assert!(ThemeName::NightCity.display_name().contains(' '));
     }
+
+    #[test]
+    fn plasma_core_bar_text_is_black() {
+        let t = Theme::from_name(ThemeName::PlasmaCore);
+        assert_eq!(t.bar_text, Color::Black);
+    }
 }
