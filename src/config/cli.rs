@@ -913,4 +913,33 @@ mod tests {
         assert_eq!(args.config.as_deref(), Some("/path/prefs.toml"));
         assert_eq!(args.filter.as_deref(), Some("host 192.0.2.1"));
     }
+
+    #[test]
+    fn clap_parse_hide_processes_and_hide_ports() {
+        let args = Args::try_parse_from(["iftoprs", "-Z", "-P"]).unwrap();
+        assert!(args.no_processes);
+        assert!(args.hide_ports);
+    }
+
+    #[test]
+    fn clap_parse_json_list_interfaces_exits_flags() {
+        let args = Args::try_parse_from(["iftoprs", "--json", "-l"]).unwrap();
+        assert!(args.json);
+        assert!(args.list_interfaces);
+    }
+
+    #[test]
+    fn parse_cidr_ipv4_slash30_point_to_point() {
+        let args = args_with_net_filter("192.0.2.0/30");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "192.0.2.0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 30);
+    }
+
+    #[test]
+    fn clap_parse_version_short_flag_with_interface() {
+        let args = Args::try_parse_from(["iftoprs", "-V", "-i", "lo"]).unwrap();
+        assert!(args.version);
+        assert_eq!(args.interface.as_deref(), Some("lo"));
+    }
 }

@@ -1277,6 +1277,14 @@ fn cargo_toml_exists() {
 }
 
 #[test]
+fn cargo_lock_exists() {
+    assert!(
+        std::path::Path::new("Cargo.lock").exists(),
+        "Cargo.lock must be present for reproducible builds and cargo --locked in CI"
+    );
+}
+
+#[test]
 fn cargo_toml_has_package_name() {
     let content = std::fs::read_to_string("Cargo.toml").unwrap();
     assert!(content.contains("name = \"iftoprs\""));
