@@ -302,7 +302,7 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | `t` | Cycle line display ── two-line / one-line / sent / recv |
 | `p` | Toggle port display |
 | `Z` | Toggle process display |
-| `b` | Toggle bar graphs |
+| `b` | Cycle bar style (gradient / solid / thin / ascii) |
 | `B` | Toggle bytes/bits |
 | `T` | Toggle hover tooltips (right-click still works) |
 | `U` | Toggle cumulative totals |
@@ -371,8 +371,6 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | `y` | Copy selected flow to clipboard |
 | `F` | Pin/unpin selected flow ★ |
 | `e` | Export flows to ~/.iftoprs.export.txt |
-| `b` | Cycle bar style ── gradient / solid / thin / ascii |
-
 #### `// MOUSE`
 
 | `INPUT` | `ACTION` |

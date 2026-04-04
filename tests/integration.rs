@@ -716,7 +716,7 @@ fn help_documents_all_keybinds() {
     let keybinds = [
         "help HUD",
         "toggle DNS",
-        "bars",
+        "bar style",
         "bytes/bits",
         "ports",
         "processes",

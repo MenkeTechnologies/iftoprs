@@ -33,6 +33,14 @@ fn bar_length(bps: f64, cols: u16) -> u16 {
     (rate_to_frac(bps) * cols as f64).round() as u16
 }
 
+/// Columns actually painted for the bar (Thin uses a shorter bar; text still uses full `bl`).
+fn bar_paint_width(bar_len: u16, style: BarStyle) -> u16 {
+    match style {
+        BarStyle::Thin if bar_len > 0 => (bar_len as u32 * 2 / 3).max(1).min(bar_len as u32) as u16,
+        _ => bar_len,
+    }
+}
+
 // ─── Main draw ────────────────────────────────────────────────────────────────
 
 pub fn draw(frame: &mut Frame, state: &mut AppState) {
@@ -845,10 +853,9 @@ fn draw_totals(frame: &mut Frame, area: Rect, state: &AppState) {
 
 // ─── Buffer helpers ───────────────────────────────────────────────────────────
 
-/// Paint the bar background across the full screen width.
-/// For Solid: colored bg in bar region, nothing outside.
-/// For others: colored bg in bar region (dimmer shade), nothing outside.
-/// Text is overlaid on top by write_bar_styled.
+/// Paint the bar background across the leading columns of the row (length from `bar_length`).
+/// `Gradient` / `Solid` / `Thin` use background fill; `Ascii` uses block characters.
+/// Text is overlaid by [`write_bar_styled`].
 fn paint_bar_styled(
     buf: &mut Buffer,
     x0: u16,
@@ -856,22 +863,41 @@ fn paint_bar_styled(
     len: u16,
     max_w: u16,
     color: Color,
-    _style: BarStyle,
+    style: BarStyle,
 ) {
-    // All styles use background color for the bar region — the style
-    // only affects how write_bar_styled renders text on top.
     let bw = buf.area().width;
     let bx = buf.area().x;
     let bh = buf.area().height;
     let by = buf.area().y;
     let bar_len = len.min(max_w);
-    for x in x0..x0 + bar_len {
+    let paint_w = bar_paint_width(bar_len, style);
+    for i in 0..paint_w {
+        let x = x0 + i;
         if x >= bx + bw || y >= by + bh {
             break;
         }
         let c = &mut buf[(x, y)];
-        c.set_char(' ');
-        c.set_bg(color);
+        match style {
+            BarStyle::Ascii => {
+                c.set_char('█');
+                c.set_fg(color);
+                c.set_bg(Color::Reset);
+            }
+            BarStyle::Gradient => {
+                let dim = i >= paint_w / 2;
+                let st = if dim {
+                    Style::default().bg(color).add_modifier(Modifier::DIM)
+                } else {
+                    Style::default().bg(color)
+                };
+                c.set_char(' ');
+                c.set_style(st);
+            }
+            BarStyle::Solid | BarStyle::Thin => {
+                c.set_char(' ');
+                c.set_bg(color);
+            }
+        }
     }
 }
 
@@ -886,21 +912,24 @@ fn write_bar_styled(
     bl: u16,
     bar_bg: Color,
     bar_fg: Color,
-    _bs: BarStyle,
+    bs: BarStyle,
 ) {
     let mx = buf.area().x + buf.area().width;
     let my = buf.area().y + buf.area().height;
-    for (i, ch) in text.chars().enumerate() {
-        let cx = x + i as u16;
+    let half = x0 + bl / 2;
+    for (col, ch) in text.chars().enumerate() {
+        let cx = x + col as u16;
         if cx >= mx || y >= my {
             break;
         }
         let c = &mut buf[(cx, y)];
         c.set_char(ch);
         if cx < x0 + bl {
-            // Inside bar region — always black text on colored background
-            c.set_fg(bar_fg);
-            c.set_bg(bar_bg);
+            let mut st = Style::default().fg(bar_fg).bg(bar_bg);
+            if matches!(bs, BarStyle::Gradient) && cx >= half {
+                st = st.add_modifier(Modifier::DIM);
+            }
+            c.set_style(st);
         } else {
             // Outside bar
             c.set_fg(fg);
@@ -1866,6 +1895,27 @@ mod tests {
     #[test]
     fn bar_length_zero_cols() {
         assert_eq!(bar_length(1000.0, 0), 0);
+    }
+
+    // ── bar_paint_width / paint_bar_styled ──
+
+    #[test]
+    fn bar_paint_width_thin_shortens() {
+        use crate::ui::app::BarStyle;
+        assert_eq!(bar_paint_width(0, BarStyle::Thin), 0);
+        assert_eq!(bar_paint_width(9, BarStyle::Thin), 6);
+        assert_eq!(bar_paint_width(9, BarStyle::Solid), 9);
+        assert_eq!(bar_paint_width(9, BarStyle::Ascii), 9);
+    }
+
+    #[test]
+    fn paint_bar_ascii_uses_block_char() {
+        use crate::ui::app::BarStyle;
+        use ratatui::buffer::Buffer;
+        use ratatui::layout::Rect;
+        let mut buf = Buffer::empty(Rect::new(0, 0, 12, 1));
+        paint_bar_styled(&mut buf, 0, 0, 5, 10, Color::Green, BarStyle::Ascii);
+        assert_eq!(buf[(0, 0)].symbol(), "█");
     }
 
     // ── draw_flows empty guard ──

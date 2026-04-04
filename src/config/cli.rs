@@ -42,7 +42,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
   -h, --help                     Print help
   -V, --version                  Print version
 \x1b[36m  ── KEYBINDS ───────────────────────────────────────────\x1b[0m
-\x1b[33m  h\x1b[0m ── help HUD       \x1b[33mn\x1b[0m ── toggle DNS      \x1b[33mb\x1b[0m ── bars
+\x1b[33m  h\x1b[0m ── help HUD       \x1b[33mn\x1b[0m ── toggle DNS      \x1b[33mb\x1b[0m ── bar style
 \x1b[33m  B\x1b[0m ── bytes/bits     \x1b[33mp\x1b[0m ── ports           \x1b[33mZ\x1b[0m ── processes
 \x1b[33m  t\x1b[0m ── line mode      \x1b[33mT\x1b[0m ── hover tips      \x1b[33mP\x1b[0m ── pause
 \x1b[33m  U\x1b[0m ── cumulative
@@ -2311,7 +2311,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_net_filter_greek_small_letter_iota_with_dialytika_and_tonos_after_prefix_returns_none() {
+    fn parse_net_filter_greek_small_letter_iota_with_dialytika_and_tonos_after_prefix_returns_none()
+    {
         let args = args_with_net_filter("10.0.0.0/24\u{0390}");
         assert!(args.parse_net_filter().is_none());
     }
