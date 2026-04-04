@@ -1402,4 +1402,28 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{2009}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_hair_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{200a}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_en_quad_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2000}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_em_quad_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2001}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_four_per_em_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2005}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

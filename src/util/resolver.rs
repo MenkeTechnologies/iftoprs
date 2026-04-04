@@ -950,6 +950,30 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_gujarati_digits_in_port_token_skips_line() {
+        // Gujarati digits (U+0AE6–U+0AEF) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0AE7}\u{0AE8}/tcp\nmssql 1433/tcp\n");
+        assert_eq!(m.get(&(1433, "tcp")).copied(), Some("mssql"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_gurmukhi_digits_in_port_token_skips_line() {
+        // Gurmukhi digits (U+0A66–U+0A6F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0A67}\u{0A68}/tcp\noracle 1521/tcp\n");
+        assert_eq!(m.get(&(1521, "tcp")).copied(), Some("oracle"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_sinhala_digits_in_port_token_skips_line() {
+        // Sinhala digits (U+0DE6–U+0DEF) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0DE7}\u{0DE8}/tcp\nvnc 5900/tcp\n");
+        assert_eq!(m.get(&(5900, "tcp")).copied(), Some("vnc"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
