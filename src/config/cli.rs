@@ -1074,4 +1074,12 @@ mod tests {
         assert_eq!(addr, "2002::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 16);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_orchid_slash28() {
+        let args = args_with_net_filter("2001:10::/28");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2001:10::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 28);
+    }
 }

@@ -769,4 +769,22 @@ mod tests {
         let t = Theme::from_name(ThemeName::ToxicWaste);
         assert!(matches!(t.help_section, Color::Indexed(_)));
     }
+
+    #[test]
+    fn night_city_theme_scale_line_is_indexed() {
+        let t = Theme::from_name(ThemeName::NightCity);
+        assert!(matches!(t.scale_line, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn megacorp_theme_help_title_is_indexed() {
+        let t = Theme::from_name(ThemeName::Megacorp);
+        assert!(matches!(t.help_title, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn laser_grid_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::LaserGrid);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
 }
