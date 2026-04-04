@@ -703,4 +703,22 @@ mod tests {
         let t = Theme::from_name(ThemeName::IceBreaker);
         assert!(matches!(t.rate_40s, Color::Indexed(_)));
     }
+
+    #[test]
+    fn neon_noir_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::NeonNoir);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn rust_belt_theme_total_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::RustBelt);
+        assert!(matches!(t.total_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn acid_rain_theme_arrow_is_indexed() {
+        let t = Theme::from_name(ThemeName::AcidRain);
+        assert!(matches!(t.arrow, Color::Indexed(_)));
+    }
 }

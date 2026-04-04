@@ -1050,4 +1050,12 @@ mod tests {
         assert_eq!(addr, "2001:2::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 48);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_nat64_well_known_prefix_slash96() {
+        let args = args_with_net_filter("64:ff9b::/96");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "64:ff9b::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 96);
+    }
 }

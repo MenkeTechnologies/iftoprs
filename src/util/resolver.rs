@@ -646,6 +646,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_dollar_in_service_name_token() {
+        let m = parse_etc_services_text("svc$name 2222/tcp\n");
+        assert_eq!(m.get(&(2222, "tcp")).copied(), Some("svc$name"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

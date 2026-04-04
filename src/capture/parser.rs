@@ -1961,6 +1961,24 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv6_slash64_unique_local_subnet() {
+        let net: IpAddr = "fd00::".parse().unwrap();
+        assert!(ip_in_network(
+            "fd00::ffff:ffff:ffff:ffff".parse().unwrap(),
+            net,
+            64
+        ));
+        assert!(!ip_in_network("fd00:0:0:1::1".parse().unwrap(), net, 64));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash20_private_class_c_slice() {
+        let net: IpAddr = "192.168.0.0".parse().unwrap();
+        assert!(ip_in_network("192.168.15.255".parse().unwrap(), net, 20));
+        assert!(!ip_in_network("192.168.16.0".parse().unwrap(), net, 20));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET
