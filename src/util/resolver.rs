@@ -1102,6 +1102,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_sora_sompeng_digits_in_port_token_skips_line() {
+        // Sora Sompeng digits (U+110F0–U+110F9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{110F1}\u{110F2}/tcp\nldap 389/tcp\n");
+        assert_eq!(m.get(&(389, "tcp")).copied(), Some("ldap"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_new_tai_lue_digits_in_port_token_skips_line() {
+        // New Tai Lue digits (U+19D0–U+19D9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{19D1}\u{19D2}/tcp\nldaps 636/tcp\n");
+        assert_eq!(m.get(&(636, "tcp")).copied(), Some("ldaps"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
