@@ -1390,6 +1390,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_mathematical_double_struck_digits_in_port_token_skips_line() {
+        // Mathematical double-struck digits (U+1D7D8–U+1D7E1) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1D7D9}\u{1D7DA}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_roman_numeral_symbols_in_port_token_skips_line() {
+        // Roman numerals (U+2160–U+2183) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{2160}\u{2161}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
