@@ -985,4 +985,28 @@ mod tests {
         let t = Theme::from_name(ThemeName::IceBreaker);
         assert!(matches!(t.help_key, Color::Indexed(_)));
     }
+
+    #[test]
+    fn zaibatsu_theme_help_section_is_indexed() {
+        let t = Theme::from_name(ThemeName::Zaibatsu);
+        assert!(matches!(t.help_section, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn laser_grid_theme_host_src_is_indexed() {
+        let t = Theme::from_name(ThemeName::LaserGrid);
+        assert!(matches!(t.host_src, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn dark_signal_theme_peak_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::DarkSignal);
+        assert!(matches!(t.peak_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn holo_shift_theme_rate_2s_is_indexed() {
+        let t = Theme::from_name(ThemeName::HoloShift);
+        assert!(matches!(t.rate_2s, Color::Indexed(_)));
+    }
 }

@@ -3302,6 +3302,24 @@ fn net_filter_ipv6_nat64_well_known_slash96_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_unique_local_fd00_slash8_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "fd00::/8", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_six_to_four_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "2002::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

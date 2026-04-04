@@ -623,6 +623,25 @@ mod tests {
     }
 
     #[test]
+    fn parse_loopback_af_inet_tcp_direction_with_local_net() {
+        let local: IpAddr = "192.168.1.0".parse().unwrap();
+        let mut pkt = vec![0u8; 4 + 30]; // AF_INET + IPv4 + TCP ports
+        pkt[0..4].copy_from_slice(&2u32.to_ne_bytes());
+        pkt[4] = 0x45;
+        pkt[6] = 0;
+        pkt[7] = 30; // total_len
+        pkt[13] = 6; // TCP
+        pkt[16..20].copy_from_slice(&[192, 168, 1, 5]);
+        pkt[20..24].copy_from_slice(&[8, 8, 8, 8]);
+        pkt[24] = 0x13;
+        pkt[25] = 0x88; // src 5000
+        pkt[26] = 0x01;
+        pkt[27] = 0xbb; // dst 443
+        let result = parse_loopback(&pkt, Some((local, 24))).unwrap();
+        assert_eq!(result.direction, Direction::Received);
+    }
+
+    #[test]
     fn parse_loopback_unknown_af() {
         let mut pkt = vec![0u8; 60];
         let af_bytes = 99u32.to_ne_bytes();
@@ -2162,6 +2181,13 @@ mod tests {
             96
         ));
         assert!(!ip_in_network("2001:db8::1".parse().unwrap(), net, 96));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash16_link_local_multicast_scope() {
+        let net: IpAddr = "ff02::".parse().unwrap();
+        assert!(ip_in_network("ff02::1".parse().unwrap(), net, 16));
+        assert!(!ip_in_network("fe80::1".parse().unwrap(), net, 16));
     }
 
     #[test]
