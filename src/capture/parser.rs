@@ -2647,6 +2647,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv6_slash16_multicast_ff34_scope() {
+        let net: IpAddr = "ff34::".parse().unwrap();
+        assert!(ip_in_network("ff34::1".parse().unwrap(), net, 16));
+        assert!(!ip_in_network("ff33::1".parse().unwrap(), net, 16));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash16_multicast_ff35_scope() {
+        let net: IpAddr = "ff35::".parse().unwrap();
+        assert!(ip_in_network("ff35::1".parse().unwrap(), net, 16));
+        assert!(!ip_in_network("ff34::1".parse().unwrap(), net, 16));
+    }
+
+    #[test]
     fn ip_in_network_ipv6_slash32_teredo_prefix() {
         let net: IpAddr = "2001::".parse().unwrap();
         assert!(ip_in_network("2001::1".parse().unwrap(), net, 32));

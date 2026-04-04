@@ -1326,6 +1326,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_superscript_digits_in_port_token_skips_line() {
+        // Unicode superscript digits (U+2070–U+2079) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{2074}\u{2075}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_subscript_digits_in_port_token_skips_line() {
+        // Unicode subscript digits (U+2080–U+2089) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{2081}\u{2082}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
