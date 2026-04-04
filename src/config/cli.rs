@@ -1828,4 +1828,34 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{0336}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_combining_short_solidus_overlay_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0337}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_long_solidus_overlay_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0338}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_right_half_ring_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0339}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_inverted_bridge_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{033a}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_square_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{033b}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

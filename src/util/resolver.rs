@@ -1230,6 +1230,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_rumi_digits_in_port_token_skips_line() {
+        // Rumi digits (U+10E60–U+10E68) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{10E60}\u{10E61}/tcp\npop3 110/tcp\n");
+        assert_eq!(m.get(&(110, "tcp")).copied(), Some("pop3"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_indic_siyaq_numbers_in_port_token_skips_line() {
+        // Indic Siyaq numbers (U+1EC71–U+1EC79) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1EC71}\u{1EC72}/tcp\nftp-data 20/tcp\n");
+        assert_eq!(m.get(&(20, "tcp")).copied(), Some("ftp-data"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
