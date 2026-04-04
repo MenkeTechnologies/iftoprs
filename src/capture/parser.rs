@@ -2000,6 +2000,13 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash24_documentation_test_net_1() {
+        let net: IpAddr = "192.0.2.0".parse().unwrap();
+        assert!(ip_in_network("192.0.2.255".parse().unwrap(), net, 24));
+        assert!(!ip_in_network("192.0.3.1".parse().unwrap(), net, 24));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET

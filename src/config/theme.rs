@@ -787,4 +787,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::LaserGrid);
         assert!(matches!(t.help_key, Color::Indexed(_)));
     }
+
+    #[test]
+    fn chrome_heart_theme_scale_line_is_indexed() {
+        let t = Theme::from_name(ThemeName::ChromeHeart);
+        assert!(matches!(t.scale_line, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn neon_noir_theme_host_src_is_indexed() {
+        let t = Theme::from_name(ThemeName::NeonNoir);
+        assert!(matches!(t.host_src, Color::Indexed(_)));
+    }
 }

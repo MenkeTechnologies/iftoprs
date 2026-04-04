@@ -1082,4 +1082,12 @@ mod tests {
         assert_eq!(addr, "2001:10::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 28);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_link_local_slash64() {
+        let args = args_with_net_filter("fe80::/64");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "fe80::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 64);
+    }
 }
