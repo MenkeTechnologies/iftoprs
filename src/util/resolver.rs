@@ -1470,6 +1470,36 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_tai_xuan_jing_symbols_in_port_token_skips_line() {
+        // Tai Xuan Jing symbols (e.g. U+1D300–U+1D30F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1D300}\u{1D301}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_tai_xuan_jing_tetragrams_in_port_token_skips_line() {
+        let m = parse_etc_services_text("bad \u{1D306}\u{1D307}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_tai_xuan_jing_tetragrams_u1d310_in_port_token_skips_line() {
+        let m = parse_etc_services_text("bad \u{1D310}\u{1D311}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_phaistos_disc_signs_in_port_token_skips_line() {
+        // Phaistos Disc signs (e.g. U+101D0–U+101FC) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{101D0}\u{101D1}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
