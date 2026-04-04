@@ -694,6 +694,50 @@ mod tests {
     }
 
     #[test]
+    fn prefs_theme_glitch_pop_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::GlitchPop,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::GlitchPop);
+    }
+
+    #[test]
+    fn prefs_theme_holo_shift_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::HoloShift,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::HoloShift);
+    }
+
+    #[test]
+    fn prefs_theme_bio_hazard_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::BioHazard,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::BioHazard);
+    }
+
+    #[test]
+    fn prefs_theme_overlock_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::Overlock,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::Overlock);
+    }
+
+    #[test]
     fn prefs_refresh_rate_ten_roundtrip() {
         let p = Prefs {
             refresh_rate: 10,

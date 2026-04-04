@@ -825,4 +825,9 @@ mod tests {
     fn protocol_from_udp_lite_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(136), Protocol::Other(136));
     }
+
+    #[test]
+    fn protocol_from_manet_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(138), Protocol::Other(138));
+    }
 }

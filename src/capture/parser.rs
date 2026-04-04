@@ -1852,6 +1852,13 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash20_sixteen_consecutive_class_c() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.0.15.255".parse().unwrap(), net, 20));
+        assert!(!ip_in_network("10.0.16.0".parse().unwrap(), net, 20));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET
