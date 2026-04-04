@@ -1135,4 +1135,22 @@ mod tests {
         let t = Theme::from_name(ThemeName::Zaibatsu);
         assert!(matches!(t.help_key, Color::Indexed(_)));
     }
+
+    #[test]
+    fn neon_sprawl_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::NeonSprawl);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn red_sector_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::RedSector);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn darkwave_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::Darkwave);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
 }

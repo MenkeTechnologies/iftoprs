@@ -606,4 +606,12 @@ mod tests {
         assert_eq!(readable_size(-100.0, true), "-100B");
         assert_eq!(readable_size(-100.0, false), "-800b");
     }
+
+    #[test]
+    fn readable_total_pow1024_fifth_uses_terabyte_tier() {
+        // 1024^5 bytes (1 PiB) exceeds the GB branch; `readable_total` uses decimal TB scaling + "TB" label.
+        let bytes: u64 = 1024_u64.pow(5);
+        let s = readable_total(bytes, false);
+        assert!(s.ends_with("TB"), "expected terabyte-tier label: {}", s);
+    }
 }

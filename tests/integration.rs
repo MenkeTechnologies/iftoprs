@@ -3392,6 +3392,24 @@ fn net_filter_ipv4_cgnat_shared_address_space_slash10_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_documentation_test_net_2_slash24_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "198.51.100.0/24", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_documentation_test_net_3_slash24_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "203.0.113.0/24", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════
