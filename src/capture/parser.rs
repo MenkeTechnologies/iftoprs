@@ -351,6 +351,25 @@ mod tests {
     }
 
     #[test]
+    fn parse_raw_ipv4_udp_direction_with_local_net() {
+        let local: IpAddr = "10.0.0.0".parse().unwrap();
+        let mut raw = vec![0u8; 28];
+        raw[0] = 0x45;
+        raw[2] = 0;
+        raw[3] = 28;
+        raw[9] = 17; // UDP
+        raw[12..16].copy_from_slice(&[10, 0, 0, 1]);
+        raw[16..20].copy_from_slice(&[8, 8, 8, 8]);
+        raw[20] = 0x00;
+        raw[21] = 0x35; // src 53
+        raw[22] = 0x13;
+        raw[23] = 0x88; // dst 5000
+        let result = parse_raw(&raw, Some((local, 8))).unwrap();
+        // Logical flow is local→remote (Sent), but canonical key orders 8.8.8.8 before 10.0.0.1, so direction flips.
+        assert_eq!(result.direction, Direction::Received);
+    }
+
+    #[test]
     fn parse_raw_empty() {
         assert!(parse_raw(&[], None).is_none());
     }
@@ -2188,6 +2207,20 @@ mod tests {
         let net: IpAddr = "ff02::".parse().unwrap();
         assert!(ip_in_network("ff02::1".parse().unwrap(), net, 16));
         assert!(!ip_in_network("fe80::1".parse().unwrap(), net, 16));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash32_teredo_prefix() {
+        let net: IpAddr = "2001::".parse().unwrap();
+        assert!(ip_in_network("2001::1".parse().unwrap(), net, 32));
+        assert!(!ip_in_network("2002::1".parse().unwrap(), net, 32));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash48_benchmarking_prefix() {
+        let net: IpAddr = "2001:2::".parse().unwrap();
+        assert!(ip_in_network("2001:2::1".parse().unwrap(), net, 48));
+        assert!(!ip_in_network("2001:3::1".parse().unwrap(), net, 48));
     }
 
     #[test]

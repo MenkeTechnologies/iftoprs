@@ -3320,6 +3320,33 @@ fn net_filter_ipv6_six_to_four_slash16_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_teredo_slash32_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "2001::/32", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_benchmarking_slash48_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "2001:2::/48", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_link_local_fe80_slash10_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "fe80::/10", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

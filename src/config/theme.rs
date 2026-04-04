@@ -1009,4 +1009,22 @@ mod tests {
         let t = Theme::from_name(ThemeName::HoloShift);
         assert!(matches!(t.rate_2s, Color::Indexed(_)));
     }
+
+    #[test]
+    fn plasma_core_theme_host_dst_is_indexed() {
+        let t = Theme::from_name(ThemeName::PlasmaCore);
+        assert!(matches!(t.host_dst, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn bio_hazard_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::BioHazard);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn rust_belt_theme_help_section_is_indexed() {
+        let t = Theme::from_name(ThemeName::RustBelt);
+        assert!(matches!(t.help_section, Color::Indexed(_)));
+    }
 }
