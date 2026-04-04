@@ -1739,6 +1739,19 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv6_slash96_ipv4_mapped_well_known_prefix() {
+        let net: IpAddr = "::ffff:0:0".parse().unwrap();
+        assert!(ip_in_network("::ffff:192.0.2.1".parse().unwrap(), net, 96));
+        assert!(!ip_in_network("2001:db8::1".parse().unwrap(), net, 96));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash24_network_address_matches() {
+        let net: IpAddr = "192.168.1.0".parse().unwrap();
+        assert!(ip_in_network("192.168.1.0".parse().unwrap(), net, 24));
+    }
+
+    #[test]
     fn parse_raw_ipv4_minimum_datagram_tcp() {
         let mut raw = vec![0u8; 40];
         raw[0] = 0x45;

@@ -264,6 +264,15 @@ mod tests {
     }
 
     #[test]
+    fn sparkline_flat_then_single_spike() {
+        let s = sparkline(&[10, 10, 10, 100], 10);
+        assert_eq!(s.chars().count(), 4);
+        let c: Vec<char> = s.chars().collect();
+        assert!(c[0] < c[3]);
+        assert_eq!(c[3], '█');
+    }
+
+    #[test]
     fn sparkline_ascending() {
         let s = sparkline(&[0, 25, 50, 75, 100], 10);
         assert_eq!(s.chars().count(), 5);

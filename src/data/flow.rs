@@ -720,6 +720,26 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_udp_not_equal_to_other_wrapping_udp_protocol_number() {
+        // IANA 17 is UDP, but `Protocol::Udp` must stay distinct from `Protocol::Other(17)`.
+        let k_udp = FlowKey {
+            src: "203.0.113.10".parse().unwrap(),
+            dst: "203.0.113.11".parse().unwrap(),
+            src_port: 12345,
+            dst_port: 53,
+            protocol: Protocol::Udp,
+        };
+        let k_other = FlowKey {
+            src: k_udp.src,
+            dst: k_udp.dst,
+            src_port: k_udp.src_port,
+            dst_port: k_udp.dst_port,
+            protocol: Protocol::Other(17),
+        };
+        assert_ne!(k_udp, k_other);
+    }
+
+    #[test]
     fn flow_key_copy_leaves_original_unchanged() {
         let k = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

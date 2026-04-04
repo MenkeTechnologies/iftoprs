@@ -862,6 +862,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_bengali_digits_in_port_token_skips_line() {
+        // Bengali digits (U+09E6–U+09EF) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{09E8}\u{09E8}/tcp\npop3 110/tcp\n");
+        assert_eq!(m.get(&(110, "tcp")).copied(), Some("pop3"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

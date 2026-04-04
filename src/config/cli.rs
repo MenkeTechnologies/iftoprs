@@ -1276,4 +1276,22 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{2069}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_invisible_plus_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2064}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_soft_hyphen_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{00ad}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_bom_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{feff}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
