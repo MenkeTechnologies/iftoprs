@@ -779,6 +779,15 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_middle_dot_in_service_name_token() {
+        // U+00A0 is Unicode whitespace in Rust (`char::is_whitespace`), so `split_whitespace`
+        // would break the service name across tokens — use U+00B7 (middle dot), not a space.
+        let m = parse_etc_services_text("svc\u{00B7}name 2222/tcp\n");
+        assert_eq!(m.get(&(2222, "tcp")).copied(), Some("svc\u{00B7}name"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

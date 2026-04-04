@@ -1075,4 +1075,64 @@ mod tests {
         let t = Theme::from_name(ThemeName::Megacorp);
         assert!(matches!(t.help_key, Color::Indexed(_)));
     }
+
+    #[test]
+    fn synth_wave_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::SynthWave);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn void_walker_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::VoidWalker);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn cyber_frost_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::CyberFrost);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn plasma_core_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::PlasmaCore);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn steel_nerve_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::SteelNerve);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn dark_signal_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::DarkSignal);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn glitch_pop_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::GlitchPop);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn holo_shift_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::HoloShift);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn solar_flare_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::SolarFlare);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn zaibatsu_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::Zaibatsu);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
 }

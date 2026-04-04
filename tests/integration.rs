@@ -3383,6 +3383,15 @@ fn net_filter_ipv6_deprecated_site_local_fec0_slash10_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_cgnat_shared_address_space_slash10_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "100.64.0.0/10", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

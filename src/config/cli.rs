@@ -1130,4 +1130,16 @@ mod tests {
         assert_eq!(addr, "10.0.0.5".parse::<IpAddr>().unwrap());
         assert_eq!(p, 255);
     }
+
+    #[test]
+    fn parse_net_filter_space_before_slash_returns_none() {
+        let args = args_with_net_filter("10.0.0.0 /24");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_space_before_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/ 24");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
