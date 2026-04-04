@@ -1066,4 +1066,12 @@ mod tests {
         assert_eq!(addr, "2001::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 32);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_six_to_four_prefix_slash16() {
+        let args = args_with_net_filter("2002::/16");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2002::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 16);
+    }
 }

@@ -1020,4 +1020,74 @@ mod tests {
     fn protocol_from_ip_proto_178_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(178), Protocol::Other(178));
     }
+
+    #[test]
+    fn protocol_from_ip_proto_179_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(179), Protocol::Other(179));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_180_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(180), Protocol::Other(180));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_181_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(181), Protocol::Other(181));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_182_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(182), Protocol::Other(182));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_183_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(183), Protocol::Other(183));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_184_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(184), Protocol::Other(184));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_185_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(185), Protocol::Other(185));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_186_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(186), Protocol::Other(186));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_187_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(187), Protocol::Other(187));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_188_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(188), Protocol::Other(188));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_189_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(189), Protocol::Other(189));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_190_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(190), Protocol::Other(190));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_191_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(191), Protocol::Other(191));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_192_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(192), Protocol::Other(192));
+    }
 }

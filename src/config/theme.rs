@@ -745,4 +745,28 @@ mod tests {
         let t = Theme::from_name(ThemeName::SakuraDen);
         assert!(matches!(t.proc_name, Color::Indexed(_)));
     }
+
+    #[test]
+    fn neon_sprawl_theme_help_val_is_indexed() {
+        let t = Theme::from_name(ThemeName::NeonSprawl);
+        assert!(matches!(t.help_val, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn synth_wave_theme_rate_2s_is_indexed() {
+        let t = Theme::from_name(ThemeName::SynthWave);
+        assert!(matches!(t.rate_2s, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn blade_runner_theme_rate_40s_is_indexed() {
+        let t = Theme::from_name(ThemeName::BladeRunner);
+        assert!(matches!(t.rate_40s, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn toxic_waste_theme_help_section_is_indexed() {
+        let t = Theme::from_name(ThemeName::ToxicWaste);
+        assert!(matches!(t.help_section, Color::Indexed(_)));
+    }
 }
