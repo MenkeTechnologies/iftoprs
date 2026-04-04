@@ -1058,4 +1058,12 @@ mod tests {
         assert_eq!(addr, "64:ff9b::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 96);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_teredo_prefix_slash32() {
+        let args = args_with_net_filter("2001::/32");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2001::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 32);
+    }
 }

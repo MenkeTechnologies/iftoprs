@@ -721,4 +721,28 @@ mod tests {
         let t = Theme::from_name(ThemeName::AcidRain);
         assert!(matches!(t.arrow, Color::Indexed(_)));
     }
+
+    #[test]
+    fn data_stream_theme_help_title_is_indexed() {
+        let t = Theme::from_name(ThemeName::DataStream);
+        assert!(matches!(t.help_title, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn darkwave_theme_help_section_is_indexed() {
+        let t = Theme::from_name(ThemeName::Darkwave);
+        assert!(matches!(t.help_section, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn red_sector_theme_rate_10s_is_indexed() {
+        let t = Theme::from_name(ThemeName::RedSector);
+        assert!(matches!(t.rate_10s, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn sakura_den_theme_proc_name_is_indexed() {
+        let t = Theme::from_name(ThemeName::SakuraDen);
+        assert!(matches!(t.proc_name, Color::Indexed(_)));
+    }
 }

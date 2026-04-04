@@ -1979,6 +1979,13 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash10_cgnat_shared_address_space() {
+        let net: IpAddr = "100.64.0.0".parse().unwrap();
+        assert!(ip_in_network("100.127.255.255".parse().unwrap(), net, 10));
+        assert!(!ip_in_network("100.128.0.1".parse().unwrap(), net, 10));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET
