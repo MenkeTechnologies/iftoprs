@@ -1680,6 +1680,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_broadcast_address_in_slash24() {
+        let bcast: IpAddr = "192.168.1.255".parse().unwrap();
+        let net: IpAddr = "192.168.1.0".parse().unwrap();
+        assert!(ip_in_network(bcast, net, 24));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash48_documentation_subnet() {
+        let net: IpAddr = "2001:db8:1::".parse().unwrap();
+        assert!(ip_in_network("2001:db8:1::1".parse().unwrap(), net, 48));
+        assert!(!ip_in_network("2001:db8:2::1".parse().unwrap(), net, 48));
+    }
+
+    #[test]
     fn parse_raw_ipv4_minimum_datagram_tcp() {
         let mut raw = vec![0u8; 40];
         raw[0] = 0x45;

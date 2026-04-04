@@ -624,6 +624,44 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_tcp_vs_other_protocol_same_endpoints_are_distinct() {
+        let k_tcp = FlowKey {
+            src: "198.51.100.1".parse().unwrap(),
+            dst: "198.51.100.2".parse().unwrap(),
+            src_port: 5000,
+            dst_port: 5000,
+            protocol: Protocol::Tcp,
+        };
+        let k_gre = FlowKey {
+            src: k_tcp.src,
+            dst: k_tcp.dst,
+            src_port: k_tcp.src_port,
+            dst_port: k_tcp.dst_port,
+            protocol: Protocol::Other(47),
+        };
+        assert_ne!(k_tcp, k_gre);
+    }
+
+    #[test]
+    fn flow_key_other_protocol_distinct_by_inner_number() {
+        let a = FlowKey {
+            src: "::1".parse().unwrap(),
+            dst: "::2".parse().unwrap(),
+            src_port: 1,
+            dst_port: 2,
+            protocol: Protocol::Other(99),
+        };
+        let b = FlowKey {
+            src: a.src,
+            dst: a.dst,
+            src_port: a.src_port,
+            dst_port: a.dst_port,
+            protocol: Protocol::Other(100),
+        };
+        assert_ne!(a, b);
+    }
+
+    #[test]
     fn flow_key_copy_leaves_original_unchanged() {
         let k = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

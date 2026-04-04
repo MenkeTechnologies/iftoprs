@@ -3500,6 +3500,33 @@ fn net_filter_ipv6_link_local_fe80_slash64_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_unique_local_fd12_slash48_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "fd12:3456:789a::/48", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_multicast_admin_scope_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "239.0.0.0/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_documentation_db8_host_slash128_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "2001:db8::1/128", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════
