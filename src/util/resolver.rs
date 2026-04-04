@@ -1422,6 +1422,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_extended_arabic_indic_digits_in_port_token_skips_line() {
+        // Extended Arabic-Indic digits (U+06F0–U+06F9), e.g. Persian, are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{06F1}\u{06F2}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_nko_digits_in_port_token_skips_line() {
+        // N'Ko digits (U+07C0–U+07C9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{07C1}\u{07C2}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

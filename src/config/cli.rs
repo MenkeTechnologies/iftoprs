@@ -2188,4 +2188,34 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{0373}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_greek_numeral_sign_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0374}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_lower_numeral_sign_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0375}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_capital_letter_pamphylian_digamma_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0376}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_small_letter_pamphylian_digamma_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0377}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_ypogegrammeni_u037a_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{037A}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
