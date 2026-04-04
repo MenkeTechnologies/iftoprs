@@ -1262,6 +1262,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_khudawadi_digits_in_port_token_skips_line() {
+        // Khudawadi digits (U+112F0–U+112F9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{112F1}\u{112F2}/tcp\nchargen 19/tcp\n");
+        assert_eq!(m.get(&(19, "tcp")).copied(), Some("chargen"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_modi_digits_in_port_token_skips_line() {
+        // Modi digits (U+11650–U+11659) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11651}\u{11652}/tcp\ndaytime 13/tcp\n");
+        assert_eq!(m.get(&(13, "tcp")).copied(), Some("daytime"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
