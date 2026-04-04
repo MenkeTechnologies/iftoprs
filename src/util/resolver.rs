@@ -1054,6 +1054,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_takri_digits_in_port_token_skips_line() {
+        // Takri digits (U+116C0–U+116C9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{116C1}\u{116C2}/tcp\nntp 123/tcp\n");
+        assert_eq!(m.get(&(123, "tcp")).copied(), Some("ntp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_ahom_digits_in_port_token_skips_line() {
+        // Ahom digits (U+11730–U+11739) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11731}\u{11732}/tcp\nimap 143/tcp\n");
+        assert_eq!(m.get(&(143, "tcp")).copied(), Some("imap"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
