@@ -1310,6 +1310,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_myanmar_tai_laing_digits_in_port_token_skips_line() {
+        // Myanmar Tai Laing digits (U+A9F0–U+A9F9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{A9F1}\u{A9F2}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_aegean_numbers_in_port_token_skips_line() {
+        // Aegean numbers (U+10107–U+1010F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{10107}\u{10108}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
