@@ -1278,6 +1278,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_bhaiksuki_digits_in_port_token_skips_line() {
+        // Bhaiksuki digits (U+11C50–U+11C59) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11C51}\u{11C52}/tcp\nqotd 17/tcp\n");
+        assert_eq!(m.get(&(17, "tcp")).copied(), Some("qotd"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_warang_citi_digits_in_port_token_skips_line() {
+        // Warang Citi digits (U+118E0–U+118E9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{118E1}\u{118E2}/tcp\nnntp 119/tcp\n");
+        assert_eq!(m.get(&(119, "tcp")).copied(), Some("nntp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
