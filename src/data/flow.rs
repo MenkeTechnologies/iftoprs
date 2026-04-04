@@ -1280,4 +1280,129 @@ mod tests {
     fn protocol_from_ip_proto_230_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(230), Protocol::Other(230));
     }
+
+    #[test]
+    fn protocol_from_ip_proto_231_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(231), Protocol::Other(231));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_232_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(232), Protocol::Other(232));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_233_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(233), Protocol::Other(233));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_234_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(234), Protocol::Other(234));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_235_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(235), Protocol::Other(235));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_236_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(236), Protocol::Other(236));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_237_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(237), Protocol::Other(237));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_238_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(238), Protocol::Other(238));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_239_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(239), Protocol::Other(239));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_240_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(240), Protocol::Other(240));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_241_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(241), Protocol::Other(241));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_242_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(242), Protocol::Other(242));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_243_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(243), Protocol::Other(243));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_244_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(244), Protocol::Other(244));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_245_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(245), Protocol::Other(245));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_246_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(246), Protocol::Other(246));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_247_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(247), Protocol::Other(247));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_248_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(248), Protocol::Other(248));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_249_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(249), Protocol::Other(249));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_250_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(250), Protocol::Other(250));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_251_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(251), Protocol::Other(251));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_252_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(252), Protocol::Other(252));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_253_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(253), Protocol::Other(253));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_254_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(254), Protocol::Other(254));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_255_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(255), Protocol::Other(255));
+    }
 }

@@ -799,4 +799,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::NeonNoir);
         assert!(matches!(t.host_src, Color::Indexed(_)));
     }
+
+    #[test]
+    fn steel_nerve_theme_cum_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::SteelNerve);
+        assert!(matches!(t.cum_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn dark_signal_theme_scale_line_is_indexed() {
+        let t = Theme::from_name(ThemeName::DarkSignal);
+        assert!(matches!(t.scale_line, Color::Indexed(_)));
+    }
 }

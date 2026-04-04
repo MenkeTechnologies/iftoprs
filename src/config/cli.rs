@@ -1090,4 +1090,12 @@ mod tests {
         assert_eq!(addr, "fe80::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 64);
     }
+
+    #[test]
+    fn parse_cidr_ipv4_documentation_test_net_2_slash24() {
+        let args = args_with_net_filter("198.51.100.0/24");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "198.51.100.0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 24);
+    }
 }
