@@ -435,6 +435,18 @@ mod tests {
     }
 
     #[test]
+    fn solar_flare_theme_scale_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::SolarFlare);
+        assert!(matches!(t.scale_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn toxic_waste_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::ToxicWaste);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
     fn megacorp_theme_swatch_len() {
         assert_eq!(Theme::swatch(ThemeName::Megacorp).len(), 6);
     }

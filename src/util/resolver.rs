@@ -584,6 +584,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_skips_line_with_non_integer_port_token() {
+        let m = parse_etc_services_text("bad 22.5/tcp\n");
+        assert!(m.is_empty());
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

@@ -990,4 +990,10 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24abc");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_ipv6_address_without_slash_returns_none() {
+        let args = args_with_net_filter("2001:db8::1");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

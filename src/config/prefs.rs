@@ -650,6 +650,50 @@ mod tests {
     }
 
     #[test]
+    fn prefs_theme_solar_flare_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::SolarFlare,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::SolarFlare);
+    }
+
+    #[test]
+    fn prefs_theme_toxic_waste_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::ToxicWaste,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::ToxicWaste);
+    }
+
+    #[test]
+    fn prefs_theme_cyber_frost_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::CyberFrost,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::CyberFrost);
+    }
+
+    #[test]
+    fn prefs_theme_steel_nerve_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::SteelNerve,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::SteelNerve);
+    }
+
+    #[test]
     fn prefs_refresh_rate_ten_roundtrip() {
         let p = Prefs {
             refresh_rate: 10,
