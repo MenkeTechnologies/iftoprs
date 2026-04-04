@@ -3934,6 +3934,24 @@ fn net_filter_ipv6_multicast_ff21_slash16_with_help() {
 }
 
 #[test]
+fn net_filter_ipv6_multicast_ff22_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "ff22::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_ff23_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff23::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
 fn net_filter_ipv4_private_class_b_172_25_slash16_with_help() {
     let output = cargo_bin()
         .args(["--net-filter", "172.25.0.0/16", "-h"])
