@@ -1246,6 +1246,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_newa_digits_in_port_token_skips_line() {
+        // Newa digits (U+11450–U+11459) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11451}\u{11452}/tcp\nssh 22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_tirhuta_digits_in_port_token_skips_line() {
+        // Tirhuta digits (U+114D0–U+114D9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{114D1}\u{114D2}/tcp\nwhois 43/tcp\n");
+        assert_eq!(m.get(&(43, "tcp")).copied(), Some("whois"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
