@@ -1859,6 +1859,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash21_eight_consecutive_class_c() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.0.7.255".parse().unwrap(), net, 21));
+        assert!(!ip_in_network("10.0.8.0".parse().unwrap(), net, 21));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash22_four_consecutive_class_c() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.0.3.255".parse().unwrap(), net, 22));
+        assert!(!ip_in_network("10.0.4.0".parse().unwrap(), net, 22));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET

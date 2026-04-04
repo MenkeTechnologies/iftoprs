@@ -597,6 +597,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_extra_spaces_between_name_and_port_field() {
+        let m = parse_etc_services_text("ssh\t  22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

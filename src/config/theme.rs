@@ -625,4 +625,22 @@ mod tests {
         let t = Theme::from_name(ThemeName::Megacorp);
         assert!(matches!(t.bar_color, Color::Indexed(_)));
     }
+
+    #[test]
+    fn red_sector_theme_help_title_is_indexed() {
+        let t = Theme::from_name(ThemeName::RedSector);
+        assert!(matches!(t.help_title, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn sakura_den_theme_bar_color_mid_is_indexed() {
+        let t = Theme::from_name(ThemeName::SakuraDen);
+        assert!(matches!(t.bar_color_mid, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn iftopcolor_theme_help_section_is_indexed() {
+        let t = Theme::from_name(ThemeName::Iftopcolor);
+        assert!(matches!(t.help_section, Color::Indexed(_)));
+    }
 }

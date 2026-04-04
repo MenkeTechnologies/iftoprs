@@ -738,6 +738,72 @@ mod tests {
     }
 
     #[test]
+    fn prefs_theme_neon_sprawl_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::NeonSprawl,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::NeonSprawl);
+    }
+
+    #[test]
+    fn prefs_theme_red_sector_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::RedSector,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::RedSector);
+    }
+
+    #[test]
+    fn prefs_theme_sakura_den_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::SakuraDen,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::SakuraDen);
+    }
+
+    #[test]
+    fn prefs_theme_ghost_wire_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::GhostWire,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::GhostWire);
+    }
+
+    #[test]
+    fn prefs_theme_dark_signal_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::DarkSignal,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::DarkSignal);
+    }
+
+    #[test]
+    fn prefs_theme_deep_net_roundtrip() {
+        let p = Prefs {
+            theme: ThemeName::DeepNet,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(p2.theme, ThemeName::DeepNet);
+    }
+
+    #[test]
     fn prefs_refresh_rate_ten_roundtrip() {
         let p = Prefs {
             refresh_rate: 10,

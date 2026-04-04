@@ -830,4 +830,9 @@ mod tests {
     fn protocol_from_manet_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(138), Protocol::Other(138));
     }
+
+    #[test]
+    fn protocol_from_fibre_channel_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(133), Protocol::Other(133));
+    }
 }
