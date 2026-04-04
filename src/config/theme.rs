@@ -1027,4 +1027,34 @@ mod tests {
         let t = Theme::from_name(ThemeName::RustBelt);
         assert!(matches!(t.help_section, Color::Indexed(_)));
     }
+
+    #[test]
+    fn data_stream_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::DataStream);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn solar_flare_theme_help_title_is_indexed() {
+        let t = Theme::from_name(ThemeName::SolarFlare);
+        assert!(matches!(t.help_title, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn deep_net_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::DeepNet);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn overlock_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::Overlock);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn iftopcolor_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::Iftopcolor);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
 }

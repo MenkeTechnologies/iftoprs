@@ -2224,6 +2224,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash8_loopback_127() {
+        let net: IpAddr = "127.0.0.0".parse().unwrap();
+        assert!(ip_in_network("127.255.255.255".parse().unwrap(), net, 8));
+        assert!(!ip_in_network("128.0.0.1".parse().unwrap(), net, 8));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash32_limited_broadcast() {
+        let net: IpAddr = "255.255.255.255".parse().unwrap();
+        assert!(ip_in_network("255.255.255.255".parse().unwrap(), net, 32));
+        assert!(!ip_in_network("255.255.255.254".parse().unwrap(), net, 32));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET

@@ -3347,6 +3347,24 @@ fn net_filter_ipv6_link_local_fe80_slash10_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_loopback_slash8_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "127.0.0.0/8", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_limited_broadcast_slash32_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "255.255.255.255/32", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════
