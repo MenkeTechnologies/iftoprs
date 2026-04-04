@@ -1153,4 +1153,11 @@ mod tests {
         let t = Theme::from_name(ThemeName::Darkwave);
         assert!(matches!(t.help_key, Color::Indexed(_)));
     }
+
+    #[test]
+    fn theme_all_display_names_non_empty() {
+        for &t in ThemeName::ALL {
+            assert!(!t.display_name().is_empty());
+        }
+    }
 }

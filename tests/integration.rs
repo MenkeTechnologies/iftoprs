@@ -3410,6 +3410,24 @@ fn net_filter_ipv4_documentation_test_net_3_slash24_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_documentation_test_net_1_slash24_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "192.0.2.0/24", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_rfc2544_benchmark_slash15_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "198.18.0.0/15", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

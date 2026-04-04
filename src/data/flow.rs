@@ -551,6 +551,22 @@ mod tests {
     }
 
     #[test]
+    fn normalize_ipv6_multicast_swaps_when_global_unicast_sorts_first() {
+        let k = FlowKey {
+            src: "ff02::1".parse().unwrap(),
+            dst: "2001:db8::1".parse().unwrap(),
+            src_port: 80,
+            dst_port: 443,
+            protocol: Protocol::Udp,
+        };
+        let (n, swapped) = k.normalize();
+        assert!(swapped);
+        assert_eq!(n.src, "2001:db8::1".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(n.src_port, 443);
+        assert_eq!(n.dst_port, 80);
+    }
+
+    #[test]
     fn flow_key_copy_leaves_original_unchanged() {
         let k = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

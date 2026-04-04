@@ -2290,6 +2290,25 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv6_fd00_slash8_unique_local_assignment() {
+        let net: IpAddr = "fd00::".parse().unwrap();
+        assert!(ip_in_network(
+            "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff".parse().unwrap(),
+            net,
+            8
+        ));
+        assert!(ip_in_network("fd12:3456::1".parse().unwrap(), net, 8));
+        assert!(!ip_in_network("fc00::1".parse().unwrap(), net, 8));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash2_quarter_internet() {
+        let net: IpAddr = "0.0.0.0".parse().unwrap();
+        assert!(ip_in_network("63.255.255.255".parse().unwrap(), net, 2));
+        assert!(!ip_in_network("64.0.0.1".parse().unwrap(), net, 2));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET
