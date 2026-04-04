@@ -1406,6 +1406,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_dingbat_negative_circled_digits_in_port_token_skips_line() {
+        // Dingbat negative circled digits (U+2776–U+277F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{2776}\u{2777}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_hangzhou_numerals_in_port_token_skips_line() {
+        // Hangzhou numerals (U+3021–U+3029) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{3021}\u{3022}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
