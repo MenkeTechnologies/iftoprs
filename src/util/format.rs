@@ -619,4 +619,9 @@ mod tests {
     fn readable_total_exactly_one_decimal_terabyte() {
         assert_eq!(readable_total(1_000_000_000_000, false), "1.00TB");
     }
+
+    #[test]
+    fn readable_total_just_below_one_terabyte_shows_gigabyte_tier() {
+        assert_eq!(readable_total(999_999_999_999, false), "1000.00GB");
+    }
 }

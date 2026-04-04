@@ -3464,6 +3464,24 @@ fn net_filter_ipv4_slash2_quarter_internet_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_documentation_db8_slash112_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "2001:db8::/112", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_private_class_c_slash24_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "192.168.0.0/24", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

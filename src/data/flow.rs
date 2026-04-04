@@ -586,6 +586,25 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_icmp_tcp_same_endpoints_are_distinct() {
+        let k_icmp = FlowKey {
+            src: "192.0.2.1".parse().unwrap(),
+            dst: "192.0.2.2".parse().unwrap(),
+            src_port: 0,
+            dst_port: 0,
+            protocol: Protocol::Icmp,
+        };
+        let k_tcp = FlowKey {
+            src: k_icmp.src,
+            dst: k_icmp.dst,
+            src_port: 443,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        assert_ne!(k_icmp, k_tcp);
+    }
+
+    #[test]
     fn flow_key_copy_leaves_original_unchanged() {
         let k = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

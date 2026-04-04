@@ -701,6 +701,17 @@ mod tests {
     }
 
     #[test]
+    fn peak_sent_and_peak_recv_tracked_independently() {
+        let mut h = FlowHistory::new();
+        h.add_sent(10_000);
+        h.rotate();
+        h.add_recv(5_000);
+        h.rotate();
+        assert_eq!(h.peak_sent, 10_000.0);
+        assert_eq!(h.peak_recv, 5_000.0);
+    }
+
+    #[test]
     fn avg_recv_2s_after_two_rotations_sums_last_two_slots() {
         let mut h = FlowHistory::new();
         h.add_recv(100);
