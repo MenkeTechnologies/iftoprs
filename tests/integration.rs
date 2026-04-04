@@ -3482,6 +3482,24 @@ fn net_filter_ipv4_private_class_c_slash24_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_documentation_db8_slash64_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "2001:db8::/64", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_link_local_fe80_slash64_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "fe80::/64", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

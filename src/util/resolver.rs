@@ -823,6 +823,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_zero_width_joiner_in_service_name_token() {
+        // U+200D is not Unicode whitespace — it stays inside the first `split_whitespace` token.
+        let m = parse_etc_services_text("svc\u{200D}z 2222/tcp\n");
+        assert_eq!(m.get(&(2222, "tcp")).copied(), Some("svc\u{200D}z"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

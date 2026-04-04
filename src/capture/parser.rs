@@ -1672,6 +1672,14 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_non_canonical_network_address_still_masks_correctly() {
+        // CIDR math uses bitwise AND; the "network" address need not be host-bit zero.
+        let addr: IpAddr = "192.168.1.100".parse().unwrap();
+        let net: IpAddr = "192.168.1.50".parse().unwrap();
+        assert!(ip_in_network(addr, net, 24));
+    }
+
+    #[test]
     fn parse_raw_ipv4_minimum_datagram_tcp() {
         let mut raw = vec![0u8; 40];
         raw[0] = 0x45;

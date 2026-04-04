@@ -520,6 +520,18 @@ mod tests {
     }
 
     #[test]
+    fn peak_recv_monotonic_across_rotations() {
+        let mut h = FlowHistory::new();
+        h.add_recv(10);
+        h.rotate();
+        h.add_recv(300);
+        h.rotate();
+        h.add_recv(20);
+        h.rotate();
+        assert_eq!(h.peak_recv, 300.0);
+    }
+
+    #[test]
     fn avg_sent_40s_full_window_after_many_slots() {
         let mut h = FlowHistory::new();
         for i in 0..10 {

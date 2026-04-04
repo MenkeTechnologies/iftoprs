@@ -1185,4 +1185,23 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\r");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_newline_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\n");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_nul_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_leading_zero_prefix_digits_parse_as_decimal() {
+        let args = args_with_net_filter("192.168.0.0/024");
+        let (_, p) = args.parse_net_filter().unwrap();
+        assert_eq!(p, 24);
+    }
 }
