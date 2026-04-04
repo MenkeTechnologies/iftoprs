@@ -1312,4 +1312,22 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{200c}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_combining_grapheme_joiner_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{034f}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_zero_width_joiner_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{200d}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_first_strong_isolate_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2068}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

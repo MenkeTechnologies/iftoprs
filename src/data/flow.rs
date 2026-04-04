@@ -169,6 +169,25 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_same_endpoints_swapped_ports_are_distinct() {
+        let k1 = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        let k2 = FlowKey {
+            src: k1.src,
+            dst: k1.dst,
+            src_port: 443,
+            dst_port: 80,
+            protocol: Protocol::Tcp,
+        };
+        assert_ne!(k1, k2);
+    }
+
+    #[test]
     fn flow_key_inequality_protocol() {
         let k1 = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

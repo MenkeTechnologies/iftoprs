@@ -878,6 +878,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_khmer_digits_in_port_token_skips_line() {
+        // Khmer digits (U+17E0–U+17E9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{17E1}\u{17E7}/tcp\nimap 143/tcp\n");
+        assert_eq!(m.get(&(143, "tcp")).copied(), Some("imap"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

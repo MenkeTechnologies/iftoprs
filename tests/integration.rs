@@ -3663,6 +3663,24 @@ fn net_filter_ipv4_private_class_a_slash17_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_private_slash22_four_class_c_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "10.0.0.0/22", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_reserved_ff0f_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff0f::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

@@ -2410,6 +2410,13 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv6_unspecified_slash128_only_matches_all_zero() {
+        let net: IpAddr = "::".parse().unwrap();
+        assert!(ip_in_network(IpAddr::from([0u8; 16]), net, 128));
+        assert!(!ip_in_network("::1".parse().unwrap(), net, 128));
+    }
+
+    #[test]
     fn ip_in_network_ipv6_6to4_slash16_includes_prefix() {
         let net: IpAddr = "2002::".parse().unwrap();
         assert!(ip_in_network("2002::1".parse().unwrap(), net, 16));
