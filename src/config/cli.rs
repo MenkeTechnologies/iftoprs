@@ -1010,4 +1010,20 @@ mod tests {
         assert_eq!(addr, "fe80::1".parse::<IpAddr>().unwrap());
         assert_eq!(p, 127);
     }
+
+    #[test]
+    fn parse_cidr_ipv4_host_slash32_not_network_zero() {
+        let args = args_with_net_filter("192.168.0.1/32");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "192.168.0.1".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 32);
+    }
+
+    #[test]
+    fn parse_cidr_ipv6_unique_local_fc00_slash7() {
+        let args = args_with_net_filter("fc00::/7");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "fc00::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 7);
+    }
 }

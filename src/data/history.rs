@@ -144,6 +144,15 @@ mod tests {
     }
 
     #[test]
+    fn new_history_sliding_averages_are_zero() {
+        let h = FlowHistory::new();
+        assert_eq!(h.avg_sent_2s(), 0.0);
+        assert_eq!(h.avg_recv_2s(), 0.0);
+        assert_eq!(h.avg_sent_40s(), 0.0);
+        assert_eq!(h.avg_recv_40s(), 0.0);
+    }
+
+    #[test]
     fn add_sent_accumulates() {
         let mut h = FlowHistory::new();
         h.add_sent(100);

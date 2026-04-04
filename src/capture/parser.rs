@@ -1887,6 +1887,13 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash27_thirty_two_addresses() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.0.0.31".parse().unwrap(), net, 27));
+        assert!(!ip_in_network("10.0.0.32".parse().unwrap(), net, 27));
+    }
+
+    #[test]
     fn ip_in_network_ipv6_slash96_documentation_prefix() {
         let net: IpAddr = "2001:db8::".parse().unwrap();
         assert!(ip_in_network(

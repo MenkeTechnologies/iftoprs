@@ -655,4 +655,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::SynthWave);
         assert!(matches!(t.rate_10s, Color::Indexed(_)));
     }
+
+    #[test]
+    fn neon_noir_theme_select_bg_is_fixed_gray() {
+        let t = Theme::from_name(ThemeName::NeonNoir);
+        assert_eq!(t.select_bg, Color::Indexed(236));
+    }
+
+    #[test]
+    fn blade_runner_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::BladeRunner);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
 }

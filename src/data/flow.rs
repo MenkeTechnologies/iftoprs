@@ -845,4 +845,19 @@ mod tests {
     fn protocol_from_ethernet_in_ip_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(143), Protocol::Other(143));
     }
+
+    #[test]
+    fn protocol_from_ip_proto_144_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(144), Protocol::Other(144));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_145_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(145), Protocol::Other(145));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_146_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(146), Protocol::Other(146));
+    }
 }

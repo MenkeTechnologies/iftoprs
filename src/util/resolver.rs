@@ -611,6 +611,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_at_sign_in_service_name_token() {
+        let m = parse_etc_services_text("user@host 2222/tcp\n");
+        assert_eq!(m.get(&(2222, "tcp")).copied(), Some("user@host"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
