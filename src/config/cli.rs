@@ -1167,4 +1167,10 @@ mod tests {
         let args = args_with_net_filter("/24");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_tab_after_ip_returns_none() {
+        let args = args_with_net_filter("10.0.0.0\t/24");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

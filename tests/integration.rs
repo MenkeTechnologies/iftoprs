@@ -3428,6 +3428,15 @@ fn net_filter_ipv4_rfc2544_benchmark_slash15_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_ipv4_mapped_well_known_slash96_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "::ffff:0:0/96", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

@@ -261,6 +261,8 @@ impl Theme {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -1158,6 +1160,18 @@ mod tests {
     fn theme_all_display_names_non_empty() {
         for &t in ThemeName::ALL {
             assert!(!t.display_name().is_empty());
+        }
+    }
+
+    #[test]
+    fn theme_all_display_names_are_unique() {
+        let mut seen = HashSet::new();
+        for &t in ThemeName::ALL {
+            assert!(
+                seen.insert(t.display_name()),
+                "duplicate display name for {:?}",
+                t
+            );
         }
     }
 }

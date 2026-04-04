@@ -614,4 +614,9 @@ mod tests {
         let s = readable_total(bytes, false);
         assert!(s.ends_with("TB"), "expected terabyte-tier label: {}", s);
     }
+
+    #[test]
+    fn readable_total_exactly_one_decimal_terabyte() {
+        assert_eq!(readable_total(1_000_000_000_000, false), "1.00TB");
+    }
 }

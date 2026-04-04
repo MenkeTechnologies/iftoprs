@@ -567,6 +567,25 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_tcp_udp_same_endpoints_are_distinct() {
+        let k_tcp = FlowKey {
+            src: "10.0.0.1".parse().unwrap(),
+            dst: "10.0.0.2".parse().unwrap(),
+            src_port: 80,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        let k_udp = FlowKey {
+            src: k_tcp.src,
+            dst: k_tcp.dst,
+            src_port: k_tcp.src_port,
+            dst_port: k_tcp.dst_port,
+            protocol: Protocol::Udp,
+        };
+        assert_ne!(k_tcp, k_udp);
+    }
+
+    #[test]
     fn flow_key_copy_leaves_original_unchanged() {
         let k = FlowKey {
             src: "10.0.0.1".parse().unwrap(),
