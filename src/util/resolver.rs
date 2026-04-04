@@ -1374,6 +1374,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_mathematical_sans_serif_digits_in_port_token_skips_line() {
+        // Mathematical sans-serif digits (U+1D7E2–U+1D7EB) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1D7E3}\u{1D7E4}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_mathematical_monospace_digits_in_port_token_skips_line() {
+        // Mathematical monospace digits (U+1D7F6–U+1D7FF) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1D7F7}\u{1D7F8}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
