@@ -495,6 +495,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_vlan_ipv4_tcp_direction_with_local_net() {
+        let local: IpAddr = "192.168.1.0".parse().unwrap();
+        let pkt = make_vlan_ipv4_tcp_packet([192, 168, 1, 5], [8, 8, 8, 8], 5000, 443);
+        let result = parse_ethernet(&pkt, Some((local, 24))).unwrap();
+        assert_eq!(result.direction, Direction::Received);
+    }
+
+    #[test]
     fn parse_vlan_too_short() {
         let mut pkt = vec![0u8; 16]; // short VLAN frame
         pkt[12] = 0x81;
@@ -2077,6 +2085,13 @@ mod tests {
         assert!(ip_in_network("2001:10::1".parse().unwrap(), net, 28));
         // Outside the ORCHID /28: different top bits (e.g. 2001:11:: is still inside; use another ULA range).
         assert!(!ip_in_network("2002::1".parse().unwrap(), net, 28));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash7_unique_local_fc00() {
+        let net: IpAddr = "fc00::".parse().unwrap();
+        assert!(ip_in_network("fd00::1".parse().unwrap(), net, 7));
+        assert!(!ip_in_network("fe80::1".parse().unwrap(), net, 7));
     }
 
     #[test]

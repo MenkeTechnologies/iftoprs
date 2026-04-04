@@ -931,4 +931,34 @@ mod tests {
         let t = Theme::from_name(ThemeName::ToxicWaste);
         assert!(matches!(t.rate_40s, Color::Indexed(_)));
     }
+
+    #[test]
+    fn blade_runner_theme_host_src_is_indexed() {
+        let t = Theme::from_name(ThemeName::BladeRunner);
+        assert!(matches!(t.host_src, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn darkwave_theme_rate_10s_is_indexed() {
+        let t = Theme::from_name(ThemeName::Darkwave);
+        assert!(matches!(t.rate_10s, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn megacorp_theme_help_val_is_indexed() {
+        let t = Theme::from_name(ThemeName::Megacorp);
+        assert!(matches!(t.help_val, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn acid_rain_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::AcidRain);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn void_walker_theme_rate_10s_is_indexed() {
+        let t = Theme::from_name(ThemeName::VoidWalker);
+        assert!(matches!(t.rate_10s, Color::Indexed(_)));
+    }
 }
