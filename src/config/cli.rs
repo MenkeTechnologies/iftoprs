@@ -1258,4 +1258,22 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{fffd}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_word_joiner_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2060}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_right_to_left_mark_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{200f}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_pop_directional_isolate_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2069}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

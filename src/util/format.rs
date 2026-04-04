@@ -255,6 +255,15 @@ mod tests {
     }
 
     #[test]
+    fn sparkline_high_plateau_then_single_low_sample() {
+        let s = sparkline(&[100, 100, 100, 1], 10);
+        assert_eq!(s.chars().count(), 4);
+        let c: Vec<char> = s.chars().collect();
+        assert_eq!(c[0], '█');
+        assert_eq!(c[3], '▁');
+    }
+
+    #[test]
     fn sparkline_ascending() {
         let s = sparkline(&[0, 25, 50, 75, 100], 10);
         assert_eq!(s.chars().count(), 5);

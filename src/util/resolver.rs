@@ -854,6 +854,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_devanagari_digits_in_port_token_skips_line() {
+        // Devanagari digits (U+0966–U+096F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{096E}\u{0966}/tcp\nntp 123/udp\n");
+        assert_eq!(m.get(&(123, "udp")).copied(), Some("ntp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

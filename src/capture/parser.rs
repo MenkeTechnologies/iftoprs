@@ -1725,6 +1725,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash26_rfc1918_boundary() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.0.0.63".parse().unwrap(), net, 26));
+        assert!(!ip_in_network("10.0.0.64".parse().unwrap(), net, 26));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_unique_local_fd00_slash64() {
+        let net: IpAddr = "fd00::".parse().unwrap();
+        assert!(ip_in_network("fd00::1".parse().unwrap(), net, 64));
+        assert!(!ip_in_network("fd01::1".parse().unwrap(), net, 64));
+    }
+
+    #[test]
     fn parse_raw_ipv4_minimum_datagram_tcp() {
         let mut raw = vec![0u8; 40];
         raw[0] = 0x45;

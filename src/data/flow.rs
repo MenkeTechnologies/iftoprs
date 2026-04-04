@@ -700,6 +700,26 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_tcp_not_equal_to_other_wrapping_tcp_protocol_number() {
+        // IANA 6 is TCP, but `Protocol::Tcp` must stay distinct from `Protocol::Other(6)`.
+        let k_tcp = FlowKey {
+            src: "192.0.2.1".parse().unwrap(),
+            dst: "192.0.2.2".parse().unwrap(),
+            src_port: 443,
+            dst_port: 443,
+            protocol: Protocol::Tcp,
+        };
+        let k_other = FlowKey {
+            src: k_tcp.src,
+            dst: k_tcp.dst,
+            src_port: k_tcp.src_port,
+            dst_port: k_tcp.dst_port,
+            protocol: Protocol::Other(6),
+        };
+        assert_ne!(k_tcp, k_other);
+    }
+
+    #[test]
     fn flow_key_copy_leaves_original_unchanged() {
         let k = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

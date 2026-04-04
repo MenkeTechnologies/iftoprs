@@ -3582,6 +3582,33 @@ fn net_filter_ipv4_apipa_slash31_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_private_class_a_slash26_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "10.0.0.0/26", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_site_scope_ff05_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff05::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_documentation_db8_child_slash56_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "2001:db8:1::/56", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════
