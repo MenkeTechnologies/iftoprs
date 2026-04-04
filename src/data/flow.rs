@@ -681,6 +681,25 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_udp_vs_sctp_other_same_ports_are_distinct() {
+        let k_udp = FlowKey {
+            src: "198.18.0.1".parse().unwrap(),
+            dst: "198.18.0.2".parse().unwrap(),
+            src_port: 9999,
+            dst_port: 10000,
+            protocol: Protocol::Udp,
+        };
+        let k_sctp = FlowKey {
+            src: k_udp.src,
+            dst: k_udp.dst,
+            src_port: k_udp.src_port,
+            dst_port: k_udp.dst_port,
+            protocol: Protocol::Other(132),
+        };
+        assert_ne!(k_udp, k_sctp);
+    }
+
+    #[test]
     fn flow_key_copy_leaves_original_unchanged() {
         let k = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

@@ -846,6 +846,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_arabic_indic_digits_in_port_token_skips_line() {
+        // Arabic-Indic digits (U+0660–U+0669) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0661}\u{0662}/tcp\ndomain 53/udp\n");
+        assert_eq!(m.get(&(53, "udp")).copied(), Some("domain"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

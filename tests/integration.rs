@@ -3555,6 +3555,33 @@ fn net_filter_ipv6_six_to_four_derived_slash48_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_multicast_ssm_ff3e_slash32_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff3e::/32", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_documentation_db8_slash56_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "2001:db8::/56", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_apipa_slash31_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "169.254.0.0/31", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

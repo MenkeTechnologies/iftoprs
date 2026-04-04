@@ -1711,6 +1711,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv6_slash127_excludes_second_address_pair() {
+        let net: IpAddr = "2001:db8::".parse().unwrap();
+        assert!(ip_in_network("2001:db8::1".parse().unwrap(), net, 127));
+        assert!(!ip_in_network("2001:db8::2".parse().unwrap(), net, 127));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash20_class_b_boundary() {
+        let net: IpAddr = "172.16.0.0".parse().unwrap();
+        assert!(ip_in_network("172.16.15.255".parse().unwrap(), net, 20));
+        assert!(!ip_in_network("172.16.16.1".parse().unwrap(), net, 20));
+    }
+
+    #[test]
     fn parse_raw_ipv4_minimum_datagram_tcp() {
         let mut raw = vec![0u8; 40];
         raw[0] = 0x45;

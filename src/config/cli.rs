@@ -1240,4 +1240,22 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{85}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_no_break_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{a0}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_left_to_right_mark_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{200e}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_object_replacement_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{fffd}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

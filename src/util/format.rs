@@ -247,6 +247,14 @@ mod tests {
     }
 
     #[test]
+    fn sparkline_uniform_mid_range_plateau() {
+        let s = sparkline(&[42, 42, 42, 42], 10);
+        assert_eq!(s.chars().count(), 4);
+        let c: Vec<char> = s.chars().collect();
+        assert!(c.iter().all(|&x| x == c[0]));
+    }
+
+    #[test]
     fn sparkline_ascending() {
         let s = sparkline(&[0, 25, 50, 75, 100], 10);
         assert_eq!(s.chars().count(), 5);
