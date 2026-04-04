@@ -1134,6 +1134,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_ol_chiki_digits_in_port_token_skips_line() {
+        // Ol Chiki digits (U+1C50–U+1C59) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1C51}\u{1C52}/tcp\necho 7/tcp\n");
+        assert_eq!(m.get(&(7, "tcp")).copied(), Some("echo"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_vai_digits_in_port_token_skips_line() {
+        // Vai digits (U+A620–U+A629) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{A621}\u{A622}/tcp\ndiscard 9/tcp\n");
+        assert_eq!(m.get(&(9, "tcp")).copied(), Some("discard"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
