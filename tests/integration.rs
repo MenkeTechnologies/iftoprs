@@ -3807,6 +3807,24 @@ fn net_filter_ipv4_private_class_c_192_168_255_slash24_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_private_class_a_10_slash15_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "10.0.0.0/15", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_link_local_apipa_last_slash24_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "169.254.255.0/24", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

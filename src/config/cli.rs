@@ -1498,4 +1498,22 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{2063}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_combining_grave_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0300}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_acute_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0301}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_circumflex_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0302}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

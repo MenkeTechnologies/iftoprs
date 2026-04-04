@@ -1022,6 +1022,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_adlam_digits_in_port_token_skips_line() {
+        // Adlam digits (U+1E950–U+1E959) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1E951}\u{1E952}/tcp\nsmtp 25/tcp\n");
+        assert_eq!(m.get(&(25, "tcp")).copied(), Some("smtp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_nyiakeng_puachue_hmong_digits_in_port_token_skips_line() {
+        // Nyiakeng Puachue Hmong digits (U+16B50–U+16B59) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{16B51}\u{16B52}/tcp\nhttp 80/tcp\n");
+        assert_eq!(m.get(&(80, "tcp")).copied(), Some("http"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
