@@ -900,4 +900,34 @@ mod tests {
     fn protocol_from_ip_proto_154_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(154), Protocol::Other(154));
     }
+
+    #[test]
+    fn protocol_from_ip_proto_155_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(155), Protocol::Other(155));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_156_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(156), Protocol::Other(156));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_157_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(157), Protocol::Other(157));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_158_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(158), Protocol::Other(158));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_159_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(159), Protocol::Other(159));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_160_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(160), Protocol::Other(160));
+    }
 }

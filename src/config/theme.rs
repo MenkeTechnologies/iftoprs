@@ -691,4 +691,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::PlasmaCore);
         assert!(matches!(t.peak_label, Color::Indexed(_)));
     }
+
+    #[test]
+    fn cyber_frost_theme_help_border_is_indexed() {
+        let t = Theme::from_name(ThemeName::CyberFrost);
+        assert!(matches!(t.help_border, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn ice_breaker_theme_rate_40s_is_indexed() {
+        let t = Theme::from_name(ThemeName::IceBreaker);
+        assert!(matches!(t.rate_40s, Color::Indexed(_)));
+    }
 }

@@ -1042,4 +1042,12 @@ mod tests {
         assert_eq!(addr, "::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 0);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_benchmark_prefix_2001_2_slash48() {
+        let args = args_with_net_filter("2001:2::/48");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2001:2::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 48);
+    }
 }

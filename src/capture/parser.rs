@@ -1922,6 +1922,27 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash11_thirty_two_class_b_blocks() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.31.255.255".parse().unwrap(), net, 11));
+        assert!(!ip_in_network("10.32.0.0".parse().unwrap(), net, 11));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash10_sixty_four_class_b_blocks() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.63.255.255".parse().unwrap(), net, 10));
+        assert!(!ip_in_network("10.64.0.0".parse().unwrap(), net, 10));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash9_half_class_a_ten_space() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.127.255.255".parse().unwrap(), net, 9));
+        assert!(!ip_in_network("10.128.0.0".parse().unwrap(), net, 9));
+    }
+
+    #[test]
     fn ip_in_network_ipv6_slash96_documentation_prefix() {
         let net: IpAddr = "2001:db8::".parse().unwrap();
         assert!(ip_in_network(
