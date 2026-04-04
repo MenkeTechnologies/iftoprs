@@ -1150,6 +1150,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_sundanese_digits_in_port_token_skips_line() {
+        // Sundanese digits (U+1BB0–U+1BB9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1BB1}\u{1BB2}/tcp\ntime 37/tcp\n");
+        assert_eq!(m.get(&(37, "tcp")).copied(), Some("time"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_cham_digits_in_port_token_skips_line() {
+        // Cham digits (U+AA50–U+AA59) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{AA51}\u{AA52}/tcp\nftp 21/tcp\n");
+        assert_eq!(m.get(&(21, "tcp")).copied(), Some("ftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
