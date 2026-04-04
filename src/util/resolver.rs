@@ -1214,6 +1214,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_medefaidrin_digits_in_port_token_skips_line() {
+        // Medefaidrin digits (U+16E80–U+16E89) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{16E81}\u{16E82}/tcp\nhttp 80/tcp\n");
+        assert_eq!(m.get(&(80, "tcp")).copied(), Some("http"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_dives_akuru_digits_in_port_token_skips_line() {
+        // Dives Akuru digits (U+11950–U+11959) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11951}\u{11952}/tcp\nsmtp 25/tcp\n");
+        assert_eq!(m.get(&(25, "tcp")).copied(), Some("smtp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
