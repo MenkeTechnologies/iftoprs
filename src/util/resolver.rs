@@ -1070,6 +1070,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_wancho_digits_in_port_token_skips_line() {
+        // Wancho digits (U+11BF0–U+11BF9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11BF1}\u{11BF2}/tcp\npop3 110/tcp\n");
+        assert_eq!(m.get(&(110, "tcp")).copied(), Some("pop3"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_mro_digits_in_port_token_skips_line() {
+        // Mro digits (U+16A60–U+16A69) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{16A61}\u{16A62}/tcp\nnntp 119/tcp\n");
+        assert_eq!(m.get(&(119, "tcp")).copied(), Some("nntp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

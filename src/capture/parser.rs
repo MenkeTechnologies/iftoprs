@@ -2423,6 +2423,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv6_slash16_multicast_ff14_scope() {
+        let net: IpAddr = "ff14::".parse().unwrap();
+        assert!(ip_in_network("ff14::1".parse().unwrap(), net, 16));
+        assert!(!ip_in_network("ff13::1".parse().unwrap(), net, 16));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash16_multicast_ff15_scope() {
+        let net: IpAddr = "ff15::".parse().unwrap();
+        assert!(ip_in_network("ff15::1".parse().unwrap(), net, 16));
+        assert!(!ip_in_network("ff14::1".parse().unwrap(), net, 16));
+    }
+
+    #[test]
     fn ip_in_network_ipv6_slash32_teredo_prefix() {
         let net: IpAddr = "2001::".parse().unwrap();
         assert!(ip_in_network("2001::1".parse().unwrap(), net, 32));
