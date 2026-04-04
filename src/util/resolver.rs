@@ -1438,6 +1438,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_mayan_numerals_in_port_token_skips_line() {
+        // Mayan numerals (U+1D2E0–U+1D2E9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1D2E1}\u{1D2E2}/tcp\nauth 113/tcp\n");
+        assert_eq!(m.get(&(113, "tcp")).copied(), Some("auth"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_kaktovik_numerals_in_port_token_skips_line() {
+        // Kaktovik numerals (U+1D2C0–U+1D2CF) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1D2C1}\u{1D2C2}/tcp\nsftp 115/tcp\n");
+        assert_eq!(m.get(&(115, "tcp")).copied(), Some("sftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

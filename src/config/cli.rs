@@ -2218,4 +2218,35 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{037A}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_greek_small_reversed_lunate_sigma_symbol_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{037B}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_small_dotted_lunate_sigma_symbol_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{037C}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_small_reversed_dotted_lunate_sigma_symbol_after_prefix_returns_none()
+    {
+        let args = args_with_net_filter("10.0.0.0/24\u{037D}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_question_mark_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{037E}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_capital_letter_yot_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{037F}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
