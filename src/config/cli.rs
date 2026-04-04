@@ -1106,4 +1106,12 @@ mod tests {
         assert_eq!(addr, "2001:db8:1::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 48);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_ipv4_mapped_well_known_slash96() {
+        let args = args_with_net_filter("::ffff:0:0/96");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "::ffff:0:0".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 96);
+    }
 }

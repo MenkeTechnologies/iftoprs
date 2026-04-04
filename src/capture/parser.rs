@@ -1160,6 +1160,36 @@ mod tests {
         assert_eq!(result.direction, Direction::Received);
     }
 
+    #[test]
+    fn direction_ipv6_both_local_defaults_sent() {
+        let local: IpAddr = "2001:db8::".parse().unwrap();
+        let mut raw = vec![0u8; 44];
+        raw[0] = 0x60;
+        raw[4] = 0x00;
+        raw[5] = 4;
+        raw[6] = 17;
+        raw[7] = 64;
+        // src 2001:db8::1
+        raw[8] = 0x20;
+        raw[9] = 0x01;
+        raw[10] = 0x0d;
+        raw[11] = 0xb8;
+        raw[22] = 0x00;
+        raw[23] = 0x01;
+        // dst 2001:db8::2
+        raw[24] = 0x20;
+        raw[25] = 0x01;
+        raw[26] = 0x0d;
+        raw[27] = 0xb8;
+        raw[39] = 2;
+        raw[40] = 0;
+        raw[41] = 0x35;
+        raw[42] = 0x00;
+        raw[43] = 0x35;
+        let result = parse_raw(&raw, Some((local, 32))).unwrap();
+        assert_eq!(result.direction, Direction::Sent);
+    }
+
     // ── Additional Ethernet / ICMP / VLAN / SLL coverage ──
 
     #[test]
@@ -2025,6 +2055,13 @@ mod tests {
         let net: IpAddr = "ff00::".parse().unwrap();
         assert!(ip_in_network("ff0e::1".parse().unwrap(), net, 8));
         assert!(!ip_in_network("fe80::1".parse().unwrap(), net, 8));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash96_ipv4_mapped_prefix() {
+        let net: IpAddr = "::ffff:0:0".parse().unwrap();
+        assert!(ip_in_network("::ffff:192.0.2.1".parse().unwrap(), net, 96));
+        assert!(!ip_in_network("2001:db8::1".parse().unwrap(), net, 96));
     }
 
     #[test]

@@ -865,4 +865,34 @@ mod tests {
         let t = Theme::from_name(ThemeName::Iftopcolor);
         assert!(matches!(t.peak_label, Color::Indexed(_)));
     }
+
+    #[test]
+    fn ghost_wire_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::GhostWire);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn red_sector_theme_host_dst_is_indexed() {
+        let t = Theme::from_name(ThemeName::RedSector);
+        assert!(matches!(t.host_dst, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn sakura_den_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::SakuraDen);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn cyber_frost_theme_help_title_is_indexed() {
+        let t = Theme::from_name(ThemeName::CyberFrost);
+        assert!(matches!(t.help_title, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn deep_net_theme_cum_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::DeepNet);
+        assert!(matches!(t.cum_label, Color::Indexed(_)));
+    }
 }
