@@ -4240,6 +4240,24 @@ fn net_filter_ipv6_multicast_ff43_slash16_with_help() {
 }
 
 #[test]
+fn net_filter_ipv6_multicast_ff44_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "ff44::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_ff45_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff45::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
 fn net_filter_ipv4_private_class_b_172_25_slash16_with_help() {
     let output = cargo_bin()
         .args(["--net-filter", "172.25.0.0/16", "-h"])

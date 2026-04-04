@@ -2249,4 +2249,34 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{037F}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_greek_tonos_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0384}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_spacing_dialytika_tonos_u0385_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0385}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_capital_alpha_with_tonos_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0386}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_ano_teleia_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0387}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_greek_capital_epsilon_with_tonos_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0388}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
