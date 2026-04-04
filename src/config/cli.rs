@@ -1098,4 +1098,12 @@ mod tests {
         assert_eq!(addr, "198.51.100.0".parse::<IpAddr>().unwrap());
         assert_eq!(p, 24);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_documentation_db8_subprefix_slash48() {
+        let args = args_with_net_filter("2001:db8:1::/48");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "2001:db8:1::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 48);
+    }
 }

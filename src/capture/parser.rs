@@ -2014,6 +2014,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash4_multicast() {
+        let net: IpAddr = "224.0.0.0".parse().unwrap();
+        assert!(ip_in_network("239.255.255.255".parse().unwrap(), net, 4));
+        assert!(!ip_in_network("223.255.255.255".parse().unwrap(), net, 4));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash8_multicast_ff00() {
+        let net: IpAddr = "ff00::".parse().unwrap();
+        assert!(ip_in_network("ff0e::1".parse().unwrap(), net, 8));
+        assert!(!ip_in_network("fe80::1".parse().unwrap(), net, 8));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET

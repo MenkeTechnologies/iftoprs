@@ -3188,6 +3188,30 @@ fn net_filter_long_flag_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_multicast_slash4_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "224.0.0.0/4", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_ff00_slash8_with_help() {
+    let output = cargo_bin().args(["-F", "ff00::/8", "-h"]).output().unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_documentation_db8_slash48_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "2001:db8:1::/48", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

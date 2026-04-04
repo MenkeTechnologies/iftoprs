@@ -811,4 +811,58 @@ mod tests {
         let t = Theme::from_name(ThemeName::DarkSignal);
         assert!(matches!(t.scale_line, Color::Indexed(_)));
     }
+
+    #[test]
+    fn ice_breaker_theme_help_title_is_indexed() {
+        let t = Theme::from_name(ThemeName::IceBreaker);
+        assert!(matches!(t.help_title, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn glitch_pop_theme_host_src_is_indexed() {
+        let t = Theme::from_name(ThemeName::GlitchPop);
+        assert!(matches!(t.host_src, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn holo_shift_theme_help_border_is_indexed() {
+        let t = Theme::from_name(ThemeName::HoloShift);
+        assert!(matches!(t.help_border, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn overlock_theme_host_dst_is_indexed() {
+        let t = Theme::from_name(ThemeName::Overlock);
+        assert!(matches!(t.host_dst, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn bio_hazard_theme_help_section_is_indexed() {
+        let t = Theme::from_name(ThemeName::BioHazard);
+        assert!(matches!(t.help_section, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn solar_flare_theme_bar_color_mid_is_indexed() {
+        let t = Theme::from_name(ThemeName::SolarFlare);
+        assert!(matches!(t.bar_color_mid, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn zaibatsu_theme_rate_2s_is_indexed() {
+        let t = Theme::from_name(ThemeName::Zaibatsu);
+        assert!(matches!(t.rate_2s, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn quantum_flux_theme_help_border_is_indexed() {
+        let t = Theme::from_name(ThemeName::QuantumFlux);
+        assert!(matches!(t.help_border, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn iftopcolor_theme_peak_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::Iftopcolor);
+        assert!(matches!(t.peak_label, Color::Indexed(_)));
+    }
 }
