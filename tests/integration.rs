@@ -3681,6 +3681,24 @@ fn net_filter_ipv6_multicast_reserved_ff0f_slash16_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_private_class_c_slash23_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "192.168.0.0/23", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_node_local_ff08_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff08::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

@@ -188,6 +188,25 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_ipv6_same_endpoints_swapped_ports_are_distinct() {
+        let k1 = FlowKey {
+            src: "2001:db8::1".parse().unwrap(),
+            dst: "2001:db8::2".parse().unwrap(),
+            src_port: 53,
+            dst_port: 5353,
+            protocol: Protocol::Udp,
+        };
+        let k2 = FlowKey {
+            src: k1.src,
+            dst: k1.dst,
+            src_port: 5353,
+            dst_port: 53,
+            protocol: Protocol::Udp,
+        };
+        assert_ne!(k1, k2);
+    }
+
+    #[test]
     fn flow_key_inequality_protocol() {
         let k1 = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

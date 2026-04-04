@@ -1330,4 +1330,28 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{2068}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_inhibit_symmetric_swapping_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{206a}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_activate_symmetric_swapping_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{206b}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_inhibit_arabic_form_shaping_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{206c}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_activate_arabic_form_shaping_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{206d}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

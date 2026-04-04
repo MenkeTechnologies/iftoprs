@@ -886,6 +886,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_myanmar_digits_in_port_token_skips_line() {
+        // Myanmar digits (U+1040–U+1049) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1041}\u{1042}/tcp\nldap 389/tcp\n");
+        assert_eq!(m.get(&(389, "tcp")).copied(), Some("ldap"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
