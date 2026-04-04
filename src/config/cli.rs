@@ -1704,8 +1704,38 @@ mod tests {
     }
 
     #[test]
-    fn parse_net_filter_combining_dot_below_after_prefix_returns_none() {
+    fn parse_net_filter_combining_retroflex_hook_below_u0322_after_prefix_returns_none() {
         let args = args_with_net_filter("10.0.0.0/24\u{0322}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_dot_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0323}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_diaeresis_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0324}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_ring_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0325}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_comma_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0326}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_cedilla_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0327}");
         assert!(args.parse_net_filter().is_none());
     }
 }

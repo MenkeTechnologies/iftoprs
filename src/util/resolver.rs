@@ -1166,6 +1166,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_lepcha_digits_in_port_token_skips_line() {
+        // Lepcha digits (U+1C40–U+1C49) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1C41}\u{1C42}/tcp\nsmtp 25/tcp\n");
+        assert_eq!(m.get(&(25, "tcp")).copied(), Some("smtp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_gunjala_gondi_digits_in_port_token_skips_line() {
+        // Gunjala Gondi digits (U+11D60–U+11D69) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11D61}\u{11D62}/tcp\ntelnet 23/tcp\n");
+        assert_eq!(m.get(&(23, "tcp")).copied(), Some("telnet"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
