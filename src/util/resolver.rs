@@ -1086,6 +1086,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_brahmi_digits_in_port_token_skips_line() {
+        // Brahmi digits (U+11066–U+1106F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11067}\u{11068}/tcp\ntelnet 23/tcp\n");
+        assert_eq!(m.get(&(23, "tcp")).copied(), Some("telnet"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_sharada_digits_in_port_token_skips_line() {
+        // Sharada digits (U+111D0–U+111D9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{111D1}\u{111D2}/tcp\nsubmissions 465/tcp\n");
+        assert_eq!(m.get(&(465, "tcp")).copied(), Some("submissions"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

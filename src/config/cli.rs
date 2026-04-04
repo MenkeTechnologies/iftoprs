@@ -1570,4 +1570,22 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{030b}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_combining_caron_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{030c}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_vertical_line_above_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{030d}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_double_vertical_line_above_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{030e}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
