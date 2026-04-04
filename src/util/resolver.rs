@@ -1198,6 +1198,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_kawi_digits_in_port_token_skips_line() {
+        // Kawi digits (U+11F50–U+11F59) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11F51}\u{11F52}/tcp\nimap 143/tcp\n");
+        assert_eq!(m.get(&(143, "tcp")).copied(), Some("imap"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_nag_mundari_digits_in_port_token_skips_line() {
+        // Nag Mundari digits (U+1E4F0–U+1E4F9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1E4F1}\u{1E4F2}/tcp\nldap 389/tcp\n");
+        assert_eq!(m.get(&(389, "tcp")).copied(), Some("ldap"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
