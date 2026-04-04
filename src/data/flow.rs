@@ -740,6 +740,25 @@ mod tests {
     }
 
     #[test]
+    fn flow_key_icmp_vs_udp_both_zero_ports_are_distinct() {
+        let k_icmp = FlowKey {
+            src: "192.0.2.1".parse().unwrap(),
+            dst: "192.0.2.2".parse().unwrap(),
+            src_port: 0,
+            dst_port: 0,
+            protocol: Protocol::Icmp,
+        };
+        let k_udp = FlowKey {
+            src: k_icmp.src,
+            dst: k_icmp.dst,
+            src_port: 0,
+            dst_port: 0,
+            protocol: Protocol::Udp,
+        };
+        assert_ne!(k_icmp, k_udp);
+    }
+
+    #[test]
     fn flow_key_copy_leaves_original_unchanged() {
         let k = FlowKey {
             src: "10.0.0.1".parse().unwrap(),

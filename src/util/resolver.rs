@@ -870,6 +870,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_thai_digits_in_port_token_skips_line() {
+        // Thai digits (U+0E50–U+0E59) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0E51}\u{0E51}/tcp\nsmtp 25/tcp\n");
+        assert_eq!(m.get(&(25, "tcp")).copied(), Some("smtp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

@@ -1752,6 +1752,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv6_global_unicast_2000_slash3() {
+        let net: IpAddr = "2000::".parse().unwrap();
+        assert!(ip_in_network("2001:db8::1".parse().unwrap(), net, 3));
+        assert!(!ip_in_network("4000::1".parse().unwrap(), net, 3));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_multicast_ff00_slash12() {
+        let net: IpAddr = "ff00::".parse().unwrap();
+        assert!(ip_in_network("ff00::1".parse().unwrap(), net, 12));
+        assert!(!ip_in_network("fe00::1".parse().unwrap(), net, 12));
+    }
+
+    #[test]
     fn parse_raw_ipv4_minimum_datagram_tcp() {
         let mut raw = vec![0u8; 40];
         raw[0] = 0x45;

@@ -3636,6 +3636,33 @@ fn net_filter_ipv6_documentation_db8_slash96_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_multicast_interface_local_ff01_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff01::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_private_class_b_slash18_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "172.16.0.0/18", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_private_class_a_slash17_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "10.127.0.0/17", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════
