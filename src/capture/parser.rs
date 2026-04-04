@@ -1908,6 +1908,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash13_eight_class_b_blocks() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.7.255.255".parse().unwrap(), net, 13));
+        assert!(!ip_in_network("10.8.0.0".parse().unwrap(), net, 13));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash12_sixteen_class_b_blocks() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.15.255.255".parse().unwrap(), net, 12));
+        assert!(!ip_in_network("10.16.0.0".parse().unwrap(), net, 12));
+    }
+
+    #[test]
     fn ip_in_network_ipv6_slash96_documentation_prefix() {
         let net: IpAddr = "2001:db8::".parse().unwrap();
         assert!(ip_in_network(
@@ -1916,6 +1930,13 @@ mod tests {
             96
         ));
         assert!(!ip_in_network("2001:db8::1:0:0".parse().unwrap(), net, 96));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash112_documentation_prefix() {
+        let net: IpAddr = "2001:db8::".parse().unwrap();
+        assert!(ip_in_network("2001:db8::ffff".parse().unwrap(), net, 112));
+        assert!(!ip_in_network("2001:db8::1:0".parse().unwrap(), net, 112));
     }
 
     #[test]

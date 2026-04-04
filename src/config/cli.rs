@@ -1034,4 +1034,12 @@ mod tests {
         assert_eq!(addr, "ff02::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 16);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_all_addresses_slash0() {
+        let args = args_with_net_filter("::/0");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 0);
+    }
 }

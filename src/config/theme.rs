@@ -679,4 +679,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::LaserGrid);
         assert!(matches!(t.cum_label, Color::Indexed(_)));
     }
+
+    #[test]
+    fn void_walker_theme_help_val_is_indexed() {
+        let t = Theme::from_name(ThemeName::VoidWalker);
+        assert!(matches!(t.help_val, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn plasma_core_theme_peak_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::PlasmaCore);
+        assert!(matches!(t.peak_label, Color::Indexed(_)));
+    }
 }
