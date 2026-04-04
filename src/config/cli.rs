@@ -1378,4 +1378,28 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{2007}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_en_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2002}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_em_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2003}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_punctuation_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2008}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_thin_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2009}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

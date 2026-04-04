@@ -918,6 +918,38 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_lao_digits_in_port_token_skips_line() {
+        // Lao digits (U+0ED0–U+0ED9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0ED1}\u{0ED2}/tcp\nsmb 445/tcp\n");
+        assert_eq!(m.get(&(445, "tcp")).copied(), Some("smb"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_kannada_digits_in_port_token_skips_line() {
+        // Kannada digits (U+0CE6–U+0CEF) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0CE7}\u{0CE8}/tcp\nmysql 3306/tcp\n");
+        assert_eq!(m.get(&(3306, "tcp")).copied(), Some("mysql"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_malayalam_digits_in_port_token_skips_line() {
+        // Malayalam digits (U+0D66–U+0D6F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0D67}\u{0D68}/tcp\nredis 6379/tcp\n");
+        assert_eq!(m.get(&(6379, "tcp")).copied(), Some("redis"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_telugu_digits_in_port_token_skips_line() {
+        // Telugu digits (U+0C66–U+0C6F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0C67}\u{0C68}/tcp\npostgres 5432/tcp\n");
+        assert_eq!(m.get(&(5432, "tcp")).copied(), Some("postgres"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
