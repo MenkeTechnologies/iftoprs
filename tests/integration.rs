@@ -4060,6 +4060,24 @@ fn net_filter_ipv6_multicast_ff2f_slash16_with_help() {
 }
 
 #[test]
+fn net_filter_ipv6_multicast_ff30_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "ff30::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_ff31_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff31::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
 fn net_filter_ipv4_private_class_b_172_25_slash16_with_help() {
     let output = cargo_bin()
         .args(["--net-filter", "172.25.0.0/16", "-h"])

@@ -1294,6 +1294,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_myanmar_shan_digits_in_port_token_skips_line() {
+        // Myanmar Shan digits (U+1090–U+1099) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1091}\u{1092}/tcp\nshell 514/tcp\n");
+        assert_eq!(m.get(&(514, "tcp")).copied(), Some("shell"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_counting_rod_unit_digits_in_port_token_skips_line() {
+        // Counting Rod unit digits (U+1D360–U+1D368) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1D360}\u{1D361}/tcp\nrsync 873/tcp\n");
+        assert_eq!(m.get(&(873, "tcp")).copied(), Some("rsync"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
