@@ -990,6 +990,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_ethiopic_digits_in_port_token_skips_line() {
+        // Ethiopic digits (U+1369–U+1371) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1369}\u{136A}/tcp\nssh 22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_cherokee_digits_in_port_token_skips_line() {
+        // Cherokee digits (U+13F0–U+13F9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{13F1}\u{13F2}/tcp\nftp 21/tcp\n");
+        assert_eq!(m.get(&(21, "tcp")).copied(), Some("ftp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

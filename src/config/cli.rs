@@ -1450,4 +1450,34 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{180e}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_left_to_right_embedding_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{202a}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_right_to_left_embedding_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{202b}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_pop_directional_formatting_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{202c}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_left_to_right_override_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{202d}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_right_to_left_override_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{202e}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
