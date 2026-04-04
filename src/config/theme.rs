@@ -895,4 +895,40 @@ mod tests {
         let t = Theme::from_name(ThemeName::DeepNet);
         assert!(matches!(t.cum_label, Color::Indexed(_)));
     }
+
+    #[test]
+    fn neon_sprawl_theme_arrow_is_indexed() {
+        let t = Theme::from_name(ThemeName::NeonSprawl);
+        assert!(matches!(t.arrow, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn plasma_core_theme_help_section_is_indexed() {
+        let t = Theme::from_name(ThemeName::PlasmaCore);
+        assert!(matches!(t.help_section, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn synth_wave_theme_scale_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::SynthWave);
+        assert!(matches!(t.scale_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn data_stream_theme_proc_name_is_indexed() {
+        let t = Theme::from_name(ThemeName::DataStream);
+        assert!(matches!(t.proc_name, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn rust_belt_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::RustBelt);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn toxic_waste_theme_rate_40s_is_indexed() {
+        let t = Theme::from_name(ThemeName::ToxicWaste);
+        assert!(matches!(t.rate_40s, Color::Indexed(_)));
+    }
 }

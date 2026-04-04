@@ -3239,6 +3239,33 @@ fn net_filter_ipv4_default_route_slash0_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_private_class_b_slash12_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "172.16.0.0/12", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_link_local_apipa_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "169.254.0.0/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_orchid_slash28_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "2001:10::/28", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

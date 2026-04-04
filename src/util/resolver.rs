@@ -716,6 +716,27 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_semicolon_in_service_name_token() {
+        let m = parse_etc_services_text("svc;meta 2222/tcp\n");
+        assert_eq!(m.get(&(2222, "tcp")).copied(), Some("svc;meta"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_caret_in_service_name_token() {
+        let m = parse_etc_services_text("svc^pat 2222/tcp\n");
+        assert_eq!(m.get(&(2222, "tcp")).copied(), Some("svc^pat"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_question_mark_in_service_name_token() {
+        let m = parse_etc_services_text("svc?opt 2222/tcp\n");
+        assert_eq!(m.get(&(2222, "tcp")).copied(), Some("svc?opt"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

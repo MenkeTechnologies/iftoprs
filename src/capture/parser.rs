@@ -2065,6 +2065,21 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash16_link_local_apipa() {
+        let net: IpAddr = "169.254.0.0".parse().unwrap();
+        assert!(ip_in_network("169.254.255.255".parse().unwrap(), net, 16));
+        assert!(!ip_in_network("169.255.0.1".parse().unwrap(), net, 16));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash28_orchid_prefix() {
+        let net: IpAddr = "2001:10::".parse().unwrap();
+        assert!(ip_in_network("2001:10::1".parse().unwrap(), net, 28));
+        // Outside the ORCHID /28: different top bits (e.g. 2001:11:: is still inside; use another ULA range).
+        assert!(!ip_in_network("2002::1".parse().unwrap(), net, 28));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET
