@@ -2038,4 +2038,34 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{035A}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_combining_zigzag_above_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{035B}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_double_breve_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{035C}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_double_breve_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{035D}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_double_macron_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{035E}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_double_macron_below_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{035F}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }
