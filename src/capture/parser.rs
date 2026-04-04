@@ -2238,6 +2238,32 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_class_e_reserved_slash4() {
+        let net: IpAddr = "240.0.0.0".parse().unwrap();
+        assert!(ip_in_network("240.0.0.1".parse().unwrap(), net, 4));
+        assert!(ip_in_network("255.255.255.255".parse().unwrap(), net, 4));
+        assert!(!ip_in_network("239.255.255.255".parse().unwrap(), net, 4));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_mapped_ipv6_addr_vs_ipv4_network_is_false() {
+        let net: IpAddr = "192.0.2.0".parse().unwrap();
+        assert!(!ip_in_network("::ffff:192.0.2.1".parse().unwrap(), net, 24));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_global_unicast_slash3() {
+        let net: IpAddr = "2000::".parse().unwrap();
+        assert!(ip_in_network("2001:db8::1".parse().unwrap(), net, 3));
+        assert!(ip_in_network(
+            "3fff:ffff:ffff:ffff:ffff:ffff:ffff:ffff".parse().unwrap(),
+            net,
+            3
+        ));
+        assert!(!ip_in_network("1fff:ffff::1".parse().unwrap(), net, 3));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET

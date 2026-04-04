@@ -1057,4 +1057,22 @@ mod tests {
         let t = Theme::from_name(ThemeName::Iftopcolor);
         assert!(matches!(t.help_key, Color::Indexed(_)));
     }
+
+    #[test]
+    fn quantum_flux_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::QuantumFlux);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn night_city_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::NightCity);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn megacorp_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::Megacorp);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
 }

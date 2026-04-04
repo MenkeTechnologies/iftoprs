@@ -600,4 +600,10 @@ mod tests {
     fn readable_size_bits_half_byte_per_second() {
         assert_eq!(readable_size(0.5, false), "4b");
     }
+
+    #[test]
+    fn readable_size_negative_rate_shows_negative_sign() {
+        assert_eq!(readable_size(-100.0, true), "-100B");
+        assert_eq!(readable_size(-100.0, false), "-800b");
+    }
 }

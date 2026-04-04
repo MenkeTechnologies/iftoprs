@@ -3365,6 +3365,24 @@ fn net_filter_ipv4_limited_broadcast_slash32_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_reserved_class_e_slash4_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "240.0.0.0/4", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_deprecated_site_local_fec0_slash10_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "fec0::/10", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

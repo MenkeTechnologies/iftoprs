@@ -1114,4 +1114,20 @@ mod tests {
         assert_eq!(addr, "::ffff:0:0".parse::<IpAddr>().unwrap());
         assert_eq!(p, 96);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_site_local_deprecated_fec0_slash10() {
+        let args = args_with_net_filter("fec0::/10");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "fec0::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 10);
+    }
+
+    #[test]
+    fn parse_cidr_ipv4_prefix_byte_255_parses() {
+        let args = args_with_net_filter("10.0.0.5/255");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "10.0.0.5".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 255);
+    }
 }
