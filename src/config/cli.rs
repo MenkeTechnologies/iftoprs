@@ -1354,4 +1354,28 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{206d}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_national_digit_shapes_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{206e}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_nominal_digit_shapes_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{206f}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_zero_width_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{200b}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_figure_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2007}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

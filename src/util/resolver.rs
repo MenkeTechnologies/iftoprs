@@ -894,6 +894,30 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_tibetan_digits_in_port_token_skips_line() {
+        // Tibetan digits (U+0F20–U+0F29) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0F21}\u{0F22}/tcp\nhttps 443/tcp\n");
+        assert_eq!(m.get(&(443, "tcp")).copied(), Some("https"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_mongolian_digits_in_port_token_skips_line() {
+        // Mongolian digits (U+1810–U+1819) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1811}\u{1812}/tcp\nsocks 1080/tcp\n");
+        assert_eq!(m.get(&(1080, "tcp")).copied(), Some("socks"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_oriya_digits_in_port_token_skips_line() {
+        // Oriya digits (U+0B66–U+0B6F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{0B67}\u{0B68}/tcp\nrsync 873/tcp\n");
+        assert_eq!(m.get(&(873, "tcp")).copied(), Some("rsync"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
