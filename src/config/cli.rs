@@ -1002,4 +1002,12 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0//24");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_cidr_ipv6_prefix_127_loopback_pair() {
+        let args = args_with_net_filter("fe80::1/127");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "fe80::1".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 127);
+    }
 }

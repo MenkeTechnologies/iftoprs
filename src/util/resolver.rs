@@ -604,6 +604,13 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_leading_blank_line_then_entry() {
+        let m = parse_etc_services_text("\nssh 22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

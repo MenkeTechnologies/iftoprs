@@ -643,4 +643,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::Iftopcolor);
         assert!(matches!(t.help_section, Color::Indexed(_)));
     }
+
+    #[test]
+    fn chrome_heart_theme_help_val_is_indexed() {
+        let t = Theme::from_name(ThemeName::ChromeHeart);
+        assert!(matches!(t.help_val, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn synth_wave_theme_rate_10s_is_indexed() {
+        let t = Theme::from_name(ThemeName::SynthWave);
+        assert!(matches!(t.rate_10s, Color::Indexed(_)));
+    }
 }

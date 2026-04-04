@@ -835,4 +835,14 @@ mod tests {
     fn protocol_from_fibre_channel_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(133), Protocol::Other(133));
     }
+
+    #[test]
+    fn protocol_from_rohc_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(142), Protocol::Other(142));
+    }
+
+    #[test]
+    fn protocol_from_ethernet_in_ip_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(143), Protocol::Other(143));
+    }
 }

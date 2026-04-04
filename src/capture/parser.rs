@@ -1873,6 +1873,31 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash18_private_class_a_slice() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.0.63.255".parse().unwrap(), net, 18));
+        assert!(!ip_in_network("10.0.64.0".parse().unwrap(), net, 18));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash25_half_class_c() {
+        let net: IpAddr = "192.168.1.0".parse().unwrap();
+        assert!(ip_in_network("192.168.1.127".parse().unwrap(), net, 25));
+        assert!(!ip_in_network("192.168.1.128".parse().unwrap(), net, 25));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash96_documentation_prefix() {
+        let net: IpAddr = "2001:db8::".parse().unwrap();
+        assert!(ip_in_network(
+            "2001:db8::ffff:ffff".parse().unwrap(),
+            net,
+            96
+        ));
+        assert!(!ip_in_network("2001:db8::1:0:0".parse().unwrap(), net, 96));
+    }
+
+    #[test]
     fn parse_loopback_af_inet_minimum_ipv4_icmp() {
         let mut pkt = vec![0u8; 24];
         pkt[0..4].copy_from_slice(&2u32.to_ne_bytes()); // AF_INET
