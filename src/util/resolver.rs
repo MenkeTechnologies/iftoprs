@@ -1038,6 +1038,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_hanifi_rohingya_digits_in_port_token_skips_line() {
+        // Hanifi Rohingya digits (U+10D30–U+10D39) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{10D31}\u{10D32}/tcp\nhttps 443/tcp\n");
+        assert_eq!(m.get(&(443, "tcp")).copied(), Some("https"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_chakma_digits_in_port_token_skips_line() {
+        // Chakma digits (U+11136–U+1113F) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{11137}\u{11138}/tcp\ndns 53/tcp\n");
+        assert_eq!(m.get(&(53, "tcp")).copied(), Some("dns"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

@@ -1516,4 +1516,22 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{0302}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_combining_tilde_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0303}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_macron_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0304}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_combining_overline_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{0305}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

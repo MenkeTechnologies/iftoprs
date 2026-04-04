@@ -3772,6 +3772,24 @@ fn net_filter_ipv6_multicast_ff0d_slash16_with_help() {
 }
 
 #[test]
+fn net_filter_ipv6_multicast_ff10_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "ff10::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_ff11_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff11::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
 fn net_filter_ipv4_private_class_b_172_25_slash16_with_help() {
     let output = cargo_bin()
         .args(["--net-filter", "172.25.0.0/16", "-h"])
@@ -3820,6 +3838,24 @@ fn net_filter_ipv4_private_class_a_10_slash15_with_help() {
 fn net_filter_ipv4_link_local_apipa_last_slash24_with_help() {
     let output = cargo_bin()
         .args(["-F", "169.254.255.0/24", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_private_class_c_aggregate_192_168_slash15_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "192.168.0.0/15", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_private_class_b_172_24_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "172.24.0.0/16", "-h"])
         .output()
         .unwrap();
     assert!(output.status.success());
