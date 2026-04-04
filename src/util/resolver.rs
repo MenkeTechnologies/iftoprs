@@ -838,6 +838,14 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_fullwidth_digits_in_port_token_skips_line() {
+        // U+FF10–U+FF19 are not ASCII digits — `u16` parse skips the line.
+        let m = parse_etc_services_text("bad \u{FF18}\u{FF10}/tcp\nssh 22/tcp\n");
+        assert_eq!(m.get(&(22, "tcp")).copied(), Some("ssh"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());

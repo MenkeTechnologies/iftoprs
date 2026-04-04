@@ -236,6 +236,17 @@ mod tests {
     }
 
     #[test]
+    fn sparkline_alternating_zero_and_max_spans_full_block_range() {
+        let s = sparkline(&[0, 100, 0, 100], 10);
+        assert_eq!(s.chars().count(), 4);
+        let v: Vec<char> = s.chars().collect();
+        assert_eq!(v[0], ' ');
+        assert_eq!(v[1], '█');
+        assert_eq!(v[2], ' ');
+        assert_eq!(v[3], '█');
+    }
+
+    #[test]
     fn sparkline_ascending() {
         let s = sparkline(&[0, 25, 50, 75, 100], 10);
         assert_eq!(s.chars().count(), 5);

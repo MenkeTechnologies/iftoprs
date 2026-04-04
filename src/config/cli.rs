@@ -1222,4 +1222,22 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{202f}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_line_separator_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2028}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_paragraph_separator_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2029}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_next_line_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{85}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

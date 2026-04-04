@@ -1694,6 +1694,23 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash32_different_hosts_no_match() {
+        assert!(!ip_in_network(
+            "192.0.2.2".parse().unwrap(),
+            "192.0.2.1".parse().unwrap(),
+            32
+        ));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_mapped_ipv6_slash128_distinct_hosts() {
+        let host1: IpAddr = "::ffff:192.0.2.1".parse().unwrap();
+        let host2: IpAddr = "::ffff:192.0.2.2".parse().unwrap();
+        assert!(ip_in_network(host1, host1, 128));
+        assert!(!ip_in_network(host2, host1, 128));
+    }
+
+    #[test]
     fn parse_raw_ipv4_minimum_datagram_tcp() {
         let mut raw = vec![0u8; 40];
         raw[0] = 0x45;

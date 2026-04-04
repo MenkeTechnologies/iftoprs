@@ -3527,6 +3527,34 @@ fn net_filter_ipv6_documentation_db8_host_slash128_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv4_documentation_test_net_slash30_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "192.0.2.0/30", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_private_class_c_slash25_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "192.168.0.0/25", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_six_to_four_derived_slash48_with_help() {
+    // 6to4 encoding of IPv4 192.0.2.4 → 2002:c000:0204::/48
+    let output = cargo_bin()
+        .args(["--net-filter", "2002:c000:0204::/48", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════
