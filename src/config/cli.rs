@@ -1173,4 +1173,10 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0\t/24");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_trailing_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24 ");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

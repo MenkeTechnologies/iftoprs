@@ -934,4 +934,15 @@ mod tests {
         let p2: Prefs = toml::from_str(&s).unwrap();
         assert!(p2.custom_themes.is_empty());
     }
+
+    #[test]
+    fn prefs_alert_threshold_fractional_gigabits_roundtrip() {
+        let p = Prefs {
+            alert_threshold: 2.5e9,
+            ..Default::default()
+        };
+        let s = toml::to_string_pretty(&p).unwrap();
+        let p2: Prefs = toml::from_str(&s).unwrap();
+        assert!((p2.alert_threshold - 2.5e9).abs() < 1.0);
+    }
 }

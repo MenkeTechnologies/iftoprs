@@ -3437,6 +3437,33 @@ fn net_filter_ipv6_ipv4_mapped_well_known_slash96_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_link_local_multicast_ff02_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff02::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_global_unicast_slash3_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "2000::/3", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv4_slash2_quarter_internet_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "0.0.0.0/2", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════
