@@ -961,4 +961,28 @@ mod tests {
         let t = Theme::from_name(ThemeName::VoidWalker);
         assert!(matches!(t.rate_10s, Color::Indexed(_)));
     }
+
+    #[test]
+    fn chrome_heart_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::ChromeHeart);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn synth_wave_theme_help_section_is_indexed() {
+        let t = Theme::from_name(ThemeName::SynthWave);
+        assert!(matches!(t.help_section, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn neon_noir_theme_host_dst_is_indexed() {
+        let t = Theme::from_name(ThemeName::NeonNoir);
+        assert!(matches!(t.host_dst, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn ice_breaker_theme_help_key_is_indexed() {
+        let t = Theme::from_name(ThemeName::IceBreaker);
+        assert!(matches!(t.help_key, Color::Indexed(_)));
+    }
 }

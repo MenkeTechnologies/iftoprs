@@ -661,6 +661,26 @@ mod tests {
     }
 
     #[test]
+    fn parse_sll_ipv4_tcp_direction_with_local_net() {
+        let local: IpAddr = "192.168.1.0".parse().unwrap();
+        let mut pkt = vec![0u8; 16 + 30]; // SLL + IPv4 + TCP ports
+        pkt[14] = 0x08;
+        pkt[15] = 0x00;
+        pkt[16] = 0x45;
+        pkt[18] = 0;
+        pkt[19] = 30;
+        pkt[25] = 6; // TCP
+        pkt[28..32].copy_from_slice(&[192, 168, 1, 5]);
+        pkt[32..36].copy_from_slice(&[8, 8, 8, 8]);
+        pkt[36] = 0x13;
+        pkt[37] = 0x88; // src 5000
+        pkt[38] = 0x01;
+        pkt[39] = 0xbb; // dst 443
+        let result = parse_sll(&pkt, Some((local, 24))).unwrap();
+        assert_eq!(result.direction, Direction::Received);
+    }
+
+    #[test]
     fn parse_sll_unknown_protocol() {
         let mut pkt = vec![0u8; 60];
         pkt[14] = 0xFF;
@@ -946,6 +966,45 @@ mod tests {
         assert_eq!(result.len, 44);
         assert_eq!(result.key.src_port, 53);
         assert_eq!(result.key.dst_port, 8080);
+    }
+
+    #[test]
+    fn parse_vlan_ipv6_udp_direction_with_local_net() {
+        let local: IpAddr = "2001:db8::".parse().unwrap();
+        let mut pkt = vec![0u8; 18 + 44];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
+        pkt[14] = 0x00;
+        pkt[15] = 0x64;
+        pkt[16] = 0x86;
+        pkt[17] = 0xDD;
+        let inner = &mut pkt[18..];
+        inner[0] = 0x60;
+        inner[4] = 0x00;
+        inner[5] = 4;
+        inner[6] = 17;
+        inner[7] = 64;
+        // src 2001:db8::1
+        inner[8] = 0x20;
+        inner[9] = 0x01;
+        inner[10] = 0x0d;
+        inner[11] = 0xb8;
+        inner[22] = 0x00;
+        inner[23] = 0x01;
+        // dst 2001:db9::1
+        inner[24] = 0x20;
+        inner[25] = 0x01;
+        inner[26] = 0x0d;
+        inner[27] = 0xb9;
+        inner[38] = 0x00;
+        inner[39] = 0x01;
+        inner[40] = 0x00;
+        inner[41] = 0x35;
+        inner[42] = 0x00;
+        inner[43] = 0x35;
+        let result = parse_ethernet(&pkt, Some((local, 32))).unwrap();
+        assert_eq!(result.direction, Direction::Sent);
+        assert_eq!(result.key.protocol, Protocol::Udp);
     }
 
     // ── Negative / truncation paths ──
@@ -2092,6 +2151,17 @@ mod tests {
         let net: IpAddr = "fc00::".parse().unwrap();
         assert!(ip_in_network("fd00::1".parse().unwrap(), net, 7));
         assert!(!ip_in_network("fe80::1".parse().unwrap(), net, 7));
+    }
+
+    #[test]
+    fn ip_in_network_ipv6_slash96_nat64_well_known_prefix() {
+        let net: IpAddr = "64:ff9b::".parse().unwrap();
+        assert!(ip_in_network(
+            "64:ff9b::192.0.2.1".parse().unwrap(),
+            net,
+            96
+        ));
+        assert!(!ip_in_network("2001:db8::1".parse().unwrap(), net, 96));
     }
 
     #[test]
