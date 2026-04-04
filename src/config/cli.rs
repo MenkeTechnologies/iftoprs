@@ -1426,4 +1426,28 @@ mod tests {
         let args = args_with_net_filter("10.0.0.0/24\u{2005}");
         assert!(args.parse_net_filter().is_none());
     }
+
+    #[test]
+    fn parse_net_filter_three_per_em_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2004}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_six_per_em_space_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{2006}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_arabic_letter_mark_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{061c}");
+        assert!(args.parse_net_filter().is_none());
+    }
+
+    #[test]
+    fn parse_net_filter_mongolian_vowel_separator_after_prefix_returns_none() {
+        let args = args_with_net_filter("10.0.0.0/24\u{180e}");
+        assert!(args.parse_net_filter().is_none());
+    }
 }

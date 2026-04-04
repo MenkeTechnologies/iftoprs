@@ -3753,6 +3753,24 @@ fn net_filter_ipv6_multicast_ff0b_slash16_with_help() {
     assert!(output.status.success());
 }
 
+#[test]
+fn net_filter_ipv6_multicast_ff0c_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["--net-filter", "ff0c::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
+#[test]
+fn net_filter_ipv6_multicast_ff0d_slash16_with_help() {
+    let output = cargo_bin()
+        .args(["-F", "ff0d::/16", "-h"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  Help content: flag descriptions detail
 // ══════════════════════════════════════════════════════════════════

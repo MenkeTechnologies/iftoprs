@@ -974,6 +974,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_etc_services_text_balinese_digits_in_port_token_skips_line() {
+        // Balinese digits (U+1B50–U+1B59) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{1B51}\u{1B52}/tcp\nxmpp 5222/tcp\n");
+        assert_eq!(m.get(&(5222, "tcp")).copied(), Some("xmpp"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn parse_etc_services_text_javanese_digits_in_port_token_skips_line() {
+        // Javanese digits (U+A9D0–U+A9D9) are not ASCII — port parse fails.
+        let m = parse_etc_services_text("bad \u{A9D1}\u{A9D2}/tcp\nldaps 636/tcp\n");
+        assert_eq!(m.get(&(636, "tcp")).copied(), Some("ldaps"));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
     fn parse_etc_services_text_skips_line_with_negative_port_token() {
         let m = parse_etc_services_text("bad -1/tcp\n");
         assert!(m.is_empty());
