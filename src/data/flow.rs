@@ -860,4 +860,19 @@ mod tests {
     fn protocol_from_ip_proto_146_maps_to_other() {
         assert_eq!(Protocol::from_ip_next_header(146), Protocol::Other(146));
     }
+
+    #[test]
+    fn protocol_from_ip_proto_147_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(147), Protocol::Other(147));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_148_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(148), Protocol::Other(148));
+    }
+
+    #[test]
+    fn protocol_from_ip_proto_149_maps_to_other() {
+        assert_eq!(Protocol::from_ip_next_header(149), Protocol::Other(149));
+    }
 }

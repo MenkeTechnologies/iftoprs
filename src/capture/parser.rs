@@ -1894,6 +1894,20 @@ mod tests {
     }
 
     #[test]
+    fn ip_in_network_ipv4_slash15_two_class_b_blocks() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.1.255.255".parse().unwrap(), net, 15));
+        assert!(!ip_in_network("10.2.0.0".parse().unwrap(), net, 15));
+    }
+
+    #[test]
+    fn ip_in_network_ipv4_slash14_four_class_b_blocks() {
+        let net: IpAddr = "10.0.0.0".parse().unwrap();
+        assert!(ip_in_network("10.3.255.255".parse().unwrap(), net, 14));
+        assert!(!ip_in_network("10.4.0.0".parse().unwrap(), net, 14));
+    }
+
+    #[test]
     fn ip_in_network_ipv6_slash96_documentation_prefix() {
         let net: IpAddr = "2001:db8::".parse().unwrap();
         assert!(ip_in_network(

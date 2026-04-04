@@ -667,4 +667,16 @@ mod tests {
         let t = Theme::from_name(ThemeName::BladeRunner);
         assert!(matches!(t.help_key, Color::Indexed(_)));
     }
+
+    #[test]
+    fn zaibatsu_theme_peak_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::Zaibatsu);
+        assert!(matches!(t.peak_label, Color::Indexed(_)));
+    }
+
+    #[test]
+    fn laser_grid_theme_cum_label_is_indexed() {
+        let t = Theme::from_name(ThemeName::LaserGrid);
+        assert!(matches!(t.cum_label, Color::Indexed(_)));
+    }
 }

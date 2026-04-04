@@ -1026,4 +1026,12 @@ mod tests {
         assert_eq!(addr, "fc00::".parse::<IpAddr>().unwrap());
         assert_eq!(p, 7);
     }
+
+    #[test]
+    fn parse_cidr_ipv6_multicast_ff02_link_local_slash16() {
+        let args = args_with_net_filter("ff02::/16");
+        let (addr, p) = args.parse_net_filter().unwrap();
+        assert_eq!(addr, "ff02::".parse::<IpAddr>().unwrap());
+        assert_eq!(p, 16);
+    }
 }
