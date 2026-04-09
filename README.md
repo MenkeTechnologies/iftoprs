@@ -49,7 +49,8 @@ cargo install iftoprs
   │   ├── per-flow bandwidth tracking
   │   ├── sliding window averages: 2s / 10s / 40s
   │   ├── cumulative + peak counters
-  │   └── async capture via tokio + mpsc channels
+  │   ├── async capture via tokio + mpsc channels
+  │   └── auto-restart on transient errors (exponential backoff)
   │
 [TELEMETRY_CORE]
   ├── Real-time flow analysis
