@@ -127,7 +127,7 @@ fn evict_stale(cache: &mut ResolverCache) {
             .iter()
             .map(|(ip, e)| (*ip, e.last_used))
             .collect();
-        by_age.sort_by(|a, b| b.1.cmp(&a.1)); // newest first
+        by_age.sort_by_key(|e| std::cmp::Reverse(e.1)); // newest first
         let keep: usize = CACHE_HIGH_WATER / 2;
         let to_remove: Vec<IpAddr> = by_age.iter().skip(keep).map(|(ip, _)| *ip).collect();
         for ip in to_remove {

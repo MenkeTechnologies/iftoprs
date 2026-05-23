@@ -322,11 +322,9 @@ fn run_app(
                             app.theme_edit.name.clear();
                             app.theme_edit.cursor = 0;
                         }
-                        KeyCode::Backspace => {
-                            if app.theme_edit.cursor > 0 {
-                                app.theme_edit.cursor -= 1;
-                                app.theme_edit.name.remove(app.theme_edit.cursor);
-                            }
+                        KeyCode::Backspace if app.theme_edit.cursor > 0 => {
+                            app.theme_edit.cursor -= 1;
+                            app.theme_edit.name.remove(app.theme_edit.cursor);
                         }
                         KeyCode::Left => {
                             app.theme_edit.cursor = app.theme_edit.cursor.saturating_sub(1);
@@ -335,11 +333,9 @@ fn run_app(
                             app.theme_edit.cursor =
                                 (app.theme_edit.cursor + 1).min(app.theme_edit.name.len());
                         }
-                        KeyCode::Char(c) => {
-                            if app.theme_edit.name.len() < 20 {
-                                app.theme_edit.name.insert(app.theme_edit.cursor, c);
-                                app.theme_edit.cursor += 1;
-                            }
+                        KeyCode::Char(c) if app.theme_edit.name.len() < 20 => {
+                            app.theme_edit.name.insert(app.theme_edit.cursor, c);
+                            app.theme_edit.cursor += 1;
                         }
                         _ => {}
                     }

@@ -180,16 +180,12 @@ fn parse_ipv6(data: &[u8], local_net: Option<(IpAddr, u8)>) -> Option<ParsedPack
 }
 
 fn parse_ports(protocol: u8, data: &[u8], header_len: usize) -> (u16, u16) {
+    // TCP or UDP: first 4 bytes after IP header are src_port + dst_port
     match protocol {
-        6 | 17 => {
-            // TCP or UDP: first 4 bytes after IP header are src_port + dst_port
-            if data.len() >= header_len + 4 {
-                let src = u16::from_be_bytes([data[header_len], data[header_len + 1]]);
-                let dst = u16::from_be_bytes([data[header_len + 2], data[header_len + 3]]);
-                (src, dst)
-            } else {
-                (0, 0)
-            }
+        6 | 17 if data.len() >= header_len + 4 => {
+            let src = u16::from_be_bytes([data[header_len], data[header_len + 1]]);
+            let dst = u16::from_be_bytes([data[header_len + 2], data[header_len + 3]]);
+            (src, dst)
         }
         _ => (0, 0),
     }
