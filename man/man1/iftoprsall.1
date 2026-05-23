@@ -1,0 +1,578 @@
+.\" iftoprsall(1) — comprehensive all-in-one man page for iftoprs
+.\" Modeled after zshall(1): every man page in one document.
+.\" Render with:  man -l man/man1/iftoprsall.1
+.\" Install:      cp man/man1/iftoprsall.1 /usr/local/share/man/man1/
+.TH IFTOPRSALL 1 "May 2026" "iftoprs 2.22.2" "User Commands"
+.SH NAME
+iftoprsall \- the iftoprs comprehensive reference (invocation, capture,
+display, every keybinding, themes, BPF filters, process attribution,
+JSON streaming)
+.SH OVERVIEW
+This is the all-in-one
+.B iftoprs
+manual, modeled on
+.BR zshall (1).
+It concatenates the major sections of the iftoprs reference into a
+single page so you can grep with `/`:
+.RS 2
+.PP
+.B 1.  INVOCATION
+.RB "\(em " "privileges, interface selection, default behavior"
+.br
+.B 2.  CAPTURE OPTIONS
+.RB "\(em " "interface, BPF filter, network filter, promiscuous"
+.br
+.B 3.  DISPLAY OPTIONS
+.RB "\(em " "DNS, port names, bars, bytes, ports, processes"
+.br
+.B 4.  OUTPUT MODE
+.RB "\(em " "NDJSON streaming"
+.br
+.B 5.  SYSTEM OPTIONS
+.RB "\(em " "interface listing, theme preview, completions"
+.br
+.B 6.  FLOW VIEW
+.RB "\(em " "columns, sparklines, sliding-window averages"
+.br
+.B 7.  PROCESSES VIEW
+.RB "\(em " "Tab toggle, drill-down, aggregation"
+.br
+.B 8.  KEYBINDINGS
+.RB "\(em " "every key in every mode"
+.br
+.B 9.  MOUSE SUPPORT
+.RB "\(em " "clicks, hovers, tooltips, scroll"
+.br
+.B 10. THEMES
+.RB "\(em " "31 cyberpunk palettes, chooser, --list-colors"
+.br
+.B 11. ARCHITECTURE
+.RB "\(em " "tokio capture thread, mpsc, auto-restart, lsof attribution"
+.br
+.B 12. ENVIRONMENT
+.br
+.B 13. FILES
+.br
+.B 14. EXIT STATUS
+.br
+.B 15. EXAMPLES
+.RE
+.PP
+For a shorter quick-reference page see
+.BR iftoprs (1).
+.SH NAME
+iftoprs \- real-time bandwidth monitor with terminal UI, BPF filters,
+process attribution, JSON streaming, 31 cyberpunk themes (Rust iftop
+clone)
+.SH SYNOPSIS
+.B iftoprs
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B iftoprs
+is a real-time bandwidth monitor for the terminal.  It captures packets
+on a network interface via
+.BR libpcap ,
+groups them into bidirectional flows
+.RI ( "source \(<-> destination, protocol" ),
+and renders a
+.B ratatui
+TUI with per-flow TX / RX sparklines, sliding-window averages, and
+cyberpunk color themes.
+.PP
+.B Highlights:
+.IP \[bu] 2
+Per-flow bandwidth tracking with sliding-window averages
+.RB ( "2 s / 10 s / 40 s" )
+plus cumulative totals and peak counters.
+.IP \[bu] 2
+Async capture via
+.B tokio
++ mpsc channels.  Auto-restart on transient errors with exponential
+backoff.
+.IP \[bu] 2
+Protocol detection
+.RB ( "TCP / UDP / ICMP / Other" )
++ async cached DNS reverse resolution + port-to-service mapping.
+.IP \[bu] 2
+Process attribution: flow-to-PID-and-command via
+.BR lsof (8)
+polling under
+.BR "Arc<Mutex<>>" .
+.IP \[bu] 2
+Per-process aggregated bandwidth view
+.RB ( "Tab" )
+with drill-down by
+.BR Enter .
+.IP \[bu] 2
+Rich contextual tooltips: right-click for flow detail (TX/RX, process,
+sparkline); hover header bar for 1 s auto-tooltip.
+.IP \[bu] 2
+31 cyberpunk color themes; live theme chooser
+.RB ( c ).
+.IP \[bu] 2
+NDJSON streaming
+.RB ( "\-\-json" )
+to stdout for pipeline consumption.
+.PP
+Capture requires raw-socket privileges \(em normally
+.B sudo
+or
+.B CAP_NET_RAW
+on Linux.
+.SH "1.  INVOCATION"
+With no
+.B \-i
+flag, the first up interface is auto-selected.  Use
+.B \-l
+to list interfaces:
+.RS
+.nf
+iftoprs \-l
+.fi
+.RE
+.PP
+TUI mode is the default.  Use
+.B \-\-json
+for headless streaming.
+.SH "2.  CAPTURE OPTIONS"
+.TP
+.BR \-i ", " \-\-interface " " \fINAME\fR
+Network interface to monitor (e.g.
+.BR en0 ,
+.BR eth0 ,
+.BR wlan0 ).
+.TP
+.BR \-f ", " \-\-filter " " \fIEXPR\fR
+BPF filter expression.  Same syntax as
+.BR tcpdump (1)
+\(em
+.BR "\"tcp port 80\"" ,
+.BR "\"host 1.2.3.4 and port 443\"" ,
+.BR "\"udp and not port 53\"" ,
+etc.
+.TP
+.BR \-F ", " \-\-net-filter " " \fICIDR\fR
+IPv4 network filter.  Accepts CIDR notation
+.RB ( "10.0.0.0/8" ,
+.BR "192.168.1.0/24" ).
+.TP
+.BR \-p ", " \-\-promiscuous
+Enable promiscuous mode (accept frames not addressed to local MAC).
+Usually requires explicit interface support.
+.SH "3.  DISPLAY OPTIONS"
+.TP
+.BR \-n ", " \-\-no-dns
+Disable DNS hostname resolution.  Faster, no resolver hangs.
+.TP
+.BR \-N ", " \-\-no-port-names
+Disable port-to-service name resolution.
+.TP
+.BR \-b ", " \-\-no-bars
+Disable bar graph display \(em show numeric rates only.
+.TP
+.BR \-B ", " \-\-bytes
+Display bandwidth in bytes (default is bits).
+.TP
+.BR \-P ", " \-\-hide-ports
+Hide port numbers next to host names.
+.TP
+.BR \-Z ", " \-\-no-processes
+Hide the process column.  Process column is shown by default.
+.SH "4.  OUTPUT MODE"
+.TP
+.B \-\-json
+Stream NDJSON to stdout.  One JSON document per refresh tick.  Suppresses
+the TUI.  Pipe to
+.BR jq (1)
+for analysis:
+.RS
+.nf
+sudo iftoprs \-\-json | jq '.flows | length'
+.fi
+.RE
+.SH "5.  SYSTEM OPTIONS"
+.TP
+.BR \-l ", " \-\-list-interfaces
+List available capture interfaces and exit.
+.TP
+.B \-\-list-colors
+Preview all 31 color themes with palette swatches and exit.
+.TP
+.B \-\-completions \fISHELL\fR
+Generate shell completions to stdout.  Supported shells:
+.BR zsh ,
+.BR bash ,
+.BR fish ,
+.BR elvish ,
+.BR powershell .
+.TP
+.BR \-h ", " \-\-help
+Display help and exit.
+.TP
+.BR \-V ", " \-\-version
+Display version information and exit.
+.SH "6.  FLOW VIEW"
+Each row is a bidirectional flow.  Columns:
+.PP
+.TS
+tab(|);
+l l.
+.B Column|.B Meaning
+Source|local endpoint (host:port)
+Destination|remote endpoint (host:port)
+Protocol|TCP / UDP / ICMP / Other
+TX (2s/10s/40s)|transmit averages over sliding windows
+RX (2s/10s/40s)|receive averages over sliding windows
+Total|cumulative bytes since flow start
+Peak|highest 2 s rate observed
+Process|owning PID + command name (via lsof)
+Sparkline|recent rate trend
+.TE
+.PP
+Sliding-window averages use circular buffers; bar graphs use a
+.B log10
+scale spanning
+.B "10 b/s \(-> 1 Gb/s"
+so small flows remain visible alongside high-throughput ones.
+.SH "7.  PROCESSES VIEW"
+.B Tab
+toggles between
+.B Flows
+and
+.B Processes
+view.  In Processes view, flows are aggregated by owning PID:
+.PP
+.TS
+tab(|);
+l l.
+.B Column|.B Meaning
+PID|process ID
+Command|command name
+Total flows|number of active flows
+Aggregated TX / RX|sum across all flows
+Sparkline|aggregated rate trend
+.TE
+.PP
+.B Enter
+on a process row drills down: returns to the Flows view filtered to
+that process's flows only.
+.B Esc
+clears the process filter.
+.SH "8.  KEYBINDINGS"
+.SS Display mods
+.TS
+tab(|);
+l l.
+.B Key|.B Action
+Tab|Switch view (Flows / Processes)
+n|Toggle DNS resolution
+N|Toggle service name resolution
+t|Cycle line display (two-line / one-line / sent / recv)
+p|Toggle port display
+Z|Toggle process display
+b|Cycle bar style (gradient / solid / thin / ascii)
+B|Toggle bytes/bits
+T|Toggle hover tooltips (right-click still works)
+U|Toggle cumulative totals
+P|Pause / resume display (shows overlay)
+x|Toggle border chrome
+g|Toggle column header
+f|Cycle refresh rate (1 s / 2 s / 5 s / 10 s)
+.TE
+.SS Sort
+.TS
+tab(|);
+l l.
+.B Key|.B Action
+1|Sort by 2 s average
+2|Sort by 10 s average
+3|Sort by 40 s average
+<|Sort by source name
+>|Sort by destination name
+o|Freeze current sort order
+r|Reverse sort order
+.TE
+.SS Navigation
+.TS
+tab(|);
+l l.
+.B Key|.B Action
+j / Down|Select next flow
+k / Up|Select previous flow
+Ctrl+D|Half-page down
+Ctrl+U|Half-page up
+G / End|Jump to last
+Home|Jump to first
+Esc|Deselect / clear process filter / close overlay
+Enter|Drill into selected process (Processes tab)
+.TE
+.SS Filter
+.TS
+tab(|);
+l l.
+.B Key|.B Action
+/|Enter filter mode
+0|Clear filter
+Enter|Confirm filter
+Esc|Cancel filter
+.TE
+.SS Themes
+.TS
+tab(|);
+l l.
+.B Key|.B Action
+c|Open theme chooser
+j / k|Navigate themes
+Enter|Select theme
+Esc|Cancel
+.TE
+.SS Interface
+.TS
+tab(|);
+l l.
+.B Key|.B Action
+i|Open interface chooser (also cycles in popup)
+j / k|Navigate interfaces
+Enter|Select interface (saved to config, restart to apply)
+Esc|Cancel
+.TE
+.SS Actions
+.TS
+tab(|);
+l l.
+.B Key|.B Action
+y|Copy selected flow to clipboard
+F|Pin / unpin selected flow
+e|Export flows to \fI~/.iftoprs.export.txt\fR
+.TE
+.SS General
+.TS
+tab(|);
+l l.
+.B Key|.B Action
+h / ?|Toggle help HUD
+q|Disconnect (saves prefs)
+Ctrl+C|Force disconnect
+.TE
+.SH "9.  MOUSE SUPPORT"
+.TS
+tab(|);
+l l.
+.B Input|.B Action
+Left click|Select flow row
+Right click (flow)|TX/RX tooltip with bandwidth, process, sparkline
+Right click (header)|Instant segment tooltip (persistent until dismissed)
+Middle click|Pin / unpin flow
+Mouse move|Dismiss flow tooltip
+Scroll up / down|Navigate flows (cycle themes in chooser)
+Hover header|Segment tooltip after 1 s delay (auto-hides after 3 s)
+.TE
+.SH "10. THEMES"
+31 cyberpunk color themes ship in
+.BR iftoprs .
+Use
+.B \-\-list-colors
+to preview every theme with swatches, or open the live chooser with
+.B c
+inside the TUI.  Theme selection persists across sessions in
+.IR ~/.iftoprs.conf .
+.PP
+Bar styles
+.RB ( "gradient / solid / thin / ascii" )
+are independent of the theme palette and cycle with
+.BR b .
+.SH "11. ARCHITECTURE"
+.B Capture pipeline:
+.RS 2
+.nf
+libpcap \(-> tokio task \(-> mpsc::Sender \(-> render loop \(-> ratatui
+.fi
+.RE
+.PP
+.B Components:
+.IP \[bu] 2
+.B ratatui
++
+.B crossterm
+for the TUI framework.
+.IP \[bu] 2
+.B pcap
+crate (libpcap bindings) for packet capture.
+.IP \[bu] 2
+.B tokio
+for the async capture task and DNS resolver.
+.IP \[bu] 2
+.B mpsc
+channel decouples capture from render; render loop drains at refresh
+rate.
+.IP \[bu] 2
+.B Auto-restart:
+transient capture errors trigger exponential-backoff restart so a
+flapping interface doesn't kill the session.
+.IP \[bu] 2
+.B Process attribution:
+.BR lsof (8)
+poll under
+.B "Arc<Mutex<>>"
+maps each socket to PID and command.  Stale entries are evicted on
+poll.
+.IP \[bu] 2
+.B Sliding-window averages
+use circular buffers per flow; the
+.B log10
+bar scale (
+.B "10 b/s \(-> 1 Gb/s"
+) keeps small flows visible alongside saturating ones.
+.SH "12. ENVIRONMENT"
+.TP
+.B HOME
+Used to locate
+.B ~/.iftoprs.conf
+and
+.BR ~/.iftoprs.export.txt .
+.TP
+.B TERM
+Used to detect terminal capability.  Setting to
+.B dumb
+disables the TUI.
+.TP
+.B NO_COLOR
+When set, color is suppressed even on a TTY.
+.SH "13. FILES"
+.TP
+.I ~/.iftoprs.conf
+TOML preferences file: last-used theme, interface, bar style, sort
+order, refresh rate, display toggles.
+.TP
+.I ~/.iftoprs.export.txt
+Flow export target for the
+.B e
+key.  Appended on each export.
+.TP
+.I /usr/local/share/man/man1/iftoprs.1
+Short reference man page.
+.TP
+.I /usr/local/share/man/man1/iftoprsall.1
+This man page.
+.SH "14. EXIT STATUS"
+.TP
+.B 0
+Successful completion.
+.TP
+.B 1
+Capture error, missing interface, invalid filter expression, or
+permission denied.
+.SH "15. EXAMPLES"
+.PP
+Monitor en0:
+.RS
+.nf
+sudo iftoprs \-i en0
+.fi
+.RE
+.PP
+Filter HTTPS traffic only:
+.RS
+.nf
+sudo iftoprs \-f "tcp port 443"
+.fi
+.RE
+.PP
+Private-network filter, bytes instead of bits:
+.RS
+.nf
+sudo iftoprs \-F 10.0.0.0/8 \-B
+.fi
+.RE
+.PP
+Raw IPs, no bars, minimal display:
+.RS
+.nf
+sudo iftoprs \-n \-N \-b
+.fi
+.RE
+.PP
+Hide processes:
+.RS
+.nf
+sudo iftoprs \-Z
+.fi
+.RE
+.PP
+Promiscuous mode:
+.RS
+.nf
+sudo iftoprs \-p
+.fi
+.RE
+.PP
+Pin a flow and copy its endpoint:
+.RS
+.nf
+# in TUI:
+F                # pin selected flow
+y                # copy to clipboard
+.fi
+.RE
+.PP
+NDJSON stream:
+.RS
+.nf
+sudo iftoprs \-\-json
+.fi
+.RE
+.PP
+NDJSON piped to
+.BR jq (1):
+.RS
+.nf
+sudo iftoprs \-\-json | jq '.flows[0]'
+.fi
+.RE
+.PP
+List interfaces:
+.RS
+.nf
+iftoprs \-l
+.fi
+.RE
+.PP
+Preview all themes:
+.RS
+.nf
+iftoprs \-\-list-colors
+.fi
+.RE
+.PP
+Generate shell completions:
+.RS
+.nf
+iftoprs \-\-completions zsh > /usr/local/share/zsh/site-functions/_iftoprs
+iftoprs \-\-completions bash > /etc/bash_completion.d/iftoprs
+iftoprs \-\-completions fish > ~/.config/fish/completions/iftoprs.fish
+.fi
+.RE
+.PP
+Run alongside a packet trace, capturing the same filter:
+.RS
+.nf
+sudo tcpdump \-i en0 \-w /tmp/trace.pcap "tcp port 443" &
+sudo iftoprs \-i en0 \-f "tcp port 443"
+.fi
+.RE
+.SH SEE ALSO
+.BR iftoprs (1),
+.BR iftop (8),
+.BR tcpdump (1),
+.BR pcap (3),
+.BR lsof (8),
+.BR lsofrsall (1),
+.BR strykeall (1),
+.BR zshrsall (1)
+.SH AUTHORS
+.B Jacob Menke
+.RI < https://github.com/MenkeTechnologies >
+.SH BUGS
+Report bugs at
+.UR https://github.com/MenkeTechnologies/iftoprs/issues
+.UE .

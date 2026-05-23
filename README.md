@@ -212,6 +212,14 @@ sudo cargo run --release
 sudo ./target/release/iftoprs
 ```
 
+```bash
+# ── INSTALL MAN PAGES ────────────────────────
+sudo cp man/man1/iftoprs.1    /usr/local/share/man/man1/
+sudo cp man/man1/iftoprsall.1 /usr/local/share/man/man1/
+man iftoprs        # short reference
+man iftoprsall     # full reference (keybindings, themes, architecture)
+```
+
 ## [0x04] CI & QA
 
 [GitHub Actions](https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml) runs on every push and pull request to `main`, and can be started manually (**workflow_dispatch** from the Actions tab).

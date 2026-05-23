@@ -1,0 +1,228 @@
+.\" iftoprs(1) — man page for the iftoprs binary
+.\" Render with:  man -l man/man1/iftoprs.1
+.\" Install:      cp man/man1/iftoprs.1 /usr/local/share/man/man1/
+.TH IFTOPRS 1 "May 2026" "iftoprs 2.22.2" "User Commands"
+.SH NAME
+iftoprs \- real-time bandwidth monitor with terminal UI (Rust iftop
+clone, 31 themes, process attribution)
+.SH SYNOPSIS
+.B iftoprs
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B iftoprs
+is a real-time bandwidth monitor for the terminal.  It captures packets
+on a network interface via
+.BR libpcap ,
+groups them into bidirectional flows
+.RI ( "source \(<-> destination, protocol" ),
+and renders a
+.BR ratatui
+TUI with per-flow TX / RX sparklines, sliding-window averages (2 s /
+10 s / 40 s), cumulative + peak counters, and 31 cyberpunk color themes.
+.PP
+Process attribution maps each socket back to its owning PID and command
+via
+.BR lsof (8).
+A Tab key toggles between
+.B Flows
+view and
+.B Processes
+view (per-process aggregated bandwidth).  Enter on a process drills
+down to that process's flows only.
+.PP
+Capture runs in a tokio thread sending packets over an
+.B mpsc
+channel; transient capture errors trigger automatic exponential-backoff
+restart.  When
+.B \-\-json
+is given,
+.B iftoprs
+streams NDJSON to stdout with no TUI.
+.PP
+.B iftoprs
+requires raw-socket capture privileges \(em normally
+.BR sudo
+or
+.B CAP_NET_RAW
+on Linux.
+.SH OPTIONS
+.SS Capture
+.TP
+.BR \-i ", " \-\-interface " " \fINAME\fR
+Network interface to monitor.  When omitted, the first up interface is
+chosen.
+.TP
+.BR \-f ", " \-\-filter " " \fIEXPR\fR
+BPF filter expression (e.g.
+.BR "\"tcp port 80\"" ).
+.TP
+.BR \-F ", " \-\-net-filter " " \fICIDR\fR
+IPv4 network filter (e.g.
+.BR "10.0.0.0/8" ).
+.TP
+.BR \-p ", " \-\-promiscuous
+Enable promiscuous mode.
+.SS Display
+.TP
+.BR \-n ", " \-\-no-dns
+Disable DNS hostname resolution.
+.TP
+.BR \-N ", " \-\-no-port-names
+Disable port-to-service name resolution.
+.TP
+.BR \-b ", " \-\-no-bars
+Disable bar graph display.
+.TP
+.BR \-B ", " \-\-bytes
+Display bandwidth in bytes (default is bits).
+.TP
+.BR \-P ", " \-\-hide-ports
+Hide port numbers next to host names.
+.TP
+.BR \-Z ", " \-\-no-processes
+Hide the process column (shown by default).
+.SS Output
+.TP
+.B \-\-json
+Stream NDJSON to stdout.  Suppresses the TUI.
+.SS System
+.TP
+.BR \-l ", " \-\-list-interfaces
+List available interfaces and exit.
+.TP
+.B \-\-list-colors
+Preview all 31 color themes with swatches and exit.
+.TP
+.B \-\-completions \fISHELL\fR
+Generate shell completions
+.RB ( zsh ,
+.BR bash ,
+.BR fish ,
+.BR elvish ,
+.BR powershell )
+to stdout.
+.TP
+.BR \-h ", " \-\-help
+Display help and exit.
+.TP
+.BR \-V ", " \-\-version
+Display version information and exit.
+.SH KEYBINDINGS
+A subset of the most common keys.  See
+.BR iftoprsall (1)
+for the complete matrix.
+.TP
+.B Tab
+Switch view (Flows / Processes).
+.TP
+.B j / k / Up / Down
+Navigate flows.
+.TP
+.B 1 / 2 / 3
+Sort by 2 s / 10 s / 40 s average.
+.TP
+.B /
+Filter mode.
+.B 0
+clears the filter.
+.TP
+.B c
+Theme chooser.
+.TP
+.B i
+Interface chooser.
+.TP
+.B P
+Pause / resume.
+.TP
+.B y
+Copy selected flow to clipboard.
+.TP
+.B F
+Pin / unpin selected flow.
+.TP
+.B h / ?
+Toggle help HUD.
+.TP
+.B q
+Quit (saves preferences).
+.SH EXAMPLES
+Monitor a specific interface:
+.RS
+.nf
+sudo iftoprs \-i en0
+.fi
+.RE
+.PP
+Filter HTTPS traffic only:
+.RS
+.nf
+sudo iftoprs \-f "tcp port 443"
+.fi
+.RE
+.PP
+Private-network filter, bytes instead of bits:
+.RS
+.nf
+sudo iftoprs \-F 10.0.0.0/8 \-B
+.fi
+.RE
+.PP
+Raw IPs, no bars, minimal display:
+.RS
+.nf
+sudo iftoprs \-n \-N \-b
+.fi
+.RE
+.PP
+NDJSON stream piped to
+.BR jq (1):
+.RS
+.nf
+sudo iftoprs \-\-json | jq '.flows[0]'
+.fi
+.RE
+.PP
+Generate zsh completions:
+.RS
+.nf
+iftoprs \-\-completions zsh > ~/.zsh/_iftoprs
+.fi
+.RE
+.SH ENVIRONMENT
+.TP
+.B HOME
+Used to locate
+.B ~/.iftoprs.conf
+(theme, last interface, display preferences) and
+.B ~/.iftoprs.export.txt
+(flow export via the
+.B e
+key).
+.SH FILES
+.TP
+.I ~/.iftoprs.conf
+TOML preferences file: last-used theme, interface, bar style, sort
+order, refresh rate.
+.TP
+.I ~/.iftoprs.export.txt
+Flow export target for the
+.B e
+key.
+.SH EXIT STATUS
+.TP
+.B 0
+Successful completion.
+.TP
+.B 1
+Capture error, missing interface, invalid filter expression, or
+permission denied.
+.SH SEE ALSO
+.BR iftoprsall (1),
+.BR iftop (8),
+.BR tcpdump (1),
+.BR pcap (3),
+.BR lsof (8)
+.SH AUTHORS
+.B Jacob Menke
+.RI < https://github.com/MenkeTechnologies >
