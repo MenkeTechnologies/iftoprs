@@ -7,30 +7,41 @@
  ╚═╝╚═╝        ╚═╝    ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚═════╝
 ```
 
-<p align="center">
-  <a href="https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml"><img src="https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://crates.io/crates/iftoprs"><img src="https://img.shields.io/crates/v/iftoprs.svg" alt="crates.io"></a>
-  <a href="https://crates.io/crates/iftoprs"><img src="https://img.shields.io/crates/d/iftoprs.svg" alt="downloads"></a>
-  <a href="https://docs.rs/iftoprs"><img src="https://docs.rs/iftoprs/badge.svg" alt="docs.rs"></a>
-  <a href="https://github.com/MenkeTechnologies/iftoprs/blob/main/LICENSE"><img src="https://img.shields.io/crates/l/iftoprs.svg" alt="license"></a>
-</p>
+[![CI](https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml/badge.svg)](https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/iftoprs.svg)](https://crates.io/crates/iftoprs)
+[![Downloads](https://img.shields.io/crates/d/iftoprs.svg)](https://crates.io/crates/iftoprs)
+[![Docs.rs](https://docs.rs/iftoprs/badge.svg)](https://docs.rs/iftoprs)
+ [![Docs](https://img.shields.io/badge/docs-online-blue.svg)](https://menketechnologies.github.io/iftoprs/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-<p align="center">
-  <code>[ SYSTEM://NET_INTERCEPT v2.0 ]</code><br>
-  <code>⟦ JACKING INTO YOUR PACKET STREAM ⟧</code><br><br>
-  <strong>A neon-drenched terminal UI for real-time bandwidth monitoring</strong><br>
-  <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a> + <a href="https://docs.rs/pcap">pcap</a></em><br><br>
-  <code>created by MenkeTechnologies</code>
-</p>
+### `[SYSTEM://NET_INTERCEPT // JACKING INTO YOUR PACKET STREAM]`
+
+> *"The street finds its own uses for bandwidth."*
+
+A neon-drenched terminal UI for real-time bandwidth monitoring. Built in Rust with [ratatui](https://github.com/ratatui/ratatui) + [crossterm](https://github.com/crossterm-rs/crossterm) + [pcap](https://docs.rs/pcap). 31 cyberpunk themes, process attribution via `lsof`, JSON streaming, BPF filters, mouse + sparklines, auto-restart capture, hover tooltips.
+
+```bash
+cargo install iftoprs
+```
 
 <p align="center">
   <img src="screenshots/cli-help.png" alt="CLI Help — iftoprs --help" width="800">
 </p>
 
+### [`Read the Docs`](https://menketechnologies.github.io/iftoprs/) &middot; [`Engineering Report`](https://menketechnologies.github.io/iftoprs/report.html) · [`strykelang`](https://github.com/MenkeTechnologies/strykelang) · [`zshrs`](https://github.com/MenkeTechnologies/zshrs) · [`lsofrs`](https://github.com/MenkeTechnologies/lsofrs)
 
-```bash
-cargo install iftoprs
-```
+---
+
+## Table of Contents
+
+- [\[0x00\] Feature Dump](#0x00-feature-dump)
+- [\[0x01\] Render Preview](#0x01-render-preview)
+- [\[0x02\] Required Implants](#0x02-required-implants)
+- [\[0x03\] Compile Sequence](#0x03-compile-sequence)
+- [\[0x04\] CI & QA](#0x04-ci--qa)
+- [\[0x05\] CLI Options](#0x05-cli-options)
+- [\[0x06\] Keybind Matrix](#0x06-keybind-matrix)
+- [\[0xFF\] License](#0xff-license)
 
 ---
 
@@ -41,7 +52,7 @@ cargo install iftoprs
  ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 ```
 
-### `> FEATURE_DUMP.exe`
+## [0x00] FEATURE DUMP
 
 ```
 [CAPTURE_ENGINE]
@@ -149,7 +160,7 @@ cargo install iftoprs
 
 ---
 
-### `> RENDER_PREVIEW.dat`
+## [0x01] RENDER PREVIEW
 
 #### `// LIVE_CAPTURE`
 
@@ -159,7 +170,7 @@ cargo install iftoprs
 
 ---
 
-### `> REQUIRED_IMPLANTS.cfg`
+## [0x02] REQUIRED IMPLANTS
 
 ```
 RUST_VERSION  >= 1.85  [2024 edition]
@@ -186,7 +197,7 @@ LIBPCAP       == installed (system dependency)
 
 ---
 
-### `> COMPILE_SEQUENCE.sh`
+## [0x03] COMPILE SEQUENCE
 
 ```bash
 # ── JACK IN ──────────────────────────────────
@@ -201,7 +212,7 @@ sudo cargo run --release
 sudo ./target/release/iftoprs
 ```
 
-### `> CI_AND_QA.sh`
+## [0x04] CI & QA
 
 [GitHub Actions](https://github.com/MenkeTechnologies/iftoprs/actions/workflows/ci.yml) runs on every push and pull request to `main`, and can be started manually (**workflow_dispatch** from the Actions tab).
 
@@ -225,7 +236,7 @@ cargo test --locked
 
 ---
 
-### `> CLI_OPTIONS.exe`
+## [0x05] CLI OPTIONS
 
 ```
  ┌──────────────────────────────────────────────────┐
@@ -285,7 +296,7 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 
 ---
 
-### `> KEYBIND_MATRIX.dat`
+## [0x06] KEYBIND MATRIX
 
 ```
  ┌──────────────────────────────────────────────────┐
@@ -393,6 +404,10 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | `Ctrl+C` | Force disconnect |
 
 ---
+
+## [0xFF] LICENSE
+
+MIT License — Jacob Menke. See [LICENSE](LICENSE).
 
 <p align="center">
   <code>⟦ END OF LINE ⟧</code><br>
