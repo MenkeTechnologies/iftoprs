@@ -72,3 +72,89 @@ jobs:
             --title "${{ github.ref_name }}" \
             --generate-notes \
             artifacts/*.tar.gz
+
+  homebrew:
+    name: Update Homebrew tap
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Compute SHA256 sums
+        id: sha
+        shell: bash
+        run: |
+          for f in artifacts/*.tar.gz; do
+            base=$(basename "$f")
+            sum=$(sha256sum "$f" | awk '{print $1}')
+            # e.g. iftoprs-vX.Y.Z-aarch64-apple-darwin.tar.gz → aarch64_apple_darwin
+            key=$(echo "$base" | sed 's/iftoprs-v[^-]*-//; s/\.tar\.gz//; s/-/_/g; s/\./_/g')
+            echo "${key}=${sum}" >> "$GITHUB_OUTPUT"
+          done
+
+      - uses: actions/checkout@v4
+        with:
+          repository: MenkeTechnologies/homebrew-menketech
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Update formula
+        shell: bash
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          # Strip leading 'v' from VERSION (e.g. v1.2.3 → 1.2.3).
+          VERSION="${VERSION#v}"
+          cd tap
+          cat > Formula/iftoprs.rb <<'FORMULA_HEAD'
+          class Iftoprs < Formula
+            desc "Real-time bandwidth monitor — Rust iftop clone with ratatui TUI, 31 themes"
+            homepage "https://github.com/MenkeTechnologies/iftoprs"
+            license "MIT"
+          FORMULA_HEAD
+          cat >> Formula/iftoprs.rb <<EOF
+            version "${VERSION}"
+
+            on_macos do
+            on_arm do
+              url "https://github.com/MenkeTechnologies/iftoprs/releases/download/v${VERSION}/iftoprs-v${VERSION}-aarch64-apple-darwin.tar.gz"
+              sha256 "${{ steps.sha.outputs.aarch64_apple_darwin }}"
+            end
+            on_intel do
+              url "https://github.com/MenkeTechnologies/iftoprs/releases/download/v${VERSION}/iftoprs-v${VERSION}-x86_64-apple-darwin.tar.gz"
+              sha256 "${{ steps.sha.outputs.x86_64_apple_darwin }}"
+            end
+            end
+
+            on_linux do
+            on_intel do
+              url "https://github.com/MenkeTechnologies/iftoprs/releases/download/v${VERSION}/iftoprs-v${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+              sha256 "${{ steps.sha.outputs.x86_64_unknown_linux_gnu }}"
+            end
+            end
+
+            def install
+            bin.install "iftoprs"
+            end
+
+            test do
+              assert_match "iftoprs", shell_output("#{bin}/iftoprs --version")
+            end
+          end
+          EOF
+
+      - name: Push formula update
+        run: |
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/iftoprs.rb
+          if git diff --cached --quiet; then
+            echo "no changes — formula already up to date"
+            exit 0
+          fi
+          git commit -m "iftoprs: bump to ${{ github.ref_name }}"
+          git push
