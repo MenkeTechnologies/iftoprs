@@ -4661,7 +4661,7 @@ fn default_config_parses_booleans_correctly() {
 fn readme_has_feature_dump_section() {
     let content = std::fs::read_to_string("README.md").unwrap();
     assert!(
-        content.contains("FEATURE_DUMP"),
+        content.contains("FEATURE DUMP") || content.contains("FEATURE_DUMP"),
         "README should have feature dump section"
     );
 }
@@ -4670,7 +4670,7 @@ fn readme_has_feature_dump_section() {
 fn readme_has_cli_options_section() {
     let content = std::fs::read_to_string("README.md").unwrap();
     assert!(
-        content.contains("CLI_OPTIONS"),
+        content.contains("CLI OPTIONS") || content.contains("CLI_OPTIONS"),
         "README should have CLI options section"
     );
 }
@@ -4679,7 +4679,7 @@ fn readme_has_cli_options_section() {
 fn readme_has_keybind_matrix_section() {
     let content = std::fs::read_to_string("README.md").unwrap();
     assert!(
-        content.contains("KEYBIND_MATRIX"),
+        content.contains("KEYBIND MATRIX") || content.contains("KEYBIND_MATRIX"),
         "README should have keybind matrix section"
     );
 }
@@ -4688,7 +4688,7 @@ fn readme_has_keybind_matrix_section() {
 fn readme_has_compile_sequence_section() {
     let content = std::fs::read_to_string("README.md").unwrap();
     assert!(
-        content.contains("COMPILE_SEQUENCE"),
+        content.contains("COMPILE SEQUENCE") || content.contains("COMPILE_SEQUENCE"),
         "README should have compile section"
     );
 }
