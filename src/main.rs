@@ -1065,4 +1065,71 @@ mod tests {
         assert_eq!(app.theme_chooser.selected, start + 1);
         assert!(app.theme_chooser.active);
     }
+
+    // ─── tooltip dismissal ─────────────────────────────────────────────
+
+    #[test]
+    fn any_mouse_down_dismisses_tooltip() {
+        // Tooltip is dismissed by the first `Down(_)` branch — regardless of
+        // which button or position. Verified for left/right/middle.
+        for btn in [MouseButton::Left, MouseButton::Right, MouseButton::Middle] {
+            let mut app = make_app();
+            app.tooltip.active = true;
+            handle_mouse(&mut app, scroll_event(MouseEventKind::Down(btn)));
+            assert!(!app.tooltip.active, "Down({btn:?}) must dismiss tooltip");
+        }
+    }
+
+    #[test]
+    fn mouse_move_dismisses_tooltip() {
+        let mut app = make_app();
+        app.tooltip.active = true;
+        handle_mouse(&mut app, scroll_event(MouseEventKind::Moved));
+        assert!(!app.tooltip.active);
+    }
+
+    // ─── scroll without chooser routes to view-tab next/prev ──────────
+
+    #[test]
+    fn scroll_down_without_chooser_does_not_open_chooser() {
+        // Regression: ScrollDown when chooser is closed must NOT open it.
+        let mut app = make_app();
+        assert!(!app.theme_chooser.active);
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        assert!(!app.theme_chooser.active);
+    }
+
+    #[test]
+    fn scroll_up_without_chooser_does_not_open_chooser() {
+        let mut app = make_app();
+        assert!(!app.theme_chooser.active);
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollUp));
+        assert!(!app.theme_chooser.active);
+    }
+
+    // ─── theme chooser middle click also cancels ──────────────────────
+
+    #[test]
+    fn theme_chooser_middle_click_also_cancels() {
+        // The `Down(_)` wildcard arm catches every non-left button too.
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        handle_mouse(
+            &mut app,
+            scroll_event(MouseEventKind::Down(MouseButton::Middle)),
+        );
+        assert!(!app.theme_chooser.active);
+    }
+
+    #[test]
+    fn theme_chooser_scroll_does_not_change_active_state() {
+        let mut app = make_app();
+        app.theme_chooser.open(app.theme_name);
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollDown));
+        handle_mouse(&mut app, scroll_event(MouseEventKind::ScrollUp));
+        assert!(
+            app.theme_chooser.active,
+            "scroll events alone must not close the chooser"
+        );
+    }
 }
