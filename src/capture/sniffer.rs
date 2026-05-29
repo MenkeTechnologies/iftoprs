@@ -12,6 +12,7 @@ const MAX_BACKOFF: Duration = Duration::from_secs(30);
 
 /// A packet event sent from the capture thread to the main loop.
 pub struct PacketEvent {
+    /// `parsed` field.
     pub parsed: ParsedPacket,
 }
 
@@ -169,6 +170,7 @@ fn run_capture_loop(
         }
     }
 }
+/// `CaptureHandle` — see fields for layout.
 
 pub struct CaptureHandle {
     _thread: std::thread::JoinHandle<()>,

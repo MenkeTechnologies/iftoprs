@@ -4,18 +4,28 @@ use std::net::IpAddr;
 /// Uniquely identifies a network flow (bidirectional).
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct FlowKey {
+    /// `src` field.
     pub src: IpAddr,
+    /// `dst` field.
     pub dst: IpAddr,
+    /// `src_port` field.
     pub src_port: u16,
+    /// `dst_port` field.
     pub dst_port: u16,
+    /// `protocol` field.
     pub protocol: Protocol,
 }
+/// `Protocol` — see variants.
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum Protocol {
+    /// `Tcp` variant.
     Tcp,
+    /// `Udp` variant.
     Udp,
+    /// `Icmp` variant.
     Icmp,
+    /// `Other` variant.
     Other(u8),
 }
 
@@ -31,6 +41,7 @@ impl fmt::Display for Protocol {
 }
 
 impl Protocol {
+    /// `from_ip_next_header` — see implementation.
     pub fn from_ip_next_header(val: u8) -> Self {
         match val {
             6 => Protocol::Tcp,
@@ -44,7 +55,9 @@ impl Protocol {
 /// Direction of a packet relative to the canonical flow key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
+    /// `Sent` variant.
     Sent,     // src -> dst (matches key order)
+    /// `Received` variant.
     Received, // dst -> src (reversed)
 }
 

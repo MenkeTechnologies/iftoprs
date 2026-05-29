@@ -68,6 +68,7 @@ Real-time bandwidth monitor (iftop clone in Rust)
     disable_help_flag = true,
     disable_version_flag = true
 )]
+/// `Args` — see fields for layout.
 pub struct Args {
     /// Path to config file (default: ~/.iftoprs.conf)
     #[arg(short = 'c', long = "config")]

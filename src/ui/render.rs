@@ -42,6 +42,7 @@ fn bar_paint_width(bar_len: u16, style: BarStyle) -> u16 {
 }
 
 // ─── Main draw ────────────────────────────────────────────────────────────────
+/// `draw` — see implementation.
 
 pub fn draw(frame: &mut Frame, state: &mut AppState) {
     let size = frame.area();

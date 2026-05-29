@@ -5,8 +5,11 @@ use crate::data::flow::{Direction, FlowKey, Protocol};
 /// Result of parsing a single packet.
 #[derive(Debug)]
 pub struct ParsedPacket {
+    /// `key` field.
     pub key: FlowKey,
+    /// `direction` field.
     pub direction: Direction,
+    /// `len` field.
     pub len: u64,
 }
 

@@ -12,38 +12,59 @@ use crate::util::resolver::Resolver;
 /// Tracks which fields were overridden by CLI flags (never saved to config).
 #[derive(Debug, Clone, Default)]
 pub struct CliOverrides {
+    /// `dns` field.
     pub dns: bool,
+    /// `show_ports` field.
     pub show_ports: bool,
+    /// `show_bars` field.
     pub show_bars: bool,
+    /// `use_bytes` field.
     pub use_bytes: bool,
+    /// `show_processes` field.
     pub show_processes: bool,
+    /// `interface` field.
     pub interface: bool,
 }
+/// `ViewTab` — see variants.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViewTab {
+    /// `Flows` variant.
     Flows,
+    /// `Processes` variant.
     Processes,
 }
+/// `SortColumn` — see variants.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortColumn {
+    /// `Avg2s` variant.
     Avg2s,
+    /// `Avg10s` variant.
     Avg10s,
+    /// `Avg40s` variant.
     Avg40s,
+    /// `SrcName` variant.
     SrcName,
+    /// `DstName` variant.
     DstName,
 }
+/// `LineDisplay` — see variants.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LineDisplay {
+    /// `TwoLine` variant.
     TwoLine,
+    /// `OneLine` variant.
     OneLine,
+    /// `SentOnly` variant.
     SentOnly,
+    /// `RecvOnly` variant.
     RecvOnly,
 }
 
 impl LineDisplay {
+    /// `next` — see implementation.
     pub fn next(self) -> Self {
         match self {
             Self::TwoLine => Self::OneLine,
@@ -53,17 +74,23 @@ impl LineDisplay {
         }
     }
 }
+/// `BarStyle` — see variants.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum BarStyle {
+    /// `Gradient` variant.
     #[default]
     Gradient,
+    /// `Solid` variant.
     Solid,
+    /// `Thin` variant.
     Thin,
+    /// `Ascii` variant.
     Ascii,
 }
 
 impl BarStyle {
+    /// `next` — see implementation.
     pub fn next(self) -> Self {
         match self {
             Self::Gradient => Self::Solid,
@@ -72,6 +99,7 @@ impl BarStyle {
             Self::Ascii => Self::Gradient,
         }
     }
+    /// `name` — see implementation.
     pub fn name(self) -> &'static str {
         match self {
             Self::Gradient => "gradient",
@@ -84,7 +112,9 @@ impl BarStyle {
 
 /// Theme chooser popup state.
 pub struct ThemeChooser {
+    /// `active` field.
     pub active: bool,
+    /// `selected` field.
     pub selected: usize,
 }
 
@@ -95,12 +125,14 @@ impl Default for ThemeChooser {
 }
 
 impl ThemeChooser {
+    /// `new` — see implementation.
     pub fn new() -> Self {
         Self {
             active: false,
             selected: 0,
         }
     }
+    /// `open` — see implementation.
     pub fn open(&mut self, current: ThemeName) {
         self.active = true;
         self.selected = ThemeName::ALL
@@ -112,12 +144,16 @@ impl ThemeChooser {
 
 /// Interface chooser popup state.
 pub struct InterfaceChooser {
+    /// `active` field.
     pub active: bool,
+    /// `selected` field.
     pub selected: usize,
+    /// `interfaces` field.
     pub interfaces: Vec<String>,
 }
 
 impl InterfaceChooser {
+    /// `new` — see implementation.
     pub fn new() -> Self {
         Self {
             active: false,
@@ -125,6 +161,7 @@ impl InterfaceChooser {
             interfaces: Vec::new(),
         }
     }
+    /// `open` — see implementation.
     pub fn open(&mut self, current: &str) {
         self.interfaces = crate::capture::sniffer::list_interfaces().unwrap_or_default();
         if self.interfaces.is_empty() {
@@ -147,9 +184,13 @@ impl Default for InterfaceChooser {
 
 /// Filter input state (/ key).
 pub struct FilterState {
+    /// `active` field.
     pub active: bool,
+    /// `buf` field.
     pub buf: String,
+    /// `cursor` field.
     pub cursor: usize,
+    /// `prev` field.
     pub prev: Option<String>,
 }
 
@@ -160,6 +201,7 @@ impl Default for FilterState {
 }
 
 impl FilterState {
+    /// `new` — see implementation.
     pub fn new() -> Self {
         Self {
             active: false,
@@ -168,16 +210,19 @@ impl FilterState {
             prev: None,
         }
     }
+    /// `open` — see implementation.
     pub fn open(&mut self, current: &Option<String>) {
         self.active = true;
         self.buf = current.clone().unwrap_or_default();
         self.cursor = self.buf.len();
         self.prev = current.clone();
     }
+    /// `insert` — see implementation.
     pub fn insert(&mut self, ch: char) {
         self.buf.insert(self.cursor, ch);
         self.cursor += ch.len_utf8();
     }
+    /// `backspace` — see implementation.
     pub fn backspace(&mut self) {
         if self.cursor > 0 {
             let prev = self.buf[..self.cursor]
@@ -189,6 +234,7 @@ impl FilterState {
             self.cursor = prev;
         }
     }
+    /// `delete_word` — see implementation.
     pub fn delete_word(&mut self) {
         // Ctrl+W behavior: skip trailing spaces, then delete the word
         let s = &self.buf[..self.cursor];
@@ -200,12 +246,15 @@ impl FilterState {
         self.buf.drain(word_start..self.cursor);
         self.cursor = word_start;
     }
+    /// `home` — see implementation.
     pub fn home(&mut self) {
         self.cursor = 0;
     }
+    /// `end` — see implementation.
     pub fn end(&mut self) {
         self.cursor = self.buf.len();
     }
+    /// `left` — see implementation.
     pub fn left(&mut self) {
         if self.cursor > 0 {
             self.cursor = self.buf[..self.cursor]
@@ -215,6 +264,7 @@ impl FilterState {
                 .unwrap_or(0);
         }
     }
+    /// `right` — see implementation.
     pub fn right(&mut self) {
         if self.cursor < self.buf.len() {
             self.cursor = self.buf[self.cursor..]
@@ -224,6 +274,7 @@ impl FilterState {
                 .unwrap_or(self.buf.len());
         }
     }
+    /// `kill_to_end` — see implementation.
     pub fn kill_to_end(&mut self) {
         self.buf.truncate(self.cursor);
     }
@@ -232,18 +283,26 @@ impl FilterState {
 /// Theme editor popup state.
 #[derive(Default)]
 pub struct ThemeEditState {
+    /// `active` field.
     pub active: bool,
+    /// `colors` field.
     pub colors: [u8; 6],
+    /// `slot` field.
     pub slot: usize,
+    /// `naming` field.
     pub naming: bool,
+    /// `name` field.
     pub name: String,
+    /// `cursor` field.
     pub cursor: usize,
 }
 
 impl ThemeEditState {
+    /// `new` — see implementation.
     pub fn new() -> Self {
         Self::default()
     }
+    /// `open` — see implementation.
     pub fn open(&mut self, current_palette: [u8; 6]) {
         self.active = true;
         self.colors = current_palette;
@@ -256,17 +315,21 @@ impl ThemeEditState {
 
 /// Status message with auto-dismiss.
 pub struct StatusMsg {
+    /// `text` field.
     pub text: String,
+    /// `since` field.
     pub since: Instant,
 }
 
 impl StatusMsg {
+    /// `new` — see implementation.
     pub fn new(text: String) -> Self {
         Self {
             text,
             since: Instant::now(),
         }
     }
+    /// `expired` — see implementation.
     pub fn expired(&self) -> bool {
         self.since.elapsed().as_secs() >= 3
     }
@@ -274,9 +337,13 @@ impl StatusMsg {
 
 /// Right-click tooltip state.
 pub struct Tooltip {
+    /// `active` field.
     pub active: bool,
+    /// `x` field.
     pub x: u16,
+    /// `y` field.
     pub y: u16,
+    /// `lines` field.
     pub lines: Vec<(String, String)>, // (label, value) pairs
 }
 
@@ -287,6 +354,7 @@ impl Default for Tooltip {
 }
 
 impl Tooltip {
+    /// `new` — see implementation.
     pub fn new() -> Self {
         Self {
             active: false,
@@ -300,8 +368,11 @@ impl Tooltip {
 /// Hover state for timed tooltips on header bar segments.
 #[derive(Default)]
 pub struct HoverState {
+    /// `pos` field.
     pub pos: Option<(u16, u16)>,
+    /// `since` field.
     pub since: Option<Instant>,
+    /// `right_click` field.
     pub right_click: bool,
 }
 
@@ -346,6 +417,7 @@ pub struct AlertState {
 }
 
 impl AlertState {
+    /// `is_flashing` — see implementation.
     pub fn is_flashing(&self) -> bool {
         self.flash
             .map(|t| t.elapsed().as_millis() < 2000 && (t.elapsed().as_millis() / 300) % 2 == 0)
@@ -356,56 +428,98 @@ impl AlertState {
 /// A flow identity for pinning (favorites).
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PinnedFlow {
+    /// `src` field.
     pub src: String,
+    /// `dst` field.
     pub dst: String,
 }
 
 /// Aggregated bandwidth data for a single process.
 #[derive(Debug, Clone)]
 pub struct ProcessSnapshot {
+    /// `name` field.
     pub name: String,
+    /// `pid` field.
     pub pid: Option<u32>,
+    /// `flow_count` field.
     pub flow_count: usize,
+    /// `sent_2s` field.
     pub sent_2s: f64,
+    /// `sent_10s` field.
     pub sent_10s: f64,
+    /// `sent_40s` field.
     pub sent_40s: f64,
+    /// `recv_2s` field.
     pub recv_2s: f64,
+    /// `recv_10s` field.
     pub recv_10s: f64,
+    /// `recv_40s` field.
     pub recv_40s: f64,
+    /// `total_sent` field.
     pub total_sent: u64,
+    /// `total_recv` field.
     pub total_recv: u64,
 }
 
 /// Application state for the TUI.
 pub struct AppState {
+    /// `show_dns` field.
     pub show_dns: bool,
+    /// `show_port_names` field.
     pub show_port_names: bool,
+    /// `show_ports` field.
     pub show_ports: bool,
+    /// `show_bars` field.
     pub show_bars: bool,
+    /// `show_cumulative` field.
     pub show_cumulative: bool,
+    /// `show_processes` field.
     pub show_processes: bool,
+    /// `use_bytes` field.
     pub use_bytes: bool,
+    /// `sort_column` field.
     pub sort_column: SortColumn,
+    /// `sort_reverse` field.
     pub sort_reverse: bool,
+    /// `line_display` field.
     pub line_display: LineDisplay,
+    /// `bar_style` field.
     pub bar_style: BarStyle,
+    /// `paused` field.
     pub paused: bool,
+    /// `scroll_offset` field.
     pub scroll_offset: usize,
+    /// `selected` field.
     pub selected: Option<usize>,
+    /// `show_help` field.
     pub show_help: bool,
+    /// `screen_filter` field.
     pub screen_filter: Option<String>,
+    /// `frozen_order` field.
     pub frozen_order: bool,
+    /// `theme_name` field.
     pub theme_name: ThemeName,
+    /// `theme` field.
     pub theme: Theme,
+    /// `theme_chooser` field.
     pub theme_chooser: ThemeChooser,
+    /// `theme_edit` field.
     pub theme_edit: ThemeEditState,
+    /// `filter_state` field.
     pub filter_state: FilterState,
+    /// `interface_chooser` field.
     pub interface_chooser: InterfaceChooser,
+    /// `status_msg` field.
     pub status_msg: Option<StatusMsg>,
+    /// `pinned` field.
     pub pinned: Vec<PinnedFlow>,
+    /// `tooltip` field.
     pub tooltip: Tooltip,
+    /// `show_border` field.
     pub show_border: bool,
+    /// `show_header` field.
     pub show_header: bool,
+    /// `hover_tooltips` field.
     pub hover_tooltips: bool,
     /// Y offset where the flow area starts (set by renderer).
     pub flow_area_y: u16,
@@ -416,6 +530,7 @@ pub struct AppState {
 
     /// Alert system
     pub alert_state: AlertState,
+    /// `alert_threshold` field.
     pub alert_threshold: f64,
 
     /// Refresh rate in seconds (1/2/5/10)
@@ -452,7 +567,9 @@ pub struct AppState {
     pub process_scroll: usize,
     /// Process drill-down filter — when set, only flows for this process are shown
     pub process_filter: Option<String>,
+    /// `totals` field.
     pub totals: TotalStats,
+    /// `resolver` field.
     pub resolver: Resolver,
 }
 
@@ -465,6 +582,7 @@ fn apply_permutation<T: Clone>(slice: &mut [T], perm: &[usize]) {
 }
 
 impl AppState {
+    /// `new` — see implementation.
     pub fn new(
         resolver: Resolver,
         show_ports: bool,
@@ -546,22 +664,26 @@ impl AppState {
             resolver,
         }
     }
+    /// `set_theme` — see implementation.
 
     pub fn set_theme(&mut self, name: ThemeName) {
         self.theme_name = name;
         self.theme = Theme::from_name(name);
         self.active_custom_theme = None;
     }
+    /// `apply_custom_palette` — see implementation.
 
     pub fn apply_custom_palette(&mut self, colors: [u8; 6]) {
         self.theme = Theme::from_palette_raw(
             colors[0], colors[1], colors[2], colors[3], colors[4], colors[5],
         );
     }
+    /// `set_status` — see implementation.
 
     pub fn set_status(&mut self, msg: impl Into<String>) {
         self.status_msg = Some(StatusMsg::new(msg.into()));
     }
+    /// `save_prefs` — see implementation.
 
     pub fn save_prefs(&self) {
         let co = &self.cli_overrides;
@@ -1236,6 +1358,7 @@ impl AppState {
     }
 
     // ── Process view navigation ──
+    /// `process_select_next` — see implementation.
 
     pub fn process_select_next(&mut self) {
         let max = self.process_snapshots.len().saturating_sub(1);
@@ -1249,6 +1372,7 @@ impl AppState {
             self.process_scroll = sel.saturating_sub(19);
         }
     }
+    /// `process_select_prev` — see implementation.
 
     pub fn process_select_prev(&mut self) {
         self.process_selected = Some(match self.process_selected {
@@ -1261,6 +1385,7 @@ impl AppState {
             self.process_scroll = sel;
         }
     }
+    /// `process_page_down` — see implementation.
 
     pub fn process_page_down(&mut self) {
         let half = 10;
@@ -1275,6 +1400,7 @@ impl AppState {
             self.process_scroll = sel.saturating_sub(19);
         }
     }
+    /// `process_page_up` — see implementation.
 
     pub fn process_page_up(&mut self) {
         let half = 10;
@@ -1315,6 +1441,7 @@ impl AppState {
             self.set_status("Process filter cleared");
         }
     }
+    /// `export` — see implementation.
 
     pub fn export(&mut self) {
         let path = dirs::home_dir()
@@ -1381,6 +1508,7 @@ impl AppState {
             Err(e) => self.set_status(format!("Export failed: {}", e)),
         }
     }
+    /// `update_snapshot` — see implementation.
 
     pub fn update_snapshot(&mut self, mut flows: Vec<FlowSnapshot>, totals: TotalStats) {
         if self.paused {
@@ -1537,6 +1665,7 @@ impl AppState {
             self.process_selected = Some(self.process_snapshots.len() - 1);
         }
     }
+    /// `format_host` — see implementation.
 
     pub fn format_host(&self, addr: std::net::IpAddr, port: u16, protocol: &Protocol) -> String {
         let hostname = self.resolver.resolve(addr);

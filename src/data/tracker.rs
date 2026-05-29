@@ -27,32 +27,54 @@ struct FlowTrackerInner {
 /// Snapshot of all flows for the UI to render.
 #[derive(Debug, Clone)]
 pub struct FlowSnapshot {
+    /// `key` field.
     pub key: FlowKey,
+    /// `sent_2s` field.
     pub sent_2s: f64,
+    /// `sent_10s` field.
     pub sent_10s: f64,
+    /// `sent_40s` field.
     pub sent_40s: f64,
+    /// `recv_2s` field.
     pub recv_2s: f64,
+    /// `recv_10s` field.
     pub recv_10s: f64,
+    /// `recv_40s` field.
     pub recv_40s: f64,
+    /// `total_sent` field.
     pub total_sent: u64,
+    /// `total_recv` field.
     pub total_recv: u64,
+    /// `process_name` field.
     pub process_name: Option<String>,
+    /// `pid` field.
     pub pid: Option<u32>,
     /// Per-second combined (sent+recv) history for sparkline rendering.
     pub history: Vec<u64>,
 }
+/// `TotalStats` — see fields for layout.
 
 #[derive(Debug, Clone)]
 pub struct TotalStats {
+    /// `sent_2s` field.
     pub sent_2s: f64,
+    /// `sent_10s` field.
     pub sent_10s: f64,
+    /// `sent_40s` field.
     pub sent_40s: f64,
+    /// `recv_2s` field.
     pub recv_2s: f64,
+    /// `recv_10s` field.
     pub recv_10s: f64,
+    /// `recv_40s` field.
     pub recv_40s: f64,
+    /// `cumulative_sent` field.
     pub cumulative_sent: u64,
+    /// `cumulative_recv` field.
     pub cumulative_recv: u64,
+    /// `peak_sent` field.
     pub peak_sent: f64,
+    /// `peak_recv` field.
     pub peak_recv: f64,
 }
 
@@ -63,6 +85,7 @@ impl Default for FlowTracker {
 }
 
 impl FlowTracker {
+    /// `new` — see implementation.
     pub fn new() -> Self {
         FlowTracker {
             inner: Arc::new(Mutex::new(FlowTrackerInner {

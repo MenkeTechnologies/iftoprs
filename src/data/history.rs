@@ -34,6 +34,7 @@ impl Default for FlowHistory {
 }
 
 impl FlowHistory {
+    /// `new` — see implementation.
     pub fn new() -> Self {
         let now = Instant::now();
         let mut sent = VecDeque::with_capacity(HISTORY_SLOTS);
@@ -61,6 +62,7 @@ impl FlowHistory {
             *slot += bytes;
         }
     }
+    /// `add_recv` — see implementation.
 
     pub fn add_recv(&mut self, bytes: u64) {
         self.total_recv += bytes;
@@ -106,23 +108,29 @@ impl FlowHistory {
         let sum: u64 = slots.iter().rev().take(take).sum();
         sum as f64
     }
+    /// `avg_sent_2s` — see implementation.
 
     pub fn avg_sent_2s(&self) -> f64 {
         Self::window_total(&self.sent, 2)
     }
+    /// `avg_sent_10s` — see implementation.
     pub fn avg_sent_10s(&self) -> f64 {
         Self::window_total(&self.sent, 10)
     }
+    /// `avg_sent_40s` — see implementation.
     pub fn avg_sent_40s(&self) -> f64 {
         Self::window_total(&self.sent, 40)
     }
+    /// `avg_recv_2s` — see implementation.
 
     pub fn avg_recv_2s(&self) -> f64 {
         Self::window_total(&self.recv, 2)
     }
+    /// `avg_recv_10s` — see implementation.
     pub fn avg_recv_10s(&self) -> f64 {
         Self::window_total(&self.recv, 10)
     }
+    /// `avg_recv_40s` — see implementation.
     pub fn avg_recv_40s(&self) -> f64 {
         Self::window_total(&self.recv, 40)
     }

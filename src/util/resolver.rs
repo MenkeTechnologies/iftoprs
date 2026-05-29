@@ -39,6 +39,7 @@ enum ResolveState {
 }
 
 impl Resolver {
+    /// `new` — see implementation.
     pub fn new(enabled: bool) -> Self {
         // Eagerly parse /etc/services on startup
         let _ = services_map();
@@ -104,10 +105,12 @@ impl Resolver {
 
         addr.to_string()
     }
+    /// `toggle` — see implementation.
 
     pub fn toggle(&mut self) {
         self.enabled = !self.enabled;
     }
+    /// `is_enabled` — see implementation.
 
     pub fn is_enabled(&self) -> bool {
         self.enabled

@@ -4,41 +4,74 @@ use serde::{Deserialize, Serialize};
 /// All named color themes — ported from storageshower.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ThemeName {
+    /// `NeonSprawl` variant.
     #[default]
     NeonSprawl,
+    /// `AcidRain` variant.
     AcidRain,
+    /// `IceBreaker` variant.
     IceBreaker,
+    /// `SynthWave` variant.
     SynthWave,
+    /// `RustBelt` variant.
     RustBelt,
+    /// `GhostWire` variant.
     GhostWire,
+    /// `RedSector` variant.
     RedSector,
+    /// `SakuraDen` variant.
     SakuraDen,
+    /// `DataStream` variant.
     DataStream,
+    /// `SolarFlare` variant.
     SolarFlare,
+    /// `NeonNoir` variant.
     NeonNoir,
+    /// `ChromeHeart` variant.
     ChromeHeart,
+    /// `BladeRunner` variant.
     BladeRunner,
+    /// `VoidWalker` variant.
     VoidWalker,
+    /// `ToxicWaste` variant.
     ToxicWaste,
+    /// `CyberFrost` variant.
     CyberFrost,
+    /// `PlasmaCore` variant.
     PlasmaCore,
+    /// `SteelNerve` variant.
     SteelNerve,
+    /// `DarkSignal` variant.
     DarkSignal,
+    /// `GlitchPop` variant.
     GlitchPop,
+    /// `HoloShift` variant.
     HoloShift,
+    /// `NightCity` variant.
     NightCity,
+    /// `DeepNet` variant.
     DeepNet,
+    /// `LaserGrid` variant.
     LaserGrid,
+    /// `QuantumFlux` variant.
     QuantumFlux,
+    /// `BioHazard` variant.
     BioHazard,
+    /// `Darkwave` variant.
     Darkwave,
+    /// `Overlock` variant.
     Overlock,
+    /// `Megacorp` variant.
     Megacorp,
+    /// `Zaibatsu` variant.
     Zaibatsu,
+    /// `Iftopcolor` variant.
     Iftopcolor,
 }
 
 impl ThemeName {
+    /// Every variant in declaration order — used for `--list-colors`
+    /// and config-file enumeration.
     pub const ALL: &'static [ThemeName] = &[
         ThemeName::NeonSprawl,
         ThemeName::AcidRain,
@@ -72,6 +105,7 @@ impl ThemeName {
         ThemeName::Zaibatsu,
         ThemeName::Iftopcolor,
     ];
+    /// `display_name` — see implementation.
 
     pub fn display_name(self) -> &'static str {
         match self {
@@ -150,46 +184,76 @@ fn palette(name: ThemeName) -> (u8, u8, u8, u8, u8, u8) {
 /// Complete theme for the iftoprs UI, derived from a 6-color palette.
 #[derive(Debug, Clone)]
 pub struct Theme {
+    /// `bar_color` field.
     pub bar_color: Color,
+    /// `bar_color_mid` field.
     pub bar_color_mid: Color,
+    /// `bar_text` field.
     pub bar_text: Color,
+    /// `host_src` field.
     pub host_src: Color,
+    /// `host_dst` field.
     pub host_dst: Color,
+    /// `arrow` field.
     pub arrow: Color,
+    /// `rate_2s` field.
     pub rate_2s: Color,
+    /// `rate_10s` field.
     pub rate_10s: Color,
+    /// `rate_40s` field.
     pub rate_40s: Color,
+    /// `scale_label` field.
     pub scale_label: Color,
+    /// `scale_line` field.
     pub scale_line: Color,
+    /// `total_label` field.
     pub total_label: Color,
+    /// `cum_label` field.
     pub cum_label: Color,
+    /// `peak_label` field.
     pub peak_label: Color,
+    /// `proc_name` field.
     pub proc_name: Color,
+    /// `help_bg` field.
     pub help_bg: Color,
+    /// `help_border` field.
     pub help_border: Color,
+    /// `help_title` field.
     pub help_title: Color,
+    /// `help_section` field.
     pub help_section: Color,
+    /// `help_key` field.
     pub help_key: Color,
+    /// `help_val` field.
     pub help_val: Color,
+    /// `select_bg` field.
     pub select_bg: Color,
 }
 
 /// Custom theme colors stored in config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomThemeColors {
+    /// `c1` field.
     pub c1: u8,
+    /// `c2` field.
     pub c2: u8,
+    /// `c3` field.
     pub c3: u8,
+    /// `c4` field.
     pub c4: u8,
+    /// `c5` field.
     pub c5: u8,
+    /// `c6` field.
     pub c6: u8,
 }
 
 impl Theme {
+    /// `from_name` — see implementation.
     pub fn from_name(name: ThemeName) -> Self {
         let (c1, c2, c3, c4, c5, c6) = palette(name);
         Self::from_palette_raw(c1, c2, c3, c4, c5, c6)
     }
+    /// `from_palette_raw` — see implementation.
 
     pub fn from_palette_raw(c1: u8, c2: u8, c3: u8, c4: u8, c5: u8, c6: u8) -> Self {
         Theme {

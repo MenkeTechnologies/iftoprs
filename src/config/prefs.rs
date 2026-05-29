@@ -8,40 +8,58 @@ use crate::ui::app::{BarStyle, PinnedFlow};
 /// Persistent preferences saved to ~/.iftoprs.conf
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Prefs {
+    /// `theme` field.
     #[serde(default)]
     pub theme: ThemeName,
+    /// `dns_resolution` field.
     #[serde(default = "default_true")]
     pub dns_resolution: bool,
+    /// `port_resolution` field.
     #[serde(default = "default_true")]
     pub port_resolution: bool,
+    /// `show_ports` field.
     #[serde(default = "default_true")]
     pub show_ports: bool,
+    /// `show_bars` field.
     #[serde(default = "default_true")]
     pub show_bars: bool,
+    /// `use_bytes` field.
     #[serde(default)]
     pub use_bytes: bool,
+    /// `show_processes` field.
     #[serde(default)]
     pub show_processes: bool,
+    /// `show_cumulative` field.
     #[serde(default)]
     pub show_cumulative: bool,
+    /// `bar_style` field.
     #[serde(default)]
     pub bar_style: BarStyle,
+    /// `pinned` field.
     #[serde(default)]
     pub pinned: Vec<PinnedFlow>,
+    /// `show_border` field.
     #[serde(default = "default_true")]
     pub show_border: bool,
+    /// `show_header` field.
     #[serde(default = "default_true")]
     pub show_header: bool,
+    /// `hover_tooltips` field.
     #[serde(default = "default_true")]
     pub hover_tooltips: bool,
+    /// `refresh_rate` field.
     #[serde(default = "default_refresh")]
     pub refresh_rate: u64,
+    /// `alert_threshold` field.
     #[serde(default)]
     pub alert_threshold: f64,
+    /// `interface` field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interface: Option<String>,
+    /// `custom_themes` field.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub custom_themes: HashMap<String, CustomThemeColors>,
+    /// `active_custom_theme` field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_custom_theme: Option<String>,
 }
@@ -94,6 +112,7 @@ fn prefs_path() -> Option<std::path::PathBuf> {
     }
     dirs::home_dir().map(|h| h.join(".iftoprs.conf"))
 }
+/// `load_prefs` — see implementation.
 
 pub fn load_prefs() -> Prefs {
     let path = match prefs_path() {
@@ -110,6 +129,7 @@ pub fn load_prefs() -> Prefs {
         }
     }
 }
+/// `save_prefs` — see implementation.
 
 pub fn save_prefs(prefs: &Prefs) {
     #[cfg(test)]
