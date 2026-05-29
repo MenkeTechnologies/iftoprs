@@ -2965,7 +2965,7 @@ mod tests {
         pkt[15] = 0x01; // VLAN tag/PCP
         pkt[16] = 0x08;
         pkt[17] = 0x00; // inner = IPv4
-                        // Minimal IPv4 header at offset 18.
+        // Minimal IPv4 header at offset 18.
         pkt[18] = 0x45; // version + IHL
         pkt[18 + 9] = 17; // UDP
         pkt[18 + 12..18 + 16].copy_from_slice(&[10, 1, 2, 3]);
