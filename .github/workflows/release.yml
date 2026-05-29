@@ -51,7 +51,7 @@ jobs:
           tar czf ../../../iftoprs-${{ github.ref_name }}-${{ matrix.target }}.tar.gz iftoprs
           cd ../../..
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: iftoprs-${{ matrix.target }}
           path: iftoprs-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
