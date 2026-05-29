@@ -2946,4 +2946,60 @@ mod tests {
         assert_eq!(r.key.src_port, 0);
         assert_eq!(r.key.dst_port, 0);
     }
+
+    // ─── Ethernet 802.1Q (VLAN) + size-bound corners ─────────────────
+    //
+    // VLAN frames are silently miscounted on most home-rolled
+    // dissectors; pin the inner-IPv6 path and the exact-byte boundary
+    // where parse_ethernet flips between "too short" and "valid".
+
+    #[test]
+    fn parse_ethernet_vlan_carries_ipv4_payload_through() {
+        // Outer Ethernet with 0x8100 VLAN tag, inner 0x0800 IPv4.
+        // 14 header + 4 VLAN tag = 18 bytes before IPv4 starts.
+        let mut pkt = vec![0u8; 18 + 20 + 8];
+        // dst/src MACs occupy bytes 0..12; leave zeroed.
+        pkt[12] = 0x81;
+        pkt[13] = 0x00; // VLAN ethertype
+        pkt[14] = 0x00;
+        pkt[15] = 0x01; // VLAN tag/PCP
+        pkt[16] = 0x08;
+        pkt[17] = 0x00; // inner = IPv4
+                        // Minimal IPv4 header at offset 18.
+        pkt[18] = 0x45; // version + IHL
+        pkt[18 + 9] = 17; // UDP
+        pkt[18 + 12..18 + 16].copy_from_slice(&[10, 1, 2, 3]);
+        pkt[18 + 16..18 + 20].copy_from_slice(&[10, 1, 2, 4]);
+        // UDP header at offset 38: src=53, dst=10000.
+        pkt[38..40].copy_from_slice(&53u16.to_be_bytes());
+        pkt[40..42].copy_from_slice(&10000u16.to_be_bytes());
+        let r = parse_ethernet(&pkt, None).expect("vlan-tagged ipv4 should parse");
+        assert_eq!(r.key.protocol, Protocol::Udp);
+        assert_eq!(r.key.src_port, 53);
+        assert_eq!(r.key.dst_port, 10000);
+    }
+
+    #[test]
+    fn parse_ethernet_vlan_too_short_rejects_at_18_byte_boundary() {
+        // 17 bytes — VLAN tag header itself isn't even complete.
+        let mut pkt = vec![0u8; 17];
+        pkt[12] = 0x81;
+        pkt[13] = 0x00;
+        assert!(
+            parse_ethernet(&pkt, None).is_none(),
+            "17-byte VLAN frame must be rejected"
+        );
+    }
+
+    #[test]
+    fn parse_ethernet_exactly_14_bytes_no_payload_returns_none() {
+        // 14 bytes total: header satisfies the length check, but the
+        // payload slice (`&data[14..]`) is empty — no IPv4/IPv6 can be
+        // parsed. Pin that we return None rather than panicking on the
+        // empty payload.
+        let mut pkt = vec![0u8; 14];
+        pkt[12] = 0x08;
+        pkt[13] = 0x00; // claims IPv4 but nothing follows
+        assert!(parse_ethernet(&pkt, None).is_none());
+    }
 }
