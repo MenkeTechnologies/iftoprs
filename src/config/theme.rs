@@ -106,7 +106,6 @@ impl ThemeName {
         ThemeName::Iftopcolor,
     ];
     /// `display_name` — see implementation.
-
     pub fn display_name(self) -> &'static str {
         match self {
             ThemeName::NeonSprawl => "Neon Sprawl",
@@ -254,7 +253,6 @@ impl Theme {
         Self::from_palette_raw(c1, c2, c3, c4, c5, c6)
     }
     /// `from_palette_raw` — see implementation.
-
     pub fn from_palette_raw(c1: u8, c2: u8, c3: u8, c4: u8, c5: u8, c6: u8) -> Self {
         Theme {
             bar_color: Color::Indexed(c6), // darkest — bar background

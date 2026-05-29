@@ -53,7 +53,6 @@ pub struct FlowSnapshot {
     pub history: Vec<u64>,
 }
 /// `TotalStats` — see fields for layout.
-
 #[derive(Debug, Clone)]
 pub struct TotalStats {
     /// `sent_2s` field.

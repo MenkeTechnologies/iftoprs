@@ -26,7 +26,6 @@ pub struct CliOverrides {
     pub interface: bool,
 }
 /// `ViewTab` — see variants.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViewTab {
     /// `Flows` variant.
@@ -35,7 +34,6 @@ pub enum ViewTab {
     Processes,
 }
 /// `SortColumn` — see variants.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortColumn {
     /// `Avg2s` variant.
@@ -50,7 +48,6 @@ pub enum SortColumn {
     DstName,
 }
 /// `LineDisplay` — see variants.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LineDisplay {
     /// `TwoLine` variant.
@@ -75,7 +72,6 @@ impl LineDisplay {
     }
 }
 /// `BarStyle` — see variants.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum BarStyle {
     /// `Gradient` variant.
@@ -665,26 +661,22 @@ impl AppState {
         }
     }
     /// `set_theme` — see implementation.
-
     pub fn set_theme(&mut self, name: ThemeName) {
         self.theme_name = name;
         self.theme = Theme::from_name(name);
         self.active_custom_theme = None;
     }
     /// `apply_custom_palette` — see implementation.
-
     pub fn apply_custom_palette(&mut self, colors: [u8; 6]) {
         self.theme = Theme::from_palette_raw(
             colors[0], colors[1], colors[2], colors[3], colors[4], colors[5],
         );
     }
     /// `set_status` — see implementation.
-
     pub fn set_status(&mut self, msg: impl Into<String>) {
         self.status_msg = Some(StatusMsg::new(msg.into()));
     }
     /// `save_prefs` — see implementation.
-
     pub fn save_prefs(&self) {
         let co = &self.cli_overrides;
         let op = &self.orig_prefs;
@@ -1359,7 +1351,6 @@ impl AppState {
 
     // ── Process view navigation ──
     /// `process_select_next` — see implementation.
-
     pub fn process_select_next(&mut self) {
         let max = self.process_snapshots.len().saturating_sub(1);
         self.process_selected = Some(match self.process_selected {
@@ -1373,7 +1364,6 @@ impl AppState {
         }
     }
     /// `process_select_prev` — see implementation.
-
     pub fn process_select_prev(&mut self) {
         self.process_selected = Some(match self.process_selected {
             Some(i) => i.saturating_sub(1),
@@ -1386,7 +1376,6 @@ impl AppState {
         }
     }
     /// `process_page_down` — see implementation.
-
     pub fn process_page_down(&mut self) {
         let half = 10;
         let max = self.process_snapshots.len().saturating_sub(1);
@@ -1401,7 +1390,6 @@ impl AppState {
         }
     }
     /// `process_page_up` — see implementation.
-
     pub fn process_page_up(&mut self) {
         let half = 10;
         self.process_selected = Some(match self.process_selected {
@@ -1442,7 +1430,6 @@ impl AppState {
         }
     }
     /// `export` — see implementation.
-
     pub fn export(&mut self) {
         let path = dirs::home_dir()
             .map(|h| h.join(".iftoprs.export.txt"))
@@ -1509,7 +1496,6 @@ impl AppState {
         }
     }
     /// `update_snapshot` — see implementation.
-
     pub fn update_snapshot(&mut self, mut flows: Vec<FlowSnapshot>, totals: TotalStats) {
         if self.paused {
             return;
@@ -1666,7 +1652,6 @@ impl AppState {
         }
     }
     /// `format_host` — see implementation.
-
     pub fn format_host(&self, addr: std::net::IpAddr, port: u16, protocol: &Protocol) -> String {
         let hostname = self.resolver.resolve(addr);
         if self.show_ports && port > 0 {

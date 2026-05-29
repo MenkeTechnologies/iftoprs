@@ -106,12 +106,10 @@ impl Resolver {
         addr.to_string()
     }
     /// `toggle` — see implementation.
-
     pub fn toggle(&mut self) {
         self.enabled = !self.enabled;
     }
     /// `is_enabled` — see implementation.
-
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }

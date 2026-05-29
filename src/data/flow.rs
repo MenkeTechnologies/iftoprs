@@ -16,7 +16,6 @@ pub struct FlowKey {
     pub protocol: Protocol,
 }
 /// `Protocol` — see variants.
-
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum Protocol {
     /// `Tcp` variant.
@@ -56,7 +55,7 @@ impl Protocol {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     /// `Sent` variant.
-    Sent,     // src -> dst (matches key order)
+    Sent, // src -> dst (matches key order)
     /// `Received` variant.
     Received, // dst -> src (reversed)
 }

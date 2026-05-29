@@ -63,7 +63,6 @@ impl FlowHistory {
         }
     }
     /// `add_recv` — see implementation.
-
     pub fn add_recv(&mut self, bytes: u64) {
         self.total_recv += bytes;
         self.last_seen = Instant::now();
@@ -109,7 +108,6 @@ impl FlowHistory {
         sum as f64
     }
     /// `avg_sent_2s` — see implementation.
-
     pub fn avg_sent_2s(&self) -> f64 {
         Self::window_total(&self.sent, 2)
     }
@@ -122,7 +120,6 @@ impl FlowHistory {
         Self::window_total(&self.sent, 40)
     }
     /// `avg_recv_2s` — see implementation.
-
     pub fn avg_recv_2s(&self) -> f64 {
         Self::window_total(&self.recv, 2)
     }

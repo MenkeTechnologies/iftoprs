@@ -113,7 +113,6 @@ fn prefs_path() -> Option<std::path::PathBuf> {
     dirs::home_dir().map(|h| h.join(".iftoprs.conf"))
 }
 /// `load_prefs` — see implementation.
-
 pub fn load_prefs() -> Prefs {
     let path = match prefs_path() {
         Some(p) => p,
@@ -130,7 +129,6 @@ pub fn load_prefs() -> Prefs {
     }
 }
 /// `save_prefs` — see implementation.
-
 pub fn save_prefs(prefs: &Prefs) {
     #[cfg(test)]
     {

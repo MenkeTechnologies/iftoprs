@@ -171,7 +171,6 @@ fn run_capture_loop(
     }
 }
 /// `CaptureHandle` — see fields for layout.
-
 pub struct CaptureHandle {
     _thread: std::thread::JoinHandle<()>,
 }
@@ -200,7 +199,9 @@ mod tests {
 
     #[test]
     fn resolve_device_unknown_name_is_err() {
-        let result = resolve_device(&Some("definitely_not_a_real_interface_xyz_12345".to_string()));
+        let result = resolve_device(&Some(
+            "definitely_not_a_real_interface_xyz_12345".to_string(),
+        ));
         assert!(result.is_err(), "expected error for unknown interface");
     }
 
