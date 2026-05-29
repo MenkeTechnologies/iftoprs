@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <meta name="description" content="iftoprs — Engineering report. Real-time bandwidth monitor in Rust: 27,453 Rust lines (production + tests), 2,233 test functions, 31 cyberpunk themes, ratatui TUI, pcap capture engine, per-flow process attribution, JSON streaming, mouse + sparklines, auto-restart capture, 14 direct + 249 transitive crates.">
+  <meta name="description" content="iftoprs — Engineering report. Real-time bandwidth monitor in Rust: 27,453 Rust lines (production + tests), 2,242 test functions, 31 cyberpunk themes, ratatui TUI, pcap capture engine, per-flow process attribution, JSON streaming, mouse + sparklines, auto-restart capture, 14 direct + 249 transitive crates.">
   <title>iftoprs &mdash; Engineering Report</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,12 +92,12 @@
       <!-- SECTION 1: EXECUTIVE SUMMARY            -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">&gt;_</span>EXECUTIVE SUMMARY</h2>
-      <p class="tutorial-subtitle">iftoprs is a single-binary real-time bandwidth monitor written in Rust. Live <code>libpcap</code> capture feeds an async <code>tokio</code> pipeline; a per-flow tracker computes 2&nbsp;s / 10&nbsp;s / 40&nbsp;s sliding-window averages, cumulative byte counters, and 40-sample sparkline history; a <code>ratatui</code> TUI renders the result with mouse + keyboard navigation, hover tooltips, 31 cyberpunk color themes, configurable bandwidth alerts, and live filter / pin / drill-down. Background <code>lsof</code> polling joins each flow to its owning <code>(PID, process_name)</code>. A headless <code>--json</code> mode streams NDJSON snapshots for pipelines. Auto-restart with exponential backoff keeps the capture loop alive across transient kernel / driver hiccups. <strong>21,812 production Rust lines + 5,641 integration-test lines + 2,233 test functions + 31 themes + 17 CLI flags + 14 direct (249 transitive) crates &mdash; macOS &amp; Linux on x86_64 + aarch64.</strong></p>
+      <p class="tutorial-subtitle">iftoprs is a single-binary real-time bandwidth monitor written in Rust. Live <code>libpcap</code> capture feeds an async <code>tokio</code> pipeline; a per-flow tracker computes 2&nbsp;s / 10&nbsp;s / 40&nbsp;s sliding-window averages, cumulative byte counters, and 40-sample sparkline history; a <code>ratatui</code> TUI renders the result with mouse + keyboard navigation, hover tooltips, 31 cyberpunk color themes, configurable bandwidth alerts, and live filter / pin / drill-down. Background <code>lsof</code> polling joins each flow to its owning <code>(PID, process_name)</code>. A headless <code>--json</code> mode streams NDJSON snapshots for pipelines. Auto-restart with exponential backoff keeps the capture loop alive across transient kernel / driver hiccups. <strong>21,812 production Rust lines + 5,641 integration-test lines + 2,242 test functions + 31 themes + 17 CLI flags + 14 direct (249 transitive) crates &mdash; macOS &amp; Linux on x86_64 + aarch64.</strong></p>
 
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-val">27,453</div><div class="stat-label">Total Rust Lines</div></div>
         <div class="stat-card"><div class="stat-val">21,812</div><div class="stat-label">Production Rust</div></div>
-        <div class="stat-card"><div class="stat-val accent">2,233</div><div class="stat-label">Test Functions</div></div>
+        <div class="stat-card"><div class="stat-val accent">2,242</div><div class="stat-label">Test Functions</div></div>
         <div class="stat-card"><div class="stat-val green">31</div><div class="stat-label">Color Themes</div></div>
         <div class="stat-card"><div class="stat-val">17</div><div class="stat-label">CLI Flags</div></div>
         <div class="stat-card"><div class="stat-val">14</div><div class="stat-label">Direct Crates</div></div>
@@ -410,10 +410,10 @@
       <!-- SECTION 8: TEST SURFACE                 -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">*</span>TEST SURFACE</h2>
-      <p class="tutorial-subtitle">2,233 test functions across the production crate and integration suite. CI runs format + clippy + test on Ubuntu + macOS on every push and pull request. Integration tests drive the built binary via <code>CARGO_BIN_EXE_iftoprs</code> &mdash; not <code>cargo run</code> &mdash; so the assertions hit the real binary.</p>
+      <p class="tutorial-subtitle">2,242 test functions across the production crate and integration suite. CI runs format + clippy + test on Ubuntu + macOS on every push and pull request. Integration tests drive the built binary via <code>CARGO_BIN_EXE_iftoprs</code> &mdash; not <code>cargo run</code> &mdash; so the assertions hit the real binary.</p>
 
       <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));">
-        <div class="stat-card"><div class="stat-val accent">2,233</div><div class="stat-label">Total #[test] fns</div></div>
+        <div class="stat-card"><div class="stat-val accent">2,242</div><div class="stat-label">Total #[test] fns</div></div>
         <div class="stat-card"><div class="stat-val">1,729</div><div class="stat-label">Unit Tests (src/)</div></div>
         <div class="stat-card"><div class="stat-val">504</div><div class="stat-label">Integration Tests</div></div>
         <div class="stat-card"><div class="stat-val">5,641</div><div class="stat-label">Integration LOC</div></div>
