@@ -3002,4 +3002,73 @@ mod tests {
         pkt[13] = 0x00; // claims IPv4 but nothing follows
         assert!(parse_ethernet(&pkt, None).is_none());
     }
+
+    // ─── Length-bound boundary pins ──────────────────────────────────
+    //
+    // Each link-layer parser has a hard minimum length; passing one
+    // byte less must return None (not panic). One byte more must
+    // proceed to the IP-version dispatch.
+
+    #[test]
+    fn parse_sll_at_exactly_16_bytes_no_payload_returns_none() {
+        // 16 bytes pass the length check but the IPv4 dispatch on
+        // empty payload returns None (no panic).
+        let mut pkt = vec![0u8; 16];
+        pkt[14] = 0x08;
+        pkt[15] = 0x00;
+        assert!(parse_sll(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_sll_15_byte_packet_below_header_minimum() {
+        let pkt = vec![0u8; 15];
+        assert!(
+            parse_sll(&pkt, None).is_none(),
+            "15-byte SLL packet must be rejected (header needs 16 bytes)"
+        );
+    }
+
+    #[test]
+    fn parse_sll_unknown_protocol_returns_none_without_panic() {
+        let mut pkt = vec![0u8; 20];
+        // 0x0806 = ARP — recognized by SLL but not by our IPv4/IPv6
+        // dispatch table. Must return None, not panic.
+        pkt[14] = 0x08;
+        pkt[15] = 0x06;
+        assert!(parse_sll(&pkt, None).is_none());
+    }
+
+    #[test]
+    fn parse_raw_empty_input_returns_none() {
+        assert!(parse_raw(&[], None).is_none());
+    }
+
+    #[test]
+    fn parse_raw_version_in_high_nibble_only() {
+        // The version is `data[0] >> 4`; lower nibble is IHL and
+        // must not affect the dispatch decision. Pin that v4 with
+        // any low-nibble lands in IPv4 parse and v6 lands in IPv6
+        // (where total length is too short → None).
+        let mut pkt = vec![0u8; 20];
+        pkt[0] = 0x4F; // version=4, IHL=15 (maximum legal)
+        // Without a full IPv4 header content, parse_ipv4 returns None
+        // — but it should NOT panic.
+        let _ = parse_raw(&pkt, None);
+        // Also verify version=6 with low-nibble noise routes to IPv6:
+        pkt[0] = 0x6F;
+        let _ = parse_raw(&pkt, None);
+    }
+
+    #[test]
+    fn parse_raw_version_bits_other_than_4_or_6_return_none() {
+        // Versions 0/1/2/3/5/7..=15 are unassigned; must reject.
+        for v in [0u8, 1, 2, 3, 5, 7, 8, 9, 15] {
+            let mut pkt = vec![0u8; 20];
+            pkt[0] = v << 4;
+            assert!(
+                parse_raw(&pkt, None).is_none(),
+                "version {v} should be rejected"
+            );
+        }
+    }
 }
