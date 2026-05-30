@@ -186,7 +186,7 @@ LIBPCAP       == installed (system dependency)
 | `ratatui` 0.30 | TUI rendering framework |
 | `crossterm` 0.29 | Terminal events + manipulation |
 | `pcap` 2.4 | Packet capture via libpcap |
-| `tokio` 1.50 | Async runtime + channels |
+| `tokio` 1.51 | Async runtime + channels |
 | `clap` 4.6 | CLI argument parsing |
 | `dns-lookup` 3.0 | Reverse DNS resolution |
 | `regex` 1.12 | Pattern matching for filters |
