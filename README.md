@@ -21,7 +21,10 @@
 A neon-drenched terminal UI for real-time bandwidth monitoring. Built in Rust with [ratatui](https://github.com/ratatui/ratatui) + [crossterm](https://github.com/crossterm-rs/crossterm) + [pcap](https://docs.rs/pcap). 31 cyberpunk themes, process attribution via `lsof`, JSON streaming, BPF filters, mouse + sparklines, auto-restart capture, hover tooltips.
 
 ```bash
-cargo install iftoprs
+brew tap MenkeTechnologies/menketech    # one-time
+brew install iftoprs                    # via Homebrew tap (recommended)
+
+cargo install iftoprs                   # via crates.io
 ```
 
 <p align="center">
