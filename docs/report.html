@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <meta name="description" content="iftoprs — Engineering report. Real-time bandwidth monitor in Rust: 27,585 Rust lines (production + tests), 2,250 test functions, 31 cyberpunk themes, ratatui TUI, pcap capture engine, per-flow process attribution, JSON streaming, mouse + sparklines, auto-restart capture, 14 direct + 249 transitive crates.">
+  <meta name="description" content="iftoprs — Engineering report. Real-time bandwidth monitor in Rust: 27,755 Rust lines (production + tests), 2,250 test functions, 31 cyberpunk themes, ratatui TUI, pcap capture engine, per-flow process attribution, JSON streaming, mouse + sparklines, auto-restart capture, 14 direct + 249 transitive crates.">
   <title>iftoprs &mdash; Engineering Report</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -95,7 +95,7 @@
       <p class="tutorial-subtitle">iftoprs is a single-binary real-time bandwidth monitor written in Rust. Live <code>libpcap</code> capture feeds an async <code>tokio</code> pipeline; a per-flow tracker computes 2&nbsp;s / 10&nbsp;s / 40&nbsp;s sliding-window averages, cumulative byte counters, and 40-sample sparkline history; a <code>ratatui</code> TUI renders the result with mouse + keyboard navigation, hover tooltips, 31 cyberpunk color themes, configurable bandwidth alerts, and live filter / pin / drill-down. Background <code>lsof</code> polling joins each flow to its owning <code>(PID, process_name)</code>. A headless <code>--json</code> mode streams NDJSON snapshots for pipelines. Auto-restart with exponential backoff keeps the capture loop alive across transient kernel / driver hiccups. <strong>21,812 production Rust lines + 5,773 integration-test lines + 2,250 test functions + 31 themes + 17 CLI flags + 14 direct (249 transitive) crates &mdash; macOS &amp; Linux on x86_64 + aarch64.</strong></p>
 
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-val">27,585</div><div class="stat-label">Total Rust Lines</div></div>
+        <div class="stat-card"><div class="stat-val">27,755</div><div class="stat-label">Total Rust Lines</div></div>
         <div class="stat-card"><div class="stat-val">21,812</div><div class="stat-label">Production Rust</div></div>
         <div class="stat-card"><div class="stat-val accent">2,250</div><div class="stat-label">Test Functions</div></div>
         <div class="stat-card"><div class="stat-val green">31</div><div class="stat-label">Color Themes</div></div>
@@ -108,7 +108,7 @@
       </div>
 
       <div style="margin:1.2rem 0;">
-        <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;font-family:'Orbitron',sans-serif;font-weight:700;">Source Distribution &mdash; 27,585 lines</p>
+        <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;font-family:'Orbitron',sans-serif;font-weight:700;">Source Distribution &mdash; 27,755 lines</p>
         <div class="bar-wrap" style="height:26px;">
           <div class="bar-fill cyan" style="width:79.5%;"></div>
           <span class="bar-pct" style="font-size:12px;">21,812 production / 5,773 tests &middot; 79.5% production</span>
