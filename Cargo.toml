@@ -2,6 +2,7 @@
 name = "iftoprs"
 version = "2.22.5"
 edition = "2024"
+authors = ["MenkeTechnologies"]
 description = "Real-time bandwidth monitor — iftop clone in Rust with ratatui TUI, 31 themes, process attribution, mouse support"
 license = "MIT"
 repository = "https://github.com/MenkeTechnologies/iftoprs"
