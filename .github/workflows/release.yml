@@ -37,16 +37,12 @@ jobs:
           # --- Linux glibc native ---
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            # Cross-compile from ubuntu-latest x86_64 via cross-rs
-            # Docker container — more reliable than ubuntu-24.04-arm
-            # native runners which occasionally evict mid-build.
-            # libpcap-dev:arm64 is installed inside the container via
-            # Cross.toml pre-build. No allow_failure: this target must
-            # succeed so the Homebrew formula's on_linux/on_arm block
-            # emits.
-            use_cross: true
+            # Native aarch64 runner. cross-rs's xenial-based Docker
+            # image apt repos no longer ship libpcap-dev:arm64, so the
+            # `pcap` crate fails to link inside the container. Native
+            # arm64 runner has libpcap-dev in apt directly.
           # --- Linux musl static (portable across glibc/musl distros) ---
           # libpcap is dynamically linked on glibc; musl static builds
           # may fail without a vendored static libpcap. allow_failure
@@ -71,6 +67,12 @@ jobs:
       - name: Install libpcap (Linux glibc)
         if: runner.os == 'Linux' && !contains(matrix.target, 'musl') && !matrix.use_cross
         run: sudo apt-get update && sudo apt-get install -y libpcap-dev
+
+      - name: Install native deps for aarch64-linux-gnu (libpcap)
+        if: matrix.target == 'aarch64-unknown-linux-gnu' && !matrix.use_cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcap-dev
 
       - name: Install libpcap (Linux musl)
         if: contains(matrix.target, 'musl') && !matrix.use_cross

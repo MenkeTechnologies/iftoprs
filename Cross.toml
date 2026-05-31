@@ -1,13 +1,6 @@
 # cross-rs target overrides for iftoprs.
 #
-# The `pcap` crate links against libpcap, so the cross-build container
-# needs the arm64 headers + library. cross-rs's default
-# aarch64-unknown-linux-gnu image is Debian-based and already has the
-# arm64 architecture enabled; we just need to install libpcap-dev:arm64.
-
-[target.aarch64-unknown-linux-gnu]
-pre-build = [
-    "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update",
-    "apt-get install --assume-yes libpcap-dev:$CROSS_DEB_ARCH",
-]
+# aarch64-unknown-linux-gnu was previously cross-compiled here, but
+# cross-rs's xenial-based Docker image apt repos no longer ship
+# libpcap-dev:arm64, so the build moved to a native ubuntu-24.04-arm
+# runner instead (see .github/workflows/release.yml).
