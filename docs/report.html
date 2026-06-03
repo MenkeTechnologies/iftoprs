@@ -252,24 +252,24 @@
           <tr><td>src/capture/parser.rs</td><td class="num">3,074</td><td>Packet decoder &mdash; Ethernet II, VLAN, IPv4, IPv6, TCP, UDP, ICMP, ICMPv6, ARP, raw IP. Per-packet 5-tuple extraction, protocol classification, direction inference vs interface IP / net filter</td></tr>
           <tr><td>src/ui/render.rs</td><td class="num">2,610</td><td>ratatui paint paths &mdash; header bar with 14 hover-segment hit boxes, flow table with TX/RX columns and gradient bars, sparkline row, footer status, alert flash, popup choosers, help HUD, pause overlay</td></tr>
           <tr><td>src/config/cli.rs</td><td class="num">2,344</td><td>clap derive: 17 flags, 5 completion shells, <code>--list-colors</code> swatch dump, <code>--list-interfaces</code> table, version string. Holds every <code>clap_complete</code> generator</td></tr>
-          <tr><td>src/util/resolver.rs</td><td class="num">1,732</td><td>Async reverse-DNS with cache + TTL; port-to-service-name table (<code>/etc/services</code>-style); never blocks the UI thread on lookup misses</td></tr>
-          <tr><td>src/data/flow.rs</td><td class="num">1,673</td><td>5-tuple <code>Flow</code> record, TX/RX counters, sort comparators, format helpers, display variants for one-line / two-line / sent-only / recv-only modes</td></tr>
-          <tr><td>src/config/theme.rs</td><td class="num">1,177</td><td>31 themes &mdash; <code>ThemeName</code> enum, <code>ThemeName::ALL</code> table, display-name resolver, color palette per theme, swatch row for chooser preview</td></tr>
+          <tr><td>src/util/resolver.rs</td><td class="num">1,733</td><td>Async reverse-DNS with cache + TTL; port-to-service-name table (<code>/etc/services</code>-style); never blocks the UI thread on lookup misses</td></tr>
+          <tr><td>src/data/flow.rs</td><td class="num">1,685</td><td>5-tuple <code>Flow</code> record, TX/RX counters, sort comparators, format helpers, display variants for one-line / two-line / sent-only / recv-only modes</td></tr>
+          <tr><td>src/config/theme.rs</td><td class="num">1,239</td><td>31 themes &mdash; <code>ThemeName</code> enum, <code>ThemeName::ALL</code> table, display-name resolver, color palette per theme, swatch row for chooser preview</td></tr>
           <tr><td>src/main.rs</td><td class="num">1,135</td><td>Entry point &mdash; argv handoff, JSON-mode short-circuit, capture thread spawn, TUI bootstrap, Ctrl+C handling, prefs save on exit</td></tr>
-          <tr><td>src/data/tracker.rs</td><td class="num">1,018</td><td>Flow store: insertion / update / expiration, packet&rarr;flow folding, per-direction byte accumulation, sliding-window state, alert evaluation</td></tr>
-          <tr><td>src/config/prefs.rs</td><td class="num">948</td><td>TOML serializer for <code>~/.iftoprs.conf</code> &mdash; load, default-on-missing, auto-save on toggle, schema-stable across upgrades</td></tr>
-          <tr><td>src/data/history.rs</td><td class="num">854</td><td>Per-flow sparkline ring buffer (40 samples), sliding-window rate math, peak tracking, display string builder (▁▂▃▅▇█)</td></tr>
+          <tr><td>src/data/tracker.rs</td><td class="num">1,040</td><td>Flow store: insertion / update / expiration, packet&rarr;flow folding, per-direction byte accumulation, sliding-window state, alert evaluation</td></tr>
+          <tr><td>src/config/prefs.rs</td><td class="num">966</td><td>TOML serializer for <code>~/.iftoprs.conf</code> &mdash; load, default-on-missing, auto-save on toggle, schema-stable across upgrades</td></tr>
+          <tr><td>src/data/history.rs</td><td class="num">859</td><td>Per-flow sparkline ring buffer (40 samples), sliding-window rate math, peak tracking, display string builder (▁▂▃▅▇█)</td></tr>
           <tr><td>src/util/format.rs</td><td class="num">673</td><td>Human-readable byte/bit formatters &mdash; <code>10b</code>, <code>1.2Kb</code>, <code>340Mb</code>, <code>1Gb</code>; log-scale bar fill computation; rate column color picker</td></tr>
           <tr><td>src/util/procinfo.rs</td><td class="num">408</td><td>Background <code>lsof -i -n -P -F pcn</code> poller; <code>(local_addr, local_port) → (pid, name)</code> cache in <code>Arc&lt;Mutex&lt;_&gt;&gt;</code>; non-blocking spawn</td></tr>
-          <tr><td>src/capture/sniffer.rs</td><td class="num">184</td><td>pcap capture loop, BPF filter compile, snaplen / promiscuous setup, exponential-backoff restart on transient errors</td></tr>
-          <tr><td>src/util/mod.rs</td><td class="num">5</td><td>re-exports for the util submodules</td></tr>
-          <tr><td>src/lib.rs</td><td class="num">5</td><td>library entry &mdash; re-exports for the integration test harness</td></tr>
-          <tr><td>src/data/mod.rs</td><td class="num">3</td><td>re-exports for the data submodules</td></tr>
-          <tr><td>src/config/mod.rs</td><td class="num">3</td><td>re-exports for the config submodules</td></tr>
-          <tr><td>src/ui/mod.rs</td><td class="num">2</td><td>re-exports for ui::app + ui::render</td></tr>
-          <tr><td>src/capture/mod.rs</td><td class="num">2</td><td>re-exports for capture::sniffer + capture::parser</td></tr>
+          <tr><td>src/capture/sniffer.rs</td><td class="num">237</td><td>pcap capture loop, BPF filter compile, snaplen / promiscuous setup, exponential-backoff restart on transient errors</td></tr>
+          <tr><td>src/util/mod.rs</td><td class="num">8</td><td>re-exports for the util submodules</td></tr>
+          <tr><td>src/lib.rs</td><td class="num">13</td><td>library entry &mdash; re-exports for the integration test harness</td></tr>
+          <tr><td>src/data/mod.rs</td><td class="num">6</td><td>re-exports for the data submodules</td></tr>
+          <tr><td>src/config/mod.rs</td><td class="num">6</td><td>re-exports for the config submodules</td></tr>
+          <tr><td>src/ui/mod.rs</td><td class="num">4</td><td>re-exports for ui::app + ui::render</td></tr>
+          <tr><td>src/capture/mod.rs</td><td class="num">4</td><td>re-exports for capture::sniffer + capture::parser</td></tr>
         </tbody>
-        <tfoot><tr class="total-row"><td style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;">TOTAL (PRODUCTION + TESTS)</td><td class="num">26,633</td><td>21 <code>.rs</code> files &mdash; single binary crate</td></tr></tfoot>
+        <tfoot><tr class="total-row"><td style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;">TOTAL (PRODUCTION + TESTS)</td><td class="num">27,924</td><td>25 <code>.rs</code> files (20 src + 5 tests) &mdash; single binary crate</td></tr></tfoot>
       </table>
 
       <hr class="section-rule">
@@ -286,7 +286,7 @@
         ▼
   ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
   │ sniffer.rs     │────▶│ parser.rs      │────▶│ tracker.rs     │
-  │ (184)          │     │ (2,950)        │     │ (1,018)        │
+  │ (237)          │     │ (3,074)        │     │ (1,040)        │
   │ pcap_loop      │     │ Eth / VLAN     │     │ 5-tuple store  │
   │ BPF compile    │     │ IPv4 / IPv6    │     │ TX / RX split  │
   │ exp-backoff    │     │ TCP / UDP /    │     │ window math    │
@@ -298,7 +298,7 @@
                               ▼                         ▼
                     ┌────────────────┐         ┌────────────────┐
                     │ resolver.rs    │         │ history.rs     │
-                    │ (1,732)        │         │ (854)          │
+                    │ (1,733)        │         │ (859)          │
                     │ async DNS      │         │ 40-sample ring │
                     │ port names     │         │ sparkline      │
                     │ TTL cache      │         │ peak tracking  │
@@ -318,7 +318,7 @@
                                          ▼
                                ┌──────────────────┐
                                │ ui/app.rs        │
-                               │ (3,654)          │
+                               │ (3,768)          │
                                │ state + input    │
                                └────────┬─────────┘
                                         │

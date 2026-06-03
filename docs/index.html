@@ -605,7 +605,7 @@ cargo test --locked</pre>
         <h2>Crate layout</h2>
         <p>Single binary, eight modules, ~21k lines of production Rust:</p>
         <div class="cat-grid">
-          <div class="cat-card"><h4>src/main.rs</h4><p>Entry point: CLI parse, capture spawn, TUI bootstrap, signal handling. 1,072 lines.</p></div>
+          <div class="cat-card"><h4>src/main.rs</h4><p>Entry point: CLI parse, capture spawn, TUI bootstrap, signal handling. 1,135 lines.</p></div>
           <div class="cat-card"><h4>src/capture/</h4><p><code>sniffer.rs</code> &mdash; pcap loop + restart. <code>parser.rs</code> &mdash; Ethernet/IP/TCP/UDP/ICMP decode. ~3.1k lines.</p></div>
           <div class="cat-card"><h4>src/data/</h4><p><code>flow.rs</code> 5-tuple model + counters. <code>tracker.rs</code> &mdash; flow store. <code>history.rs</code> sparkline ring. ~3.5k lines.</p></div>
           <div class="cat-card"><h4>src/ui/</h4><p><code>app.rs</code> &mdash; TUI state + input. <code>render.rs</code> &mdash; ratatui paint. ~6.3k lines.</p></div>
