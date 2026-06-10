@@ -232,13 +232,22 @@ impl FilterState {
     }
     /// `delete_word` — see implementation.
     pub fn delete_word(&mut self) {
-        // Ctrl+W behavior: skip trailing spaces, then delete the word
+        // Ctrl+W behavior: skip trailing spaces, then delete the word.
+        // Pre-fix this used `rfind(char::is_whitespace).map(|i| i + 1)`
+        // which assumed the whitespace was 1 byte — panicked with
+        // `is_char_boundary` on NBSP (U+00A0, 2 bytes) or CJK ideographic
+        // space (U+3000, 3 bytes). Now we step to the next char boundary
+        // using the actual UTF-8 width of the matched whitespace.
         let s = &self.buf[..self.cursor];
         let trimmed = s.trim_end();
-        let word_start = trimmed
-            .rfind(char::is_whitespace)
-            .map(|i| i + 1)
-            .unwrap_or(0);
+        let word_start = match trimmed
+            .char_indices()
+            .rev()
+            .find(|(_, c)| c.is_whitespace())
+        {
+            Some((i, c)) => i + c.len_utf8(),
+            None => 0,
+        };
         self.buf.drain(word_start..self.cursor);
         self.cursor = word_start;
     }
@@ -1875,6 +1884,34 @@ mod tests {
         f.cursor = 11;
         f.delete_word();
         assert_eq!(f.buf, "hello "); // Ctrl+W deletes the word, preserves preceding space
+    }
+
+    /// Pre-fix `delete_word` panicked with `is_char_boundary` whenever a
+    /// multi-byte Unicode whitespace character (NBSP U+00A0, 2 bytes;
+    /// ideographic space U+3000, 3 bytes) sat between two words.
+    /// `s.rfind(char::is_whitespace).map(|i| i + 1)` assumed 1-byte ASCII
+    /// space — `i + 1` landed inside the NBSP's second byte and
+    /// `buf.drain(..)` panicked.
+    #[test]
+    fn filter_state_delete_word_after_nbsp_does_not_panic() {
+        let mut f = FilterState::new();
+        f.buf = "hello\u{00A0}world".to_string(); // NBSP between
+        f.cursor = f.buf.len();
+        f.delete_word(); // must not panic
+        // `world` is gone; the NBSP+preceding word stay (Ctrl+W word boundary semantics).
+        assert_eq!(f.buf, "hello\u{00A0}");
+    }
+
+    /// CJK ideographic space (U+3000, 3 bytes) — same bug class with a
+    /// wider char. Pin the width-3 case so a fix that handles only the
+    /// width-2 NBSP regresses width-3.
+    #[test]
+    fn filter_state_delete_word_after_ideographic_space_does_not_panic() {
+        let mut f = FilterState::new();
+        f.buf = "hello\u{3000}world".to_string();
+        f.cursor = f.buf.len();
+        f.delete_word();
+        assert_eq!(f.buf, "hello\u{3000}");
     }
 
     // ── StatusMsg ──
