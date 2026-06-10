@@ -36,7 +36,11 @@ fn sparkline_only_emits_one_column_glyphs() {
     // eight U+2581..U+2588 block-element glyphs.
     for ch in out.chars() {
         let ok = ch == ' ' || ('\u{2581}'..='\u{2588}').contains(&ch);
-        assert!(ok, "sparkline emitted illegal glyph {:?} (U+{:04X})", ch, ch as u32);
+        assert!(
+            ok,
+            "sparkline emitted illegal glyph {:?} (U+{:04X})",
+            ch, ch as u32
+        );
     }
 
     // ASCII space is 1 byte, each block glyph is 3 bytes. Verify the total
@@ -77,7 +81,10 @@ fn sparkline_with_u64_max_top_block_never_panics_or_misindexes() {
     let chars: Vec<char> = out.chars().collect();
     assert_eq!(chars.len(), 2);
     // 1 / u64::MAX * 7.0 underflows to ~0.0 → idx = 0 → ▁
-    assert_eq!(chars[0], '\u{2581}', "tiny value beside u64::MAX should render bottom block");
+    assert_eq!(
+        chars[0], '\u{2581}',
+        "tiny value beside u64::MAX should render bottom block"
+    );
     assert_eq!(chars[1], '\u{2588}', "u64::MAX should render top block");
 }
 
@@ -100,17 +107,36 @@ fn readable_size_does_not_panic_on_nonfinite_inputs() {
     // accidentally swaps the comparison direction (or introduces a panic
     // path on non-finite) is caught.
     let nan_bytes = readable_size(f64::NAN, true);
-    assert!(nan_bytes.contains("NaN"), "expected NaN tag in output: {:?}", nan_bytes);
-    assert!(nan_bytes.ends_with("TB"), "NaN should fall through to TB branch: {:?}", nan_bytes);
+    assert!(
+        nan_bytes.contains("NaN"),
+        "expected NaN tag in output: {:?}",
+        nan_bytes
+    );
+    assert!(
+        nan_bytes.ends_with("TB"),
+        "NaN should fall through to TB branch: {:?}",
+        nan_bytes
+    );
 
     let nan_bits = readable_size(f64::NAN, false);
-    assert!(nan_bits.contains("NaN"), "expected NaN tag in bit output: {:?}", nan_bits);
-    assert!(nan_bits.ends_with("Tb"), "NaN should fall through to Tb branch: {:?}", nan_bits);
+    assert!(
+        nan_bits.contains("NaN"),
+        "expected NaN tag in bit output: {:?}",
+        nan_bits
+    );
+    assert!(
+        nan_bits.ends_with("Tb"),
+        "NaN should fall through to Tb branch: {:?}",
+        nan_bits
+    );
 
     // +Infinity is greater than every threshold; same TB branch.
     let pos_inf = readable_size(f64::INFINITY, true);
-    assert!(pos_inf.contains("inf") || pos_inf.contains("Inf") || pos_inf.contains("INF"),
-        "expected inf in output: {:?}", pos_inf);
+    assert!(
+        pos_inf.contains("inf") || pos_inf.contains("Inf") || pos_inf.contains("INF"),
+        "expected inf in output: {:?}",
+        pos_inf
+    );
     assert!(pos_inf.ends_with("TB"));
 
     // -Infinity is less than every positive threshold; falls into the
@@ -142,8 +168,14 @@ fn parse_raw_ipv4_tcp_with_no_room_for_ports_yields_zero_ports_no_panic() {
     raw[16..20].copy_from_slice(&[10, 0, 0, 2]);
 
     let result = parser::parse_raw(&raw, None).expect("legal IPv4 header alone should still parse");
-    assert_eq!(result.key.src_port, 0, "no port bytes available → src_port must be 0");
-    assert_eq!(result.key.dst_port, 0, "no port bytes available → dst_port must be 0");
+    assert_eq!(
+        result.key.src_port, 0,
+        "no port bytes available → src_port must be 0"
+    );
+    assert_eq!(
+        result.key.dst_port, 0,
+        "no port bytes available → dst_port must be 0"
+    );
     assert_eq!(result.len, 20);
 }
 
@@ -223,7 +255,10 @@ fn parse_ethernet_ipv6_udp_direction_reversal_produces_same_canonical_key() {
     let f = parser::parse_ethernet(&forward, Some((local, 16))).unwrap();
     let r = parser::parse_ethernet(&reverse, Some((local, 16))).unwrap();
 
-    assert_eq!(f.key, r.key, "canonical IPv6/UDP key must match under direction reversal");
+    assert_eq!(
+        f.key, r.key,
+        "canonical IPv6/UDP key must match under direction reversal"
+    );
     // Both endpoints sit inside the local /16, so `determine_direction` returns
     // `Sent` for both raw orientations. Normalization then swaps the reverse
     // packet (2001::2 > 2001::1), which inverts its direction. The contract:
