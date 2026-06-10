@@ -283,8 +283,10 @@ impl Theme {
     /// Shift an indexed 256-color one step lighter in the color cube or grayscale ramp.
     fn shift_color_lighter(c: u8) -> u8 {
         if c >= 232 {
-            // Grayscale ramp (232..=255): bump up
-            c + 2
+            // Grayscale ramp (232..=255): bump up but clamp at 255. Pre-fix
+            // `c + 2` panicked in debug for c == 254 (u8 overflow) and wrapped
+            // to a dark color in release for c == 254 or 255.
+            c.saturating_add(2)
         } else if c >= 16 {
             // 6x6x6 color cube (16..=231)
             let idx = c - 16;
@@ -296,8 +298,9 @@ impl Theme {
             let b2 = (b + 1).min(5);
             16 + r2 * 36 + g2 * 6 + b2
         } else {
-            // Basic 16 colors — bump to a lighter variant if possible
-            (c + 8).min(15)
+            // Basic 16 colors — bump to a lighter variant if possible. `c + 8`
+            // for c >= 248 would also overflow u8 in debug; use saturating_add.
+            c.saturating_add(8).min(15)
         }
     }
 
@@ -1235,5 +1238,26 @@ mod tests {
                 t
             );
         }
+    }
+
+    /// `shift_color_lighter` must not panic on the u8 max values reachable via
+    /// `CustomThemeColors`. Pre-fix, grayscale 254 / 255 (c + 2 = 256, u8
+    /// overflow) and basic 248..255 (c + 8 overflow) crashed in debug.
+    /// Test every u8 input to catch any future overflow regression.
+    #[test]
+    fn shift_color_lighter_no_panic_across_full_u8_range() {
+        for c in 0..=255u8 {
+            let _ = Theme::shift_color_lighter(c);
+        }
+    }
+
+    /// Saturation contract: grayscale 254/255 → 255 (lightest, not wrap-around).
+    /// Basic palette (<16) caps at 15 (lightest basic color).
+    #[test]
+    fn shift_color_lighter_saturates_at_palette_ceilings() {
+        assert_eq!(Theme::shift_color_lighter(254), 255);
+        assert_eq!(Theme::shift_color_lighter(255), 255);
+        assert_eq!(Theme::shift_color_lighter(15), 15);
+        assert_eq!(Theme::shift_color_lighter(8), 15);
     }
 }
