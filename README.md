@@ -231,11 +231,13 @@ man iftoprsall     # full reference (keybindings, themes, architecture)
 |:---:|:---|
 | Format | `cargo --locked fmt --all --check` |
 | Clippy | `cargo clippy --all-targets --locked -- -D warnings` |
-| Test | `cargo build --locked` and `cargo test --locked` |
+| Doc | `cargo doc --locked --no-deps` with `RUSTDOCFLAGS=-D warnings` |
+| Test | `cargo build --verbose --locked` and `cargo test --verbose --locked` |
+| Docs / Polish / Semantic / Newline + README / Structure gates | shell gate scripts under `tests/*.sh` (docs HTML hygiene, man pages, final newlines, README structure) |
 
 Integration tests in **`tests/integration.rs`** execute the built **`iftoprs`** binary via **`CARGO_BIN_EXE_iftoprs`** (not `cargo run`), so CLI output is read directly from the process and stays reliable in CI.
 
-The **Test** job uses **Ubuntu** and **macOS** runners. On Linux, **apt** installs **`libpcap-dev`** for the **Clippy** and **Test** jobs (the **Format** job does not link `pcap` and does not install it). The repo [`rust-toolchain.toml`](rust-toolchain.toml) pins **stable** Rust with `rustfmt` and `clippy` so local and CI toolchains stay aligned. The workflow uses **least-privilege** `contents: read` permissions and **cancels in-progress runs** on the same branch when a newer commit is pushed, so redundant builds do not pile up. Jobs have **timeouts** (format, clippy, and test) so hung runners do not run indefinitely. The test matrix sets **fail-fast: false** so both operating systems finish even when one fails, which makes cross-platform regressions easier to diagnose.
+The **Test** job uses **Ubuntu** and **macOS** runners. On Linux, **apt** installs **`libpcap-dev`** for the **Clippy**, **Doc**, and **Test** jobs (the **Format** job does not link `pcap` and does not install it). The repo [`rust-toolchain.toml`](rust-toolchain.toml) pins **stable** Rust with `rustfmt` and `clippy` so local and CI toolchains stay aligned. The workflow uses **least-privilege** `contents: read` permissions and **cancels in-progress runs** on the same branch when a newer commit is pushed, so redundant builds do not pile up. Jobs have **timeouts** (format, clippy, and test) so hung runners do not run indefinitely. The test matrix sets **fail-fast: false** so both operating systems finish even when one fails, which makes cross-platform regressions easier to diagnose.
 
 Run the same checks locally before pushing:
 
@@ -285,6 +287,7 @@ cargo test --locked
 
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
+| `-c, --config FILE` | Path to config file (default: ~/.iftoprs.conf) |
 | `-l, --list-interfaces` | List available interfaces and exit |
 | `--list-colors` | Preview all 31 color themes with swatches |
 | `--completions SHELL` | Generate shell completions (zsh, bash, fish, elvish, powershell) |
