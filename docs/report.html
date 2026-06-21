@@ -103,7 +103,7 @@
         <div class="stat-card"><div class="stat-val">14</div><div class="stat-label">Direct Crates</div></div>
         <div class="stat-card"><div class="stat-val">262</div><div class="stat-label">Transitive Crates</div></div>
         <div class="stat-card"><div class="stat-val">20</div><div class="stat-label">Production .rs Files</div></div>
-        <div class="stat-card"><div class="stat-val">236</div><div class="stat-label">Git Commits</div></div>
+        <div class="stat-card"><div class="stat-val">239</div><div class="stat-label">Git Commits</div></div>
         <div class="stat-card"><div class="stat-val">v2.22.8</div><div class="stat-label">Released</div></div>
       </div>
 
@@ -198,7 +198,7 @@
       <div class="feature-grid" style="margin-top:1.2rem;">
         <div class="feature-card">
           <h4>By UX axis</h4>
-          <p>Most prior-art tools commit to one of: ncurses + hotkeys, or text-mode dumps. iftoprs combines both — full mouse + keyboard parity in the TUI, plus a <code>--json</code> headless mode that is the same capture engine without the renderer. The TUI carries 14 segment tooltips (hover + right-click) plus per-flow sparkline tooltips driven by 40-sample ring buffers.</p>
+          <p>Most prior-art tools commit to one of: ncurses + hotkeys, or text-mode dumps. iftoprs combines both — full mouse + keyboard parity in the TUI, plus a <code>--json</code> headless mode that is the same capture engine without the renderer. The TUI carries 10 header-segment tooltips (hover + right-click) plus per-flow sparkline tooltips driven by 40-sample ring buffers.</p>
         </div>
         <div class="feature-card">
           <h4>By theming axis</h4>
@@ -250,7 +250,7 @@
           <tr><td>tests/integration.rs</td><td class="num">5,258</td><td>479 integration tests driving the built <code>iftoprs</code> binary &mdash; CLI parse, <code>--help</code> / <code>--version</code>, <code>--list-interfaces</code>, <code>--list-colors</code>, <code>--completions {zsh,bash,fish,elvish,powershell}</code>, JSON mode, BPF filter compile, CIDR parse, theme name resolution, prefs round-trip, sparkline math, port-name resolution, multicast CIDR edges</td></tr>
           <tr><td>src/ui/app.rs</td><td class="num">3,805</td><td>TUI app state machine: every keybind, every popup, every chooser, hover-tooltip controller, drill-down filter, pin/unpin state, pause / resume, theme + interface choosers, help HUD, mouse-event dispatch, scroll math</td></tr>
           <tr><td>src/capture/parser.rs</td><td class="num">3,074</td><td>Packet decoder &mdash; Ethernet II, VLAN, IPv4, IPv6, TCP, UDP, ICMP, ICMPv6, ARP, raw IP. Per-packet 5-tuple extraction, protocol classification, direction inference vs interface IP / net filter</td></tr>
-          <tr><td>src/ui/render.rs</td><td class="num">2,610</td><td>ratatui paint paths &mdash; header bar with 14 hover-segment hit boxes, flow table with TX/RX columns and gradient bars, sparkline row, footer status, alert flash, popup choosers, help HUD, pause overlay</td></tr>
+          <tr><td>src/ui/render.rs</td><td class="num">2,610</td><td>ratatui paint paths &mdash; header bar with 10 hover-segment hit boxes, flow table with TX/RX columns and gradient bars, sparkline row, footer status, alert flash, popup choosers, help HUD, pause overlay</td></tr>
           <tr><td>src/config/cli.rs</td><td class="num">2,344</td><td>clap derive: 17 flags, 5 completion shells, <code>--list-colors</code> swatch dump, <code>--list-interfaces</code> table, version string. Holds every <code>clap_complete</code> generator</td></tr>
           <tr><td>src/util/resolver.rs</td><td class="num">1,733</td><td>Async reverse-DNS with cache + TTL; port-to-service-name table (<code>/etc/services</code>-style); never blocks the UI thread on lookup misses</td></tr>
           <tr><td>src/data/flow.rs</td><td class="num">1,685</td><td>5-tuple <code>Flow</code> record, TX/RX counters, sort comparators, format helpers, display variants for one-line / two-line / sent-only / recv-only modes</td></tr>
@@ -329,7 +329,7 @@
                                │ ratatui paint    │
                                └──────────────────┘</pre>
 
-      <p style="font-size:11px;color:var(--text-muted);margin-top:0.5rem;">A second egress path skips the renderer entirely: when <code>--json</code> is set, <code>main.rs</code> writes one <code>{"flows":[...]}</code> object per refresh interval to stdout and never starts a terminal.</p>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:0.5rem;">A second egress path skips the renderer entirely: when <code>--json</code> is set, <code>main.rs</code> writes one snapshot object per refresh interval to stdout and never starts a terminal. Each line carries <code>timestamp</code>, <code>flow_count</code>, cumulative + peak totals, and a <code>flows</code> array of 5-tuple records (rates in bits/sec by default, bytes/sec under <code>-B</code>; <code>process_name</code> + <code>pid</code> optional). Full schema in the <a href="index.html" style="color:var(--cyan);">docs</a>.</p>
 
       <hr class="section-rule">
 
@@ -345,6 +345,7 @@
         <div class="mapping-card"><h4>DNS + port names</h4><p>Async reverse-DNS cache, <code>/etc/services</code>-style port-to-service map, never blocks the UI thread on lookup misses, toggled with <code>n</code> / <code>N</code>.</p></div>
         <div class="mapping-card"><h4>Process attribution</h4><p>Background <code>lsof -i -n -P -F pcn</code> poller, <code>Arc&lt;Mutex&lt;HashMap&gt;&gt;</code> cache, per-flow PID + name column, per-process aggregate tab (<code>Tab</code>), drill-down filter (<code>Enter</code>).</p></div>
         <div class="mapping-card"><h4>Themes</h4><p>31 cyberpunk themes with display names, swatch chooser (<code>c</code>), live preview, persisted to <code>~/.iftoprs.conf</code>, full swatch dump with <code>--list-colors</code>.</p></div>
+        <div class="mapping-card"><h4>Custom theme editor</h4><p><code>C</code> opens a 6-slot palette editor (256-color indices); <code>j</code>/<code>k</code> select slot, <code>h</code>/<code>l</code> &plusmn;1, <code>H</code>/<code>L</code> &plusmn;10, live apply, <code>s</code>/<code>Enter</code> names + saves into <code>custom_themes</code> with <code>active_custom_theme</code> tracked in prefs.</p></div>
         <div class="mapping-card"><h4>Mouse</h4><p>Left click selects, right click on flow shows TX/RX tooltip with sparkline, right click on header shows segment tooltip, middle click pins/unpins, scroll navigates, hover triggers 1&nbsp;s tooltip with 3&nbsp;s auto-hide.</p></div>
         <div class="mapping-card"><h4>Sparkline</h4><p>40-sample per-flow ring buffer, inline row below selected flow, also rendered inside right-click tooltip, ▁▂▃▅▇█ block characters, window = <code>40 × refresh_rate</code> seconds.</p></div>
         <div class="mapping-card"><h4>Live filter</h4><p><code>/</code> substring match on hostname / IP, <code>0</code> clears, <code>Ctrl+W</code> delete word, <code>Ctrl+K</code> kill to end, <code>Esc</code> cancels.</p></div>
@@ -355,7 +356,7 @@
         <div class="mapping-card"><h4>Export</h4><p><code>e</code> writes a full flow snapshot to <code>~/.iftoprs.export.txt</code> with per-flow rates + TX/RX totals + process info.</p></div>
         <div class="mapping-card"><h4>Clipboard</h4><p><code>y</code> copies the selected flow's row to clipboard (via system clipboard pipe).</p></div>
         <div class="mapping-card"><h4>Display modes</h4><p>Two-line / one-line / sent-only / recv-only line modes (<code>t</code>); bar styles gradient / solid / thin / ascii (<code>b</code>); bytes vs bits (<code>B</code>); cumulative row (<code>U</code>); border (<code>x</code>); header (<code>g</code>); refresh rate 1/2/5/10&nbsp;s (<code>f</code>).</p></div>
-        <div class="mapping-card"><h4>Tooltips</h4><p>14 hover segment tooltips on header bar with 1&nbsp;s delay + 3&nbsp;s auto-hide; right-click variants are instant and persistent until dismissed; toggle hover with <code>T</code> (right-click still works).</p></div>
+        <div class="mapping-card"><h4>Tooltips</h4><p>10 header-segment tooltips (app, interface, flows, clock, sort, refresh, theme, filter, pause, help) with 1&nbsp;s hover delay + 3&nbsp;s auto-hide; right-click variants are instant and persistent until dismissed; toggle hover with <code>T</code> (right-click still works).</p></div>
       </div>
 
       <hr class="section-rule">
@@ -526,8 +527,8 @@
             <td>Compile-time exhaustiveness for the chooser, the swatch dump, and the TOML validator. Adding a theme is one variant + one row &mdash; the compiler then catches every site that needs to handle it.</td>
           </tr>
           <tr>
-            <td><strong>14 segment tooltips, hover + right-click</strong></td>
-            <td>Hit-box arithmetic in <code>ui/render.rs</code>, controller in <code>ui/app.rs</code></td>
+            <td><strong>10 segment tooltips, hover + right-click</strong></td>
+            <td>Hit-box arithmetic in <code>ui/render.rs</code>, <code>header_segment_tooltip</code> controller in <code>ui/app.rs</code></td>
             <td>Hover = 1&nbsp;s delay, 3&nbsp;s auto-hide, can be disabled with <code>T</code>. Right-click = instant, persistent until dismissed, always enabled. Two interaction models against one renderer.</td>
           </tr>
           <tr>
