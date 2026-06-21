@@ -55,7 +55,7 @@ cargo install iftoprs                   # via crates.io
  ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 ```
 
-## [0x00] FEATURE DUMP
+## [0x00] Feature Dump
 
 ```
 [CAPTURE_ENGINE]
@@ -163,7 +163,7 @@ cargo install iftoprs                   # via crates.io
 
 ---
 
-## [0x01] RENDER PREVIEW
+## [0x01] Render Preview
 
 #### `// LIVE_CAPTURE`
 
@@ -173,7 +173,7 @@ cargo install iftoprs                   # via crates.io
 
 ---
 
-## [0x02] REQUIRED IMPLANTS
+## [0x02] Required Implants
 
 ```
 RUST_VERSION  >= 1.85  [2024 edition]
@@ -200,7 +200,7 @@ LIBPCAP       == installed (system dependency)
 
 ---
 
-## [0x03] COMPILE SEQUENCE
+## [0x03] Compile Sequence
 
 ```bash
 # ── JACK IN ──────────────────────────────────
@@ -249,7 +249,7 @@ cargo test --locked
 
 ---
 
-## [0x05] CLI OPTIONS
+## [0x05] CLI Options
 
 ```
  ┌──────────────────────────────────────────────────┐
@@ -310,7 +310,7 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 
 ---
 
-## [0x06] KEYBIND MATRIX
+## [0x06] Keybind Matrix
 
 ```
  ┌──────────────────────────────────────────────────┐
