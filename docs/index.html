@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <meta name="description" content="iftoprs — neon-drenched terminal UI for real-time bandwidth monitoring. Built in Rust with ratatui + crossterm + libpcap. 31 cyberpunk themes, process attribution via lsof, JSON streaming, BPF filters, mouse + sparklines, auto-restart capture, hover tooltips.">
+  <meta name="description" content="iftoprs — neon-drenched terminal UI for real-time bandwidth monitoring. Built in Rust with ratatui + crossterm + libpcap. 31 cyberpunk themes, native process attribution (no external tools), JSON streaming, BPF filters, mouse + sparklines, auto-restart capture, hover tooltips.">
   <title>iftoprs — Documentation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@
 
     <main class="tutorial-main">
       <h2 class="tutorial-title"><span class="step-hash">&gt;_</span>IFTOPRS &mdash; JACK INTO THE PACKET STREAM</h2>
-      <p class="tutorial-subtitle"><strong>A neon-drenched terminal UI for real-time bandwidth monitoring.</strong> Live <code>libpcap</code> capture with BPF filters, per-flow sliding-window averages (2&nbsp;s / 10&nbsp;s / 40&nbsp;s), reverse-DNS + port-name resolution, per-flow process attribution via <code>lsof</code>, hover + right-click tooltips, mouse + keyboard navigation, 31 cyberpunk color themes, <code>--json</code> NDJSON stream for headless pipelines, configurable bandwidth alerts, sparkline history per flow, and auto-restart on transient capture errors. macOS &amp; Linux. Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a> + <a href="https://docs.rs/pcap">pcap</a>.</p>
+      <p class="tutorial-subtitle"><strong>A neon-drenched terminal UI for real-time bandwidth monitoring.</strong> Live <code>libpcap</code> capture with BPF filters, per-flow sliding-window averages (2&nbsp;s / 10&nbsp;s / 40&nbsp;s), reverse-DNS + port-name resolution, native per-flow process attribution (no external tools), hover + right-click tooltips, mouse + keyboard navigation, 31 cyberpunk color themes, <code>--json</code> NDJSON stream for headless pipelines, configurable bandwidth alerts, sparkline history per flow, and auto-restart on transient capture errors. macOS &amp; Linux. Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a> + <a href="https://docs.rs/pcap">pcap</a>.</p>
 
       <section class="tutorial-section">
         <h2>Quickstart</h2>
@@ -226,7 +226,7 @@ iftoprs --completions fish &gt; iftoprs.fish</pre>
           <tbody>
             <tr><td>Memory safety</td><td style="color:var(--green);">Rust &mdash; no UB, no leaks</td><td>raw C</td></tr>
             <tr><td>Async capture loop</td><td style="color:var(--green);">tokio + <code>mpsc</code></td><td>blocking <code>pcap_loop</code></td></tr>
-            <tr><td>Per-flow process attribution</td><td style="color:var(--green);">PID + name via <code>lsof</code></td><td>none</td></tr>
+            <tr><td>Per-flow process attribution</td><td style="color:var(--green);">PID + name, native (<code>libproc</code> / <code>/proc</code>)</td><td>none</td></tr>
             <tr><td>Mouse support</td><td style="color:var(--green);">left/right/middle, scroll, hover tooltips</td><td>none</td></tr>
             <tr><td>Tooltips on hover &amp; right-click</td><td style="color:var(--green);">10 segment tooltips + flow drill-down</td><td>none</td></tr>
             <tr><td>Per-flow sparkline (40&nbsp;s)</td><td style="color:var(--green);">inline ▁▂▃▅▇█ + tooltip</td><td>none</td></tr>
@@ -264,7 +264,7 @@ iftoprs --completions fish &gt; iftoprs.fish</pre>
           <li><strong>5-tuple keys</strong> &mdash; protocols cover TCP / UDP / ICMP / Other (ARP, raw IP, etc.).</li>
           <li><strong>three windows</strong> &mdash; 2&nbsp;s yellow, 10&nbsp;s green, 40&nbsp;s cyan; sort cycles through them with <code>1</code>/<code>2</code>/<code>3</code>.</li>
           <li><strong>peak + cumulative</strong> &mdash; toggle the cumulative row with <code>U</code>.</li>
-          <li><strong>process attribution</strong> &mdash; an opt-out background poller in <code>src/util/procinfo.rs</code> shells out to <code>lsof</code> and maps socket → PID + process name. Joined into the flow on render.</li>
+          <li><strong>process attribution</strong> &mdash; an opt-out background poller in <code>src/util/procinfo.rs</code> reads the kernel socket table natively (<code>libproc</code> on macOS, <code>/proc</code> on Linux) and maps socket → PID + process name. Joined into the flow on render.</li>
           <li><strong>DNS resolution</strong> &mdash; async reverse-DNS cache in <code>src/util/resolver.rs</code>; failed lookups never block the UI.</li>
           <li><strong>port names</strong> &mdash; <code>/etc/services</code>-style mapping from the same resolver.</li>
         </ul>
@@ -604,7 +604,7 @@ sudo iftoprs --json -B | jq '.flows[] | {dst, recv_2s}'   # byte rates</pre>
 
       <section class="tutorial-section">
         <h2>Process attribution &mdash; <code>Tab</code> view</h2>
-        <p>Shown by default; toggle off with <code>-Z</code> at launch or in the TUI. Background poller in <code>src/util/procinfo.rs</code> calls <code>lsof -i -n -P -F pcn</code>, parses the result, and builds a <code>(local_addr, local_port) → (pid, name)</code> map cached in <code>Arc&lt;Mutex&lt;...&gt;&gt;</code>. The flow renderer joins against the cache on every paint.</p>
+        <p>Shown by default; toggle off with <code>-Z</code> at launch or in the TUI. Background poller in <code>src/util/procinfo.rs</code> reads the kernel socket table natively &mdash; <code>libproc</code> (<code>proc_listpids</code> + <code>proc_pidfdinfo</code>) on macOS, <code>/proc/net</code> + <code>/proc/[pid]/fd</code> on Linux &mdash; and builds a <code>(local_port, proto) → (pid, name)</code> map cached in <code>Arc&lt;Mutex&lt;...&gt;&gt;</code>. No external binary is spawned. The flow renderer joins against the cache on every paint.</p>
         <ul>
           <li><strong>Flows tab (default)</strong> &mdash; per-flow process column.</li>
           <li><strong>Processes tab</strong> &mdash; press <code>Tab</code> &mdash; aggregates bandwidth per process across all of that process's flows.</li>
@@ -681,7 +681,7 @@ cargo test --locked</pre>
           <div class="cat-card"><h4>src/data/</h4><p><code>flow.rs</code> 5-tuple model + counters. <code>tracker.rs</code> &mdash; flow store. <code>history.rs</code> sparkline ring. ~3.5k lines.</p></div>
           <div class="cat-card"><h4>src/ui/</h4><p><code>app.rs</code> &mdash; TUI state + input. <code>render.rs</code> &mdash; ratatui paint. ~6.3k lines.</p></div>
           <div class="cat-card"><h4>src/config/</h4><p><code>cli.rs</code> &mdash; clap derive. <code>theme.rs</code> &mdash; 31 themes. <code>prefs.rs</code> &mdash; TOML auto-save. ~4.5k lines.</p></div>
-          <div class="cat-card"><h4>src/util/</h4><p><code>format.rs</code> &mdash; rate/byte formatters. <code>resolver.rs</code> &mdash; async DNS + port names. <code>procinfo.rs</code> &mdash; lsof poll. ~2.8k lines.</p></div>
+          <div class="cat-card"><h4>src/util/</h4><p><code>format.rs</code> &mdash; rate/byte formatters. <code>resolver.rs</code> &mdash; async DNS + port names. <code>procinfo.rs</code> &mdash; native socket→PID poll. ~2.8k lines.</p></div>
           <div class="cat-card"><h4>tests/integration.rs</h4><p>479 binary-driven integration tests. 5,258 lines.</p></div>
           <div class="cat-card"><h4>completions/</h4><p>Shipped zsh completion file (<code>_iftoprs</code>). Other shells generated on demand.</p></div>
         </div>
@@ -689,7 +689,7 @@ cargo test --locked</pre>
       </section>
 
       <section class="tutorial-section">
-        <h2>Dependencies &mdash; 14 direct</h2>
+        <h2>Dependencies &mdash; 15 direct</h2>
         <table class="reflection-table">
           <thead><tr><th>Crate</th><th>Version</th><th>Role</th></tr></thead>
           <tbody>

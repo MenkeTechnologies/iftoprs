@@ -28,6 +28,12 @@ tokio = { version = "1.51.0", features = ["full"] }
 toml = "1.1.2"
 clap_complete = "4"
 
+# macOS process attribution: native libproc syscalls (proc_listpids /
+# proc_pidfdinfo). Compiled into the single binary — no external `lsof` at
+# runtime. Linux uses /proc directly and needs no extra crate.
+[target.'cfg(target_os = "macos")'.dependencies]
+libproc = "0.14"
+
 [profile.release]
 opt-level = 3
 lto = true

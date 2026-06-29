@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <meta name="description" content="iftoprs — Engineering report. Real-time bandwidth monitor in Rust: 28,545 Rust lines (production + tests), 2,278 test functions, 31 cyberpunk themes, ratatui TUI, pcap capture engine, per-flow process attribution, JSON streaming, mouse + sparklines, auto-restart capture, 14 direct + 262 transitive crates.">
+  <meta name="description" content="iftoprs — Engineering report. Real-time bandwidth monitor in Rust: 28,545 Rust lines (production + tests), 2,278 test functions, 31 cyberpunk themes, ratatui TUI, pcap capture engine, per-flow process attribution, JSON streaming, mouse + sparklines, auto-restart capture, 15 direct + 269 transitive crates.">
   <title>iftoprs &mdash; Engineering Report</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,7 +92,7 @@
       <!-- SECTION 1: EXECUTIVE SUMMARY            -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">&gt;_</span>EXECUTIVE SUMMARY</h2>
-      <p class="tutorial-subtitle">iftoprs is a single-binary real-time bandwidth monitor written in Rust. Live <code>libpcap</code> capture feeds an async <code>tokio</code> pipeline; a per-flow tracker computes 2&nbsp;s / 10&nbsp;s / 40&nbsp;s sliding-window averages, cumulative byte counters, and 40-sample sparkline history; a <code>ratatui</code> TUI renders the result with mouse + keyboard navigation, hover tooltips, 31 cyberpunk color themes, configurable bandwidth alerts, and live filter / pin / drill-down. Background <code>lsof</code> polling joins each flow to its owning <code>(PID, process_name)</code>. A headless <code>--json</code> mode streams NDJSON snapshots for pipelines. Auto-restart with exponential backoff keeps the capture loop alive across transient kernel / driver hiccups. <strong>21,873 production Rust lines + 6,672 integration-test lines + 2,278 test functions + 31 themes + 17 CLI flags + 14 direct (262 transitive) crates &mdash; macOS &amp; Linux on x86_64 + aarch64.</strong></p>
+      <p class="tutorial-subtitle">iftoprs is a single-binary real-time bandwidth monitor written in Rust. Live <code>libpcap</code> capture feeds an async <code>tokio</code> pipeline; a per-flow tracker computes 2&nbsp;s / 10&nbsp;s / 40&nbsp;s sliding-window averages, cumulative byte counters, and 40-sample sparkline history; a <code>ratatui</code> TUI renders the result with mouse + keyboard navigation, hover tooltips, 31 cyberpunk color themes, configurable bandwidth alerts, and live filter / pin / drill-down. Background native polling (<code>libproc</code> on macOS, <code>/proc</code> on Linux) joins each flow to its owning <code>(PID, process_name)</code>. A headless <code>--json</code> mode streams NDJSON snapshots for pipelines. Auto-restart with exponential backoff keeps the capture loop alive across transient kernel / driver hiccups. <strong>21,873 production Rust lines + 6,672 integration-test lines + 2,278 test functions + 31 themes + 17 CLI flags + 15 direct (269 transitive) crates &mdash; macOS &amp; Linux on x86_64 + aarch64.</strong></p>
 
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-val">28,545</div><div class="stat-label">Total Rust Lines</div></div>
@@ -100,7 +100,7 @@
         <div class="stat-card"><div class="stat-val accent">2,278</div><div class="stat-label">Test Functions</div></div>
         <div class="stat-card"><div class="stat-val green">31</div><div class="stat-label">Color Themes</div></div>
         <div class="stat-card"><div class="stat-val">17</div><div class="stat-label">CLI Flags</div></div>
-        <div class="stat-card"><div class="stat-val">14</div><div class="stat-label">Direct Crates</div></div>
+        <div class="stat-card"><div class="stat-val">15</div><div class="stat-label">Direct Crates</div></div>
         <div class="stat-card"><div class="stat-val">262</div><div class="stat-label">Transitive Crates</div></div>
         <div class="stat-card"><div class="stat-val">20</div><div class="stat-label">Production .rs Files</div></div>
         <div class="stat-card"><div class="stat-val">239</div><div class="stat-label">Git Commits</div></div>
@@ -141,7 +141,7 @@
             <td style="color:var(--green);"><strong>iftoprs</strong></td>
             <td>Rust</td>
             <td>ratatui + crossterm</td>
-            <td>per-flow PID + name (lsof)</td>
+            <td>per-flow PID + name (native)</td>
             <td><strong>31</strong></td>
             <td><code>--json</code> NDJSON stream</td>
             <td><strong>full</strong> &mdash; hover, right-click, sparkline tooltips</td>
@@ -229,7 +229,7 @@
           <tr><td style="color:var(--accent);">Capture</td><td><code>capture/parser.rs, capture/sniffer.rs</code></td><td class="num">3,315</td><td class="num">12.2%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:12.2%"></div></div></td><td>libpcap loop, exponential-backoff restart, Ethernet/IPv4/IPv6/TCP/UDP/ICMP decode, 5-tuple folding</td></tr>
           <tr><td style="color:var(--accent);">Config</td><td><code>config/cli.rs, config/theme.rs, config/prefs.rs</code></td><td class="num">4,579</td><td class="num">16.9%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:16.9%"></div></div></td><td>clap derive (17 flags + 5 completion shells), 31 themes with display names + swatches, TOML auto-save</td></tr>
           <tr><td style="color:var(--accent);">Data</td><td><code>data/flow.rs, data/tracker.rs, data/history.rs</code></td><td class="num">3,590</td><td class="num">13.2%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:13.2%"></div></div></td><td>5-tuple flow records, peak / cumulative counters, 40-sample sparkline ring buffer, sliding-window rate calculation</td></tr>
-          <tr><td style="color:var(--accent);">Util</td><td><code>util/format.rs, util/resolver.rs, util/procinfo.rs</code></td><td class="num">2,822</td><td class="num">10.4%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:10.4%"></div></div></td><td>byte/bit formatters, async reverse-DNS + port-name cache, background <code>lsof</code> poller for PID+name attribution</td></tr>
+          <tr><td style="color:var(--accent);">Util</td><td><code>util/format.rs, util/resolver.rs, util/procinfo.rs</code></td><td class="num">2,822</td><td class="num">10.4%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:10.4%"></div></div></td><td>byte/bit formatters, async reverse-DNS + port-name cache, background native poller (<code>libproc</code> / <code>/proc</code>) for PID+name attribution</td></tr>
           <tr><td style="color:var(--accent);">Main / Entry</td><td><code>main.rs, lib.rs</code></td><td class="num">1,148</td><td class="num">4.2%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:4.2%"></div></div></td><td>argv handoff, JSON mode dispatch, capture spawn, TUI bootstrap, signal handling</td></tr>
           <tr><td style="color:var(--green);">Integration tests</td><td><code>tests/integration.rs</code></td><td class="num">5,258</td><td class="num">19.4%</td><td><div class="bar-wrap"><div class="bar-fill green" style="width:19.4%"></div></div></td><td>479 integration tests driving the built binary via <code>CARGO_BIN_EXE_iftoprs</code>; covers CLI parse, JSON mode, completions, theme list, BPF filter pass-through</td></tr>
         </tbody>
@@ -260,7 +260,7 @@
           <tr><td>src/config/prefs.rs</td><td class="num">966</td><td>TOML serializer for <code>~/.iftoprs.conf</code> &mdash; load, default-on-missing, auto-save on toggle, schema-stable across upgrades</td></tr>
           <tr><td>src/data/history.rs</td><td class="num">859</td><td>Per-flow sparkline ring buffer (40 samples), sliding-window rate math, peak tracking, display string builder (▁▂▃▅▇█)</td></tr>
           <tr><td>src/util/format.rs</td><td class="num">673</td><td>Human-readable byte/bit formatters &mdash; <code>10b</code>, <code>1.2Kb</code>, <code>340Mb</code>, <code>1Gb</code>; log-scale bar fill computation; rate column color picker</td></tr>
-          <tr><td>src/util/procinfo.rs</td><td class="num">408</td><td>Background <code>lsof -i -n -P -F pcn</code> poller; <code>(local_addr, local_port) → (pid, name)</code> cache in <code>Arc&lt;Mutex&lt;_&gt;&gt;</code>; non-blocking spawn</td></tr>
+          <tr><td>src/util/procinfo.rs</td><td class="num">408</td><td>Background native poller (<code>libproc</code> on macOS, <code>/proc</code> on Linux); <code>(local_port, proto) → (pid, name)</code> cache in <code>Arc&lt;Mutex&lt;_&gt;&gt;</code>; no subprocess</td></tr>
           <tr><td>src/capture/sniffer.rs</td><td class="num">237</td><td>pcap capture loop, BPF filter compile, snaplen / promiscuous setup, exponential-backoff restart on transient errors</td></tr>
           <tr><td>src/util/mod.rs</td><td class="num">8</td><td>re-exports for the util submodules</td></tr>
           <tr><td>src/lib.rs</td><td class="num">13</td><td>library entry &mdash; re-exports for the integration test harness</td></tr>
@@ -310,7 +310,7 @@
                                 ┌────────────────┐
                                 │ procinfo.rs    │
                                 │ (408)          │
-                                │ lsof poll      │
+                                │ native poll    │
                                 │ PID + name     │
                                 │ cache (Arc/Mut)│
                                 └────────┬───────┘
@@ -343,7 +343,7 @@
         <div class="mapping-card"><h4>Capture engine</h4><p>libpcap loop, BPF filter compile, snaplen + promiscuous, exponential-backoff auto-restart on transient errors, async <code>mpsc</code> hand-off, kernel-drop count exposed in status bar.</p></div>
         <div class="mapping-card"><h4>Flow model</h4><p>5-tuple (src/dst/sport/dport/proto) keys, TCP / UDP / ICMP / Other classes, TX/RX counters split by interface IP or <code>-F CIDR</code>, peak + cumulative totals, three sliding-window averages (2&nbsp;s yellow, 10&nbsp;s green, 40&nbsp;s cyan).</p></div>
         <div class="mapping-card"><h4>DNS + port names</h4><p>Async reverse-DNS cache, <code>/etc/services</code>-style port-to-service map, never blocks the UI thread on lookup misses, toggled with <code>n</code> / <code>N</code>.</p></div>
-        <div class="mapping-card"><h4>Process attribution</h4><p>Background <code>lsof -i -n -P -F pcn</code> poller, <code>Arc&lt;Mutex&lt;HashMap&gt;&gt;</code> cache, per-flow PID + name column, per-process aggregate tab (<code>Tab</code>), drill-down filter (<code>Enter</code>).</p></div>
+        <div class="mapping-card"><h4>Process attribution</h4><p>Background native poller (<code>libproc</code> on macOS, <code>/proc</code> on Linux), <code>Arc&lt;Mutex&lt;HashMap&gt;&gt;</code> cache, per-flow PID + name column, per-process aggregate tab (<code>Tab</code>), drill-down filter (<code>Enter</code>).</p></div>
         <div class="mapping-card"><h4>Themes</h4><p>31 cyberpunk themes with display names, swatch chooser (<code>c</code>), live preview, persisted to <code>~/.iftoprs.conf</code>, full swatch dump with <code>--list-colors</code>.</p></div>
         <div class="mapping-card"><h4>Custom theme editor</h4><p><code>C</code> opens a 6-slot palette editor (256-color indices); <code>j</code>/<code>k</code> select slot, <code>h</code>/<code>l</code> &plusmn;1, <code>H</code>/<code>L</code> &plusmn;10, live apply, <code>s</code>/<code>Enter</code> names + saves into <code>custom_themes</code> with <code>active_custom_theme</code> tracked in prefs.</p></div>
         <div class="mapping-card"><h4>Mouse</h4><p>Left click selects, right click on flow shows TX/RX tooltip with sparkline, right click on header shows segment tooltip, middle click pins/unpins, scroll navigates, hover triggers 1&nbsp;s tooltip with 3&nbsp;s auto-hide.</p></div>
@@ -435,7 +435,7 @@
           <tr><td>src/data/history.rs</td><td class="num">72</td><td>40-sample ring math, sparkline string, peak tracking</td></tr>
           <tr><td>src/data/tracker.rs</td><td class="num">68</td><td>flow insertion / update / expiration, direction inference, alert eval</td></tr>
           <tr><td>src/ui/render.rs</td><td class="num">64</td><td>header layout, hit-box arithmetic, tooltip positioning, popup geometry</td></tr>
-          <tr><td>src/util/procinfo.rs</td><td class="num">27</td><td>lsof output parse, cache invalidation, missing-socket handling</td></tr>
+          <tr><td>src/util/procinfo.rs</td><td class="num">27</td><td>native socket-table parse, byte-order/port conversion, cache invalidation, missing-socket handling</td></tr>
           <tr><td>src/main.rs</td><td class="num">14</td><td>argv handoff, JSON-mode short-circuit, prefs save on exit</td></tr>
           <tr><td>src/capture/sniffer.rs</td><td class="num">6</td><td>pcap open, BPF compile, snaplen / promiscuous setup, exponential-backoff restart</td></tr>
         </tbody>
@@ -460,7 +460,7 @@
       <!-- SECTION 9: DEPENDENCIES                 -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">+</span>DEPENDENCIES</h2>
-      <p class="tutorial-subtitle">14 direct crates declared in <code>Cargo.toml</code>; 262 total in <code>Cargo.lock</code> once <code>tokio</code> / <code>ratatui</code> / <code>regex</code> pull in their full transitive graph. Single binary out of <code>cargo install iftoprs</code> &mdash; LTO + strip + opt-level 3 in the release profile.</p>
+      <p class="tutorial-subtitle">15 direct crates declared in <code>Cargo.toml</code> (<code>libproc</code> is macOS-only, for native process attribution); 269 total in <code>Cargo.lock</code> once <code>tokio</code> / <code>ratatui</code> / <code>regex</code> pull in their full transitive graph. Single binary out of <code>cargo install iftoprs</code> &mdash; LTO + strip + opt-level 3 in the release profile.</p>
 
       <table class="file-table">
         <thead><tr><th>Crate</th><th class="num">Version</th><th>Role</th><th>Tier</th></tr></thead>
@@ -479,8 +479,9 @@
           <tr><td>serde_json</td><td class="num">1.0</td><td>NDJSON streaming output</td><td>direct</td></tr>
           <tr><td>toml</td><td class="num">1.1</td><td>Config file format</td><td>direct</td></tr>
           <tr><td>dirs</td><td class="num">6.0</td><td>Home-directory detection (<code>~/.iftoprs.conf</code>, export path)</td><td>direct</td></tr>
+          <tr><td>libproc</td><td class="num">0.14</td><td>Native socket&rarr;PID attribution on macOS (<code>proc_listpids</code> / <code>proc_pidfdinfo</code>) &mdash; replaces shelling out to <code>lsof</code></td><td>direct (macOS)</td></tr>
         </tbody>
-        <tfoot><tr class="total-row"><td colspan="2" style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;">DIRECT</td><td class="num">14</td><td>262 transitive in Cargo.lock</td></tr></tfoot>
+        <tfoot><tr class="total-row"><td colspan="2" style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;">DIRECT</td><td class="num">15</td><td>269 transitive in Cargo.lock</td></tr></tfoot>
       </table>
 
       <p style="font-size:11px;color:var(--text-muted);margin-top:0.5rem;">System-level dependency: <code>libpcap</code> for raw packet capture. macOS ships <code>libpcap</code> system-wide. Linux requires <code>libpcap-dev</code> (Debian / Ubuntu) or <code>libpcap-devel</code> (Fedora / RHEL).</p>
@@ -512,9 +513,9 @@
             <td>Users discover preferences by pressing keys, not by editing files. Auto-save means the next launch already remembers the chosen theme, refresh rate, line mode, bar style, and pinned flows.</td>
           </tr>
           <tr>
-            <td><strong>Process attribution via lsof</strong></td>
+            <td><strong>Native process attribution (no <code>lsof</code>)</strong></td>
             <td>Background poll in <code>util/procinfo.rs</code> at refresh-rate cadence, <code>Arc&lt;Mutex&lt;HashMap&gt;&gt;</code> cache, non-blocking join on render</td>
-            <td>Per-packet PID lookup would be expensive. Polling <code>lsof</code> at the refresh interval gives accurate-enough attribution without measurable overhead on busy hosts. Cache miss = blank process column for one frame, not a crash.</td>
+            <td>Per-packet PID lookup would be expensive. Polling the kernel socket table natively (<code>libproc</code> on macOS, <code>/proc</code> on Linux) at the refresh interval gives accurate-enough attribution without measurable overhead on busy hosts, and keeps iftoprs a self-contained single binary with no runtime dependency on an external <code>lsof</code>. Cache miss = blank process column for one frame, not a crash.</td>
           </tr>
           <tr>
             <td><strong>JSON mode skips the TUI entirely</strong></td>

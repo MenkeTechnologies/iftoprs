@@ -18,7 +18,7 @@
 
 > *"The street finds its own uses for bandwidth."*
 
-A neon-drenched terminal UI for real-time bandwidth monitoring. Built in Rust with [ratatui](https://github.com/ratatui/ratatui) + [crossterm](https://github.com/crossterm-rs/crossterm) + [pcap](https://docs.rs/pcap). 31 cyberpunk themes, process attribution via `lsof`, JSON streaming, BPF filters, mouse + sparklines, auto-restart capture, hover tooltips.
+A neon-drenched terminal UI for real-time bandwidth monitoring. Built in Rust with [ratatui](https://github.com/ratatui/ratatui) + [crossterm](https://github.com/crossterm-rs/crossterm) + [pcap](https://docs.rs/pcap). 31 cyberpunk themes, native process attribution (no external tools), JSON streaming, BPF filters, mouse + sparklines, auto-restart capture, hover tooltips.
 
 ```bash
 brew tap MenkeTechnologies/menketech    # one-time
@@ -78,7 +78,7 @@ cargo install iftoprs                   # via crates.io
   ├── Flow-to-process attribution
   │   ├── PID + process name per connection
   │   ├── background polling via Arc<Mutex<>>
-  │   ├── lsof-based socket→process mapping
+  │   ├── native socket→process mapping (libproc on macOS, /proc on Linux)
   │   ├── per-process aggregated bandwidth view (Tab key)
   │   └── drill-down: Enter on process → filtered flows, Esc to clear
   │

@@ -96,7 +96,8 @@ fn main() -> Result<()> {
         .name("proc-lookup".into())
         .spawn(move || {
             loop {
-                // Refresh the entire socket→pid table (one lsof call for ALL sockets)
+                // Refresh the entire socket→pid table from the native kernel
+                // socket table (libproc on macOS, /proc on Linux) — one sweep for ALL sockets
                 util::procinfo::refresh_proc_table();
                 std::thread::sleep(Duration::from_secs(2));
 

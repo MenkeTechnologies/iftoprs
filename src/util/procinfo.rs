@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 use crate::data::flow::Protocol;
 
 /// Cached socket→process table. Refreshed periodically by the proc-lookup thread.
-/// Uses `lsof -i -n -P -F pcn` to get ALL socket→pid mappings at once,
-/// rather than per-flow lookups.
+/// Built from native OS facilities — `libproc` syscalls on macOS, `/proc` on
+/// Linux — with no external binaries shelled out at runtime.
 static PROC_CACHE: OnceLock<Arc<Mutex<ProcTable>>> = OnceLock::new();
 
 struct ProcTable {
@@ -23,11 +23,12 @@ fn get_cache() -> &'static Arc<Mutex<ProcTable>> {
 }
 
 /// Refresh the entire process→socket table. Call this periodically from the
-/// proc-lookup thread (e.g. every 2s). Much more efficient than per-flow lsof.
+/// proc-lookup thread (e.g. every 2s). One full enumeration per call, cheaper
+/// than a per-flow lookup on every packet.
 pub fn refresh_proc_table() {
     #[cfg(target_os = "macos")]
     {
-        refresh_proc_table_lsof();
+        refresh_proc_table_macos();
     }
     #[cfg(target_os = "linux")]
     {
@@ -35,63 +36,91 @@ pub fn refresh_proc_table() {
     }
 }
 
+/// Convert a network-byte-order port (as stored in `insi_lport`, a `c_int`
+/// holding the 16-bit value) to host byte order.
 #[cfg(target_os = "macos")]
-fn refresh_proc_table_lsof() {
-    use std::process::Command;
+fn ntohs(net_order: i32) -> u16 {
+    u16::from_be(net_order as u16)
+}
 
-    // lsof -i -n -P -F pcn  — list ALL network sockets with pid, command, name
-    let output = match Command::new("lsof")
-        .args(["-i", "-n", "-P", "-F", "pcn"])
-        .output()
-    {
-        Ok(o) if o.status.success() => o,
-        _ => return,
+#[cfg(target_os = "macos")]
+fn refresh_proc_table_macos() {
+    use libproc::libproc::bsd_info::BSDInfo;
+    use libproc::libproc::file_info::{ListFDs, ProcFDType, pidfdinfo};
+    use libproc::libproc::net_info::{SocketFDInfo, SocketInfoKind};
+    use libproc::libproc::proc_pid::{listpidinfo, name, pidinfo};
+    use libproc::processes::{ProcFilter, pids_by_type};
+
+    // Enumerate every PID, then every socket fd of each, reading the local
+    // port + protocol straight out of the kernel via libproc. No subprocess.
+    let pids = match pids_by_type(ProcFilter::All) {
+        Ok(p) => p,
+        Err(_) => return,
     };
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
     let mut new_table: HashMap<(u16, u8), (u32, String)> = HashMap::new();
-    let mut current_pid: Option<u32> = None;
-    let mut current_name: Option<String> = None;
 
-    for line in stdout.lines() {
-        if let Some(p) = line.strip_prefix('p') {
-            current_pid = p.parse().ok();
-            current_name = None;
-        } else if let Some(n) = line.strip_prefix('c') {
-            current_name = Some(n.to_string());
-        } else if let Some(n) = line.strip_prefix('n') {
-            // n field: "host:port->remote:port" or "*:port" etc
-            if let (Some(pid), Some(name)) = (current_pid, &current_name) {
-                // Extract local port from patterns like:
-                //   *:443 or 127.0.0.1:8080 or [::1]:443 or host:port->remote:port
-                if let Some(local_port) = extract_local_port(n) {
-                    // Determine protocol from the lsof line (TCP vs UDP)
-                    // lsof -F doesn't give protocol directly in 'n' field,
-                    // so we insert for both TCP and UDP
-                    new_table
-                        .entry((local_port, 6))
-                        .or_insert((pid, name.clone()));
-                    new_table
-                        .entry((local_port, 17))
-                        .or_insert((pid, name.clone()));
-                }
+    for pid in pids {
+        if pid == 0 {
+            continue;
+        }
+        let pid_i = pid as i32;
+
+        // pbi_nfiles sizes the fd buffer. A failure here means the process is
+        // gone or we lack the privilege to inspect it — skip it, don't abort.
+        let nfiles = match pidinfo::<BSDInfo>(pid_i, 0) {
+            Ok(info) => info.pbi_nfiles as usize,
+            Err(_) => continue,
+        };
+        let fds = match listpidinfo::<ListFDs>(pid_i, nfiles) {
+            Ok(fds) => fds,
+            Err(_) => continue,
+        };
+
+        // Resolve the process name lazily — only once we know it owns a socket.
+        let mut proc_name: Option<String> = None;
+
+        for fd in fds {
+            if !matches!(fd.proc_fdtype.into(), ProcFDType::Socket) {
+                continue;
             }
+            let sock = match pidfdinfo::<SocketFDInfo>(pid_i, fd.proc_fd) {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
+
+            // soi_proto is a union; the active arm is selected by soi_kind.
+            let (port_net, proto): (i32, u8) = match sock.psi.soi_kind.into() {
+                SocketInfoKind::Tcp => {
+                    let ini = unsafe { sock.psi.soi_proto.pri_tcp.tcpsi_ini };
+                    (ini.insi_lport, 6)
+                }
+                SocketInfoKind::In => {
+                    // IPv4/IPv6 datagram socket (UDP and friends).
+                    let ini = unsafe { sock.psi.soi_proto.pri_in };
+                    (ini.insi_lport, sock.psi.soi_protocol as u8)
+                }
+                _ => continue,
+            };
+
+            // lookup_process only resolves TCP/UDP flows.
+            if proto != 6 && proto != 17 {
+                continue;
+            }
+            let port = ntohs(port_net);
+            if port == 0 {
+                continue;
+            }
+
+            let nm = proc_name
+                .get_or_insert_with(|| name(pid_i).unwrap_or_else(|_| format!("pid:{}", pid)));
+            new_table.entry((port, proto)).or_insert((pid, nm.clone()));
         }
     }
 
     let cache = get_cache();
     let mut table = cache.lock().unwrap_or_else(|e| e.into_inner());
     table.by_port = new_table;
-}
-
-#[cfg(target_os = "macos")]
-fn extract_local_port(n_field: &str) -> Option<u16> {
-    // Strip the connection part (->remote) if present
-    let local = n_field.split("->").next()?;
-    // Find the last colon — port is after it
-    let colon_pos = local.rfind(':')?;
-    let port_str = &local[colon_pos + 1..];
-    port_str.parse().ok()
 }
 
 #[cfg(target_os = "linux")]
@@ -298,55 +327,43 @@ mod tests {
     mod macos_tests {
         use super::super::*;
 
+        // insi_lport stores the port in network (big-endian) byte order inside a
+        // c_int; ntohs() must return it in host order. 0x5000 -> 80, 0xBB01 -> 443.
         #[test]
-        fn extract_local_port_simple() {
-            assert_eq!(extract_local_port("*:443"), Some(443));
+        fn ntohs_port_80() {
+            assert_eq!(ntohs(0x5000), 80);
         }
 
         #[test]
-        fn extract_local_port_ipv4() {
-            assert_eq!(extract_local_port("127.0.0.1:8080"), Some(8080));
+        fn ntohs_port_443() {
+            assert_eq!(ntohs(0xBB01), 443);
         }
 
         #[test]
-        fn extract_local_port_with_remote() {
-            assert_eq!(extract_local_port("10.0.0.1:5000->10.0.0.2:80"), Some(5000));
+        fn ntohs_port_22() {
+            assert_eq!(ntohs(0x1600), 22);
         }
 
         #[test]
-        fn extract_local_port_ipv6() {
-            assert_eq!(extract_local_port("[::1]:443"), Some(443));
+        fn ntohs_port_max() {
+            assert_eq!(ntohs(0xFFFF), 65535);
         }
 
         #[test]
-        fn extract_local_port_ipv6_link_local_with_zone() {
-            assert_eq!(extract_local_port("[fe80::1%en0]:443"), Some(443));
+        fn ntohs_port_zero() {
+            assert_eq!(ntohs(0x0000), 0);
         }
 
         #[test]
-        fn extract_local_port_invalid() {
-            assert_eq!(extract_local_port("no-colon"), None);
+        fn ntohs_ignores_high_bits() {
+            // insi_lport is a c_int; only the low 16 bits carry the port.
+            assert_eq!(ntohs(0x7FFF_5000u32 as i32), 80);
         }
 
         #[test]
-        fn extract_local_port_non_numeric() {
-            assert_eq!(extract_local_port("host:abc"), None);
-        }
-
-        #[test]
-        fn extract_local_port_wildcard() {
-            assert_eq!(extract_local_port("*:22"), Some(22));
-        }
-
-        #[test]
-        fn extract_local_port_ipv4_max_port() {
-            assert_eq!(extract_local_port("127.0.0.1:65535"), Some(65535));
-        }
-
-        #[test]
-        fn refresh_proc_table_lsof_populates() {
-            refresh_proc_table_lsof();
-            // After refresh, cache should exist (may be empty if no sockets)
+        fn refresh_proc_table_macos_populates() {
+            refresh_proc_table_macos();
+            // After refresh, cache should exist (may be empty if no sockets / no priv)
             let cache = get_cache();
             let table = cache.lock().unwrap_or_else(|e| e.into_inner());
             let _ = table.by_port.len(); // just verify access
