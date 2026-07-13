@@ -23,12 +23,15 @@ TUI with per-flow TX / RX sparklines, sliding-window averages (2 s /
 Process attribution maps each socket back to its owning PID and command
 via
 .BR lsof (8).
-A Tab key toggles between
+A Tab key cycles between
 .B Flows
-view and
+view,
 .B Processes
-view (per-process aggregated bandwidth).  Enter on a process drills
-down to that process's flows only.
+view (per-process aggregated bandwidth), and
+.B Publishers
+view (per code-identity aggregated bandwidth: macOS code-signing Team ID
+and authority, or Linux owning package and executable SHA-256).  Enter on a
+process or publisher drills down to that group's flows only.
 .PP
 Capture runs in a tokio thread sending packets over an
 .B mpsc
@@ -113,7 +116,7 @@ A subset of the most common keys.  See
 for the complete matrix.
 .TP
 .B Tab
-Switch view (Flows / Processes).
+Switch view (Flows / Processes / Publishers).
 .TP
 .B j / k / Up / Down
 Navigate flows.

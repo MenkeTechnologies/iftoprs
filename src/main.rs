@@ -112,6 +112,9 @@ fn main() -> Result<()> {
                         &key.protocol,
                     ) {
                         tracker_proc.set_process_info(&key, pid, name);
+                        // Resolve the binary's code identity (Publishers axis).
+                        let id = util::provenance::identity_for(pid);
+                        tracker_proc.set_publisher(&key, id.label);
                     }
                 }
             }
@@ -432,10 +435,12 @@ fn run_app(
                     KeyCode::Char('d') => match app.view_tab {
                         ViewTab::Flows => app.page_down(),
                         ViewTab::Processes => app.process_page_down(),
+                        ViewTab::Publishers => app.publisher_page_down(),
                     },
                     KeyCode::Char('u') => match app.view_tab {
                         ViewTab::Flows => app.page_up(),
                         ViewTab::Processes => app.process_page_up(),
+                        ViewTab::Publishers => app.publisher_page_up(),
                     },
                     _ => {}
                 }
@@ -445,14 +450,8 @@ fn run_app(
             match key.code {
                 // ── Tab: switch view ──
                 KeyCode::Tab | KeyCode::BackTab => {
-                    app.view_tab = match app.view_tab {
-                        ViewTab::Flows => ViewTab::Processes,
-                        ViewTab::Processes => ViewTab::Flows,
-                    };
-                    app.set_status(match app.view_tab {
-                        ViewTab::Flows => "View: Flows",
-                        ViewTab::Processes => "View: Processes",
-                    });
+                    app.view_tab = app.view_tab.next();
+                    app.set_status(app.view_tab.label());
                 }
 
                 // ── Quit ──
@@ -598,10 +597,12 @@ fn run_app(
                 KeyCode::Char('j') | KeyCode::Down => match app.view_tab {
                     ViewTab::Flows => app.select_next(),
                     ViewTab::Processes => app.process_select_next(),
+                    ViewTab::Publishers => app.publisher_select_next(),
                 },
                 KeyCode::Char('k') | KeyCode::Up => match app.view_tab {
                     ViewTab::Flows => app.select_prev(),
                     ViewTab::Processes => app.process_select_prev(),
+                    ViewTab::Publishers => app.publisher_select_prev(),
                 },
                 KeyCode::Char('G') | KeyCode::End => match app.view_tab {
                     ViewTab::Flows => app.jump_bottom(),
@@ -610,6 +611,11 @@ fn run_app(
                         app.process_selected = Some(last);
                         app.process_scroll = last.saturating_sub(19);
                     }
+                    ViewTab::Publishers => {
+                        let last = app.publisher_snapshots.len().saturating_sub(1);
+                        app.publisher_selected = Some(last);
+                        app.publisher_scroll = last.saturating_sub(19);
+                    }
                 },
                 KeyCode::Home => match app.view_tab {
                     ViewTab::Flows => app.jump_top(),
@@ -617,16 +623,22 @@ fn run_app(
                         app.process_selected = Some(0);
                         app.process_scroll = 0;
                     }
-                },
-                KeyCode::Enter => {
-                    if matches!(app.view_tab, ViewTab::Processes) {
-                        app.process_drill_down();
+                    ViewTab::Publishers => {
+                        app.publisher_selected = Some(0);
+                        app.publisher_scroll = 0;
                     }
-                }
+                },
+                KeyCode::Enter => match app.view_tab {
+                    ViewTab::Processes => app.process_drill_down(),
+                    ViewTab::Publishers => app.publisher_drill_down(),
+                    ViewTab::Flows => {}
+                },
                 KeyCode::Esc => match app.view_tab {
                     ViewTab::Flows => {
                         if app.process_filter.is_some() {
                             app.clear_process_filter();
+                        } else if app.publisher_filter.is_some() {
+                            app.clear_publisher_filter();
                         } else {
                             app.selected = None;
                             app.show_help = false;
@@ -634,6 +646,10 @@ fn run_app(
                     }
                     ViewTab::Processes => {
                         app.process_selected = None;
+                        app.show_help = false;
+                    }
+                    ViewTab::Publishers => {
+                        app.publisher_selected = None;
                         app.show_help = false;
                     }
                 },
@@ -701,6 +717,13 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
                             app.process_selected = Some(idx);
                         }
                     }
+                    ViewTab::Publishers => {
+                        let idx =
+                            app.publisher_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
+                        if idx < app.publisher_snapshots.len() {
+                            app.publisher_selected = Some(idx);
+                        }
+                    }
                 }
             }
         }
@@ -724,16 +747,25 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
                             app.process_selected = Some(idx);
                         }
                     }
+                    ViewTab::Publishers => {
+                        let idx =
+                            app.publisher_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
+                        if idx < app.publisher_snapshots.len() {
+                            app.publisher_selected = Some(idx);
+                        }
+                    }
                 }
             }
         }
         MouseEventKind::ScrollDown => match app.view_tab {
             ViewTab::Flows => app.select_next(),
             ViewTab::Processes => app.process_select_next(),
+            ViewTab::Publishers => app.publisher_select_next(),
         },
         MouseEventKind::ScrollUp => match app.view_tab {
             ViewTab::Flows => app.select_prev(),
             ViewTab::Processes => app.process_select_prev(),
+            ViewTab::Publishers => app.publisher_select_prev(),
         },
         MouseEventKind::Down(MouseButton::Middle) => {
             // Middle-click → toggle pin (flows view only)
@@ -758,10 +790,51 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
     }
 }
 
+/// One flow as emitted on an NDJSON line in `--json` mode.
+#[derive(serde::Serialize)]
+struct JsonFlow {
+    src: String,
+    dst: String,
+    src_port: u16,
+    dst_port: u16,
+    protocol: String,
+    sent_2s: f64,
+    recv_2s: f64,
+    sent_10s: f64,
+    recv_10s: f64,
+    sent_40s: f64,
+    recv_40s: f64,
+    total_sent: u64,
+    total_recv: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    process_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pid: Option<u32>,
+    /// Publisher rollup label (Team ID / package / verdict).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    publisher: Option<String>,
+    /// macOS code-signing Team Identifier, when resolved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    team_id: Option<String>,
+    /// Linux owning package (dpkg/rpm), when resolved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    package: Option<String>,
+}
+
+/// One NDJSON snapshot line in `--json` mode.
+#[derive(serde::Serialize)]
+struct JsonSnapshot {
+    timestamp: String,
+    flow_count: usize,
+    total_sent: u64,
+    total_recv: u64,
+    peak_sent: f64,
+    peak_recv: f64,
+    flows: Vec<JsonFlow>,
+}
+
 /// Run in headless JSON streaming mode — no TUI, outputs NDJSON to stdout.
 fn run_json_mode(args: &Args) -> Result<()> {
-    use serde::Serialize;
-
     if let Some(ref path) = args.config {
         config::prefs::set_config_path(std::path::PathBuf::from(path));
     }
@@ -800,6 +873,9 @@ fn run_json_mode(args: &Args) -> Result<()> {
                         &key.protocol,
                     ) {
                         tracker_proc.set_process_info(&key, pid, name);
+                        // Resolve the binary's code identity (Publishers axis).
+                        let id = util::provenance::identity_for(pid);
+                        tracker_proc.set_publisher(&key, id.label);
                     }
                 }
             }
@@ -808,38 +884,6 @@ fn run_json_mode(args: &Args) -> Result<()> {
 
     let refresh = Duration::from_secs(prefs.refresh_rate);
     let use_bytes = args.bytes;
-
-    #[derive(Serialize)]
-    struct JsonFlow {
-        src: String,
-        dst: String,
-        src_port: u16,
-        dst_port: u16,
-        protocol: String,
-        sent_2s: f64,
-        recv_2s: f64,
-        sent_10s: f64,
-        recv_10s: f64,
-        sent_40s: f64,
-        recv_40s: f64,
-        total_sent: u64,
-        total_recv: u64,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        process_name: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pid: Option<u32>,
-    }
-
-    #[derive(Serialize)]
-    struct JsonSnapshot {
-        timestamp: String,
-        flow_count: usize,
-        total_sent: u64,
-        total_recv: u64,
-        peak_sent: f64,
-        peak_recv: f64,
-        flows: Vec<JsonFlow>,
-    }
 
     loop {
         // Drain packets
@@ -903,6 +947,10 @@ fn run_json_mode(args: &Args) -> Result<()> {
                     total_recv: f.total_recv,
                     process_name: f.process_name.clone(),
                     pid: f.pid,
+                    publisher: f.publisher.clone(),
+                    // Resolve structured code identity (cached by dev/inode/mtime).
+                    team_id: f.pid.and_then(|pid| util::provenance::identity_for(pid).team_id),
+                    package: f.pid.and_then(|pid| util::provenance::identity_for(pid).package),
                 }
             })
             .collect();
@@ -978,6 +1026,54 @@ mod tests {
             row: 0,
             modifiers: KeyModifiers::NONE,
         }
+    }
+
+    fn sample_json_flow() -> JsonFlow {
+        JsonFlow {
+            src: "10.0.0.1:443".into(),
+            dst: "1.2.3.4:51000".into(),
+            src_port: 443,
+            dst_port: 51000,
+            protocol: "TCP".into(),
+            sent_2s: 8.0,
+            recv_2s: 16.0,
+            sent_10s: 4.0,
+            recv_10s: 8.0,
+            sent_40s: 1.0,
+            recv_40s: 2.0,
+            total_sent: 100,
+            total_recv: 200,
+            process_name: Some("curl".into()),
+            pid: Some(1234),
+            publisher: Some("EQHXZ8M8AV".into()),
+            team_id: Some("EQHXZ8M8AV".into()),
+            package: None,
+        }
+    }
+
+    #[test]
+    fn ndjson_flow_emits_provenance_fields_and_skips_none() {
+        let line = serde_json::to_string(&sample_json_flow()).unwrap();
+        // Resolved provenance fields are present with their values.
+        assert!(line.contains("\"publisher\":\"EQHXZ8M8AV\""), "line: {line}");
+        assert!(line.contains("\"team_id\":\"EQHXZ8M8AV\""), "line: {line}");
+        // `package` is None on this (macOS-style) identity → omitted, not null.
+        assert!(!line.contains("package"), "line: {line}");
+        assert!(!line.contains("null"), "line: {line}");
+    }
+
+    #[test]
+    fn ndjson_flow_omits_all_provenance_when_unresolved() {
+        let mut f = sample_json_flow();
+        f.publisher = None;
+        f.team_id = None;
+        f.package = None;
+        let line = serde_json::to_string(&f).unwrap();
+        assert!(!line.contains("publisher"), "line: {line}");
+        assert!(!line.contains("team_id"), "line: {line}");
+        assert!(!line.contains("package"), "line: {line}");
+        // Core flow fields still present.
+        assert!(line.contains("\"total_sent\":100"), "line: {line}");
     }
 
     #[test]

@@ -258,13 +258,43 @@ on a process row drills down: returns to the Flows view filtered to
 that process's flows only.
 .B Esc
 clears the process filter.
+.SH "7a.  PUBLISHERS VIEW"
+A third
+.B Tab
+stop is the
+.B Publishers
+view, which aggregates flows by the owning binary's
+.I code identity
+rather than its PID.  Each live flow is resolved past pid\(->name to the
+signature/package that produced the binary on disk: on macOS the code-signing
+Team Identifier plus a signing-authority verdict (\fBApple System\fR,
+\fBApple-issued\fR, \fBAd-hoc\fR, or \fBunsigned-binary\fR) read via the
+Security framework; on Linux the owning dpkg/rpm package plus the SHA-256 of
+the executable image.  Resolution is cached keyed by the executable's
+\fB(dev, inode, mtime)\fR, so any one binary is fingerprinted at most once
+until it is replaced on disk.
+.PP
+.TS
+tab(|);
+l l.
+.B Column|.B Meaning
+Publisher|Team ID, package, or signing verdict
+Procs|distinct processes rolled up
+Total flows|number of active flows
+Aggregated TX / RX|sum across all flows
+.TE
+.PP
+.B Enter
+on a publisher row drills down to that publisher's flows.
+.B Esc
+clears the publisher filter.
 .SH "8.  KEYBINDINGS"
 .SS Display mods
 .TS
 tab(|);
 l l.
 .B Key|.B Action
-Tab|Switch view (Flows / Processes)
+Tab|Switch view (Flows / Processes / Publishers)
 n|Toggle DNS resolution
 N|Toggle service name resolution
 t|Cycle line display (two-line / one-line / sent / recv)
@@ -303,8 +333,8 @@ Ctrl+D|Half-page down
 Ctrl+U|Half-page up
 G / End|Jump to last
 Home|Jump to first
-Esc|Deselect / clear process filter / close overlay
-Enter|Drill into selected process (Processes tab)
+Esc|Deselect / clear process or publisher filter / close overlay
+Enter|Drill into selected process or publisher (Processes / Publishers tab)
 .TE
 .SS Filter
 .TS

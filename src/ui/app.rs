@@ -32,6 +32,27 @@ pub enum ViewTab {
     Flows,
     /// `Processes` variant.
     Processes,
+    /// `Publishers` variant — aggregation by resolved code identity.
+    Publishers,
+}
+
+impl ViewTab {
+    /// Cycle to the next view: Flows → Processes → Publishers → Flows.
+    pub fn next(self) -> Self {
+        match self {
+            Self::Flows => Self::Processes,
+            Self::Processes => Self::Publishers,
+            Self::Publishers => Self::Flows,
+        }
+    }
+    /// Short label for the status line.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Flows => "View: Flows",
+            Self::Processes => "View: Processes",
+            Self::Publishers => "View: Publishers",
+        }
+    }
 }
 /// `SortColumn` — see variants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -466,6 +487,33 @@ pub struct ProcessSnapshot {
     pub total_recv: u64,
 }
 
+/// Aggregated bandwidth data for a single publisher (resolved code identity).
+#[derive(Debug, Clone)]
+pub struct PublisherSnapshot {
+    /// Publisher rollup label (Team ID / package / verdict, e.g. `unsigned-binary`).
+    pub name: String,
+    /// Number of distinct processes rolled up under this publisher.
+    pub process_count: usize,
+    /// `flow_count` field.
+    pub flow_count: usize,
+    /// `sent_2s` field.
+    pub sent_2s: f64,
+    /// `sent_10s` field.
+    pub sent_10s: f64,
+    /// `sent_40s` field.
+    pub sent_40s: f64,
+    /// `recv_2s` field.
+    pub recv_2s: f64,
+    /// `recv_10s` field.
+    pub recv_10s: f64,
+    /// `recv_40s` field.
+    pub recv_40s: f64,
+    /// `total_sent` field.
+    pub total_sent: u64,
+    /// `total_recv` field.
+    pub total_recv: u64,
+}
+
 /// Application state for the TUI.
 pub struct AppState {
     /// `show_dns` field.
@@ -572,6 +620,14 @@ pub struct AppState {
     pub process_scroll: usize,
     /// Process drill-down filter — when set, only flows for this process are shown
     pub process_filter: Option<String>,
+    /// Aggregated per-publisher bandwidth snapshots (code-identity rollup)
+    pub publisher_snapshots: Vec<PublisherSnapshot>,
+    /// Selected index in publisher view
+    pub publisher_selected: Option<usize>,
+    /// Scroll offset in publisher view
+    pub publisher_scroll: usize,
+    /// Publisher drill-down filter — when set, only flows for this publisher are shown
+    pub publisher_filter: Option<String>,
     /// `totals` field.
     pub totals: TotalStats,
     /// `resolver` field.
@@ -654,6 +710,10 @@ impl AppState {
             process_selected: None,
             process_scroll: 0,
             process_filter: None,
+            publisher_snapshots: Vec::new(),
+            publisher_selected: None,
+            publisher_scroll: 0,
+            publisher_filter: None,
             totals: TotalStats {
                 sent_2s: 0.0,
                 sent_10s: 0.0,
@@ -1423,6 +1483,7 @@ impl AppState {
         };
         let name = self.process_snapshots[idx].name.clone();
         self.process_filter = Some(name.clone());
+        self.publisher_filter = None;
         self.view_tab = ViewTab::Flows;
         self.selected = None;
         self.scroll_offset = 0;
@@ -1436,6 +1497,89 @@ impl AppState {
             self.selected = None;
             self.scroll_offset = 0;
             self.set_status("Process filter cleared");
+        }
+    }
+
+    // ── Publisher view navigation ──
+    /// `publisher_select_next` — see implementation.
+    pub fn publisher_select_next(&mut self) {
+        let max = self.publisher_snapshots.len().saturating_sub(1);
+        self.publisher_selected = Some(match self.publisher_selected {
+            Some(i) => (i + 1).min(max),
+            None => 0,
+        });
+        if let Some(sel) = self.publisher_selected
+            && sel >= self.publisher_scroll + 20
+        {
+            self.publisher_scroll = sel.saturating_sub(19);
+        }
+    }
+    /// `publisher_select_prev` — see implementation.
+    pub fn publisher_select_prev(&mut self) {
+        self.publisher_selected = Some(match self.publisher_selected {
+            Some(i) => i.saturating_sub(1),
+            None => 0,
+        });
+        if let Some(sel) = self.publisher_selected
+            && sel < self.publisher_scroll
+        {
+            self.publisher_scroll = sel;
+        }
+    }
+    /// `publisher_page_down` — see implementation.
+    pub fn publisher_page_down(&mut self) {
+        let half = 10;
+        let max = self.publisher_snapshots.len().saturating_sub(1);
+        self.publisher_selected = Some(match self.publisher_selected {
+            Some(i) => (i + half).min(max),
+            None => half.min(max),
+        });
+        if let Some(sel) = self.publisher_selected
+            && sel >= self.publisher_scroll + 20
+        {
+            self.publisher_scroll = sel.saturating_sub(19);
+        }
+    }
+    /// `publisher_page_up` — see implementation.
+    pub fn publisher_page_up(&mut self) {
+        let half = 10;
+        self.publisher_selected = Some(match self.publisher_selected {
+            Some(i) => i.saturating_sub(half),
+            None => 0,
+        });
+        if let Some(sel) = self.publisher_selected
+            && sel < self.publisher_scroll
+        {
+            self.publisher_scroll = sel;
+        }
+    }
+
+    /// Drill down from publisher view: filter flows to the selected publisher and
+    /// switch to the Flows tab.
+    pub fn publisher_drill_down(&mut self) {
+        let idx = match self.publisher_selected {
+            Some(i) if i < self.publisher_snapshots.len() => i,
+            _ => {
+                self.set_status("Select a publisher first (j/k)");
+                return;
+            }
+        };
+        let name = self.publisher_snapshots[idx].name.clone();
+        self.publisher_filter = Some(name.clone());
+        self.process_filter = None;
+        self.view_tab = ViewTab::Flows;
+        self.selected = None;
+        self.scroll_offset = 0;
+        self.set_status(format!("Filtered to publisher: {} (Esc to clear)", name));
+    }
+
+    /// Clear publisher drill-down filter.
+    pub fn clear_publisher_filter(&mut self) {
+        if self.publisher_filter.is_some() {
+            self.publisher_filter = None;
+            self.selected = None;
+            self.scroll_offset = 0;
+            self.set_status("Publisher filter cleared");
         }
     }
     /// `export` — see implementation.
@@ -1534,6 +1678,12 @@ impl AppState {
             flows.retain(|f| f.process_name.as_deref().unwrap_or("(unknown)") == pf);
         }
 
+        // Publisher drill-down filter
+        if let Some(ref pf) = self.publisher_filter {
+            let pf = pf.clone();
+            flows.retain(|f| f.publisher.as_deref().unwrap_or("(unknown)") == pf);
+        }
+
         if !self.frozen_order {
             self.sort_flows(&mut flows);
         }
@@ -1548,6 +1698,9 @@ impl AppState {
 
         // Aggregate per-process bandwidth
         self.aggregate_processes();
+
+        // Aggregate per-publisher bandwidth (code-identity rollup)
+        self.aggregate_publishers();
 
         // Check bandwidth alerts
         self.check_alerts();
@@ -1660,6 +1813,68 @@ impl AppState {
             self.process_selected = Some(self.process_snapshots.len() - 1);
         }
     }
+
+    fn aggregate_publishers(&mut self) {
+        use std::collections::{HashMap, HashSet};
+        let mut map: HashMap<String, PublisherSnapshot> = HashMap::new();
+        // Track distinct process names per publisher for the process_count column.
+        let mut procs: HashMap<String, HashSet<String>> = HashMap::new();
+        for f in &self.flows {
+            let name = f
+                .publisher
+                .clone()
+                .unwrap_or_else(|| "(unknown)".to_string());
+            let entry = map
+                .entry(name.clone())
+                .or_insert_with(|| PublisherSnapshot {
+                    name: name.clone(),
+                    process_count: 0,
+                    flow_count: 0,
+                    sent_2s: 0.0,
+                    sent_10s: 0.0,
+                    sent_40s: 0.0,
+                    recv_2s: 0.0,
+                    recv_10s: 0.0,
+                    recv_40s: 0.0,
+                    total_sent: 0,
+                    total_recv: 0,
+                });
+            entry.flow_count += 1;
+            entry.sent_2s += f.sent_2s;
+            entry.sent_10s += f.sent_10s;
+            entry.sent_40s += f.sent_40s;
+            entry.recv_2s += f.recv_2s;
+            entry.recv_10s += f.recv_10s;
+            entry.recv_40s += f.recv_40s;
+            entry.total_sent += f.total_sent;
+            entry.total_recv += f.total_recv;
+            procs.entry(name).or_default().insert(
+                f.process_name
+                    .clone()
+                    .unwrap_or_else(|| "(unknown)".to_string()),
+            );
+        }
+        for (name, set) in procs {
+            if let Some(p) = map.get_mut(&name) {
+                p.process_count = set.len();
+            }
+        }
+        let mut pubs: Vec<PublisherSnapshot> = map.into_values().collect();
+        pubs.sort_by(|a, b| {
+            let ra = a.sent_2s + a.recv_2s;
+            let rb = b.sent_2s + b.recv_2s;
+            rb.partial_cmp(&ra).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        self.publisher_snapshots = pubs;
+
+        // Clamp publisher selection
+        if let Some(sel) = self.publisher_selected
+            && sel >= self.publisher_snapshots.len()
+            && !self.publisher_snapshots.is_empty()
+        {
+            self.publisher_selected = Some(self.publisher_snapshots.len() - 1);
+        }
+    }
     /// `format_host` — see implementation.
     pub fn format_host(&self, addr: std::net::IpAddr, port: u16, protocol: &Protocol) -> String {
         let hostname = self.resolver.resolve(addr);
@@ -1720,6 +1935,7 @@ mod tests {
             total_recv: 500,
             process_name: None,
             pid: None,
+            publisher: None,
             history: Vec::new(),
         }
     }
@@ -1737,6 +1953,40 @@ mod tests {
             peak_sent: 0.0,
             peak_recv: 0.0,
         }
+    }
+
+    #[test]
+    fn aggregate_publishers_rolls_up_by_identity_and_drills_down() {
+        let mut app = make_app();
+        let mut f1 = make_flow(1); // sent_2s = 100
+        f1.publisher = Some("apple".into());
+        f1.process_name = Some("ssh".into());
+        let mut f2 = make_flow(2); // sent_2s = 200
+        f2.publisher = Some("apple".into());
+        f2.process_name = Some("mDNSResponder".into());
+        let mut f3 = make_flow(3); // sent_2s = 300
+        f3.publisher = Some("unsigned-binary".into());
+        f3.process_name = Some("sketchy".into());
+
+        app.update_snapshot(vec![f1, f2, f3], zero_totals());
+
+        // Two publishers; the higher-rate one (unsigned, 300) sorts first.
+        assert_eq!(app.publisher_snapshots.len(), 2);
+        assert_eq!(app.publisher_snapshots[0].name, "unsigned-binary");
+        let apple = app
+            .publisher_snapshots
+            .iter()
+            .find(|p| p.name == "apple")
+            .expect("apple publisher present");
+        assert_eq!(apple.flow_count, 2);
+        assert_eq!(apple.process_count, 2); // two distinct processes
+        assert_eq!(apple.sent_2s, 300.0); // 100 + 200
+
+        // Drill into the unsigned publisher → Flows filtered to just that flow.
+        app.publisher_selected = Some(0);
+        app.publisher_drill_down();
+        assert_eq!(app.view_tab, ViewTab::Flows);
+        assert_eq!(app.publisher_filter.as_deref(), Some("unsigned-binary"));
     }
 
     // ── LineDisplay ──
@@ -2553,6 +2803,7 @@ mod tests_extended {
             total_recv: 500,
             process_name: None,
             pid: None,
+            publisher: None,
             history: Vec::new(),
         }
     }
@@ -2953,6 +3204,7 @@ mod tests_extended {
             total_recv: 0,
             process_name: None,
             pid: None,
+            publisher: None,
             history: Vec::new(),
         };
         let f2 = FlowSnapshot {
@@ -2973,6 +3225,7 @@ mod tests_extended {
             total_recv: 0,
             process_name: None,
             pid: None,
+            publisher: None,
             history: Vec::new(),
         };
         app.update_snapshot(vec![f1, f2], zero_totals());
@@ -3000,6 +3253,7 @@ mod tests_extended {
             total_recv: 0,
             process_name: None,
             pid: None,
+            publisher: None,
             history: Vec::new(),
         };
         let f2 = FlowSnapshot {
@@ -3020,6 +3274,7 @@ mod tests_extended {
             total_recv: 0,
             process_name: None,
             pid: None,
+            publisher: None,
             history: Vec::new(),
         };
         app.update_snapshot(vec![f1, f2], zero_totals());

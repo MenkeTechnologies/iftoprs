@@ -130,6 +130,7 @@ pub fn draw(frame: &mut Frame, state: &mut AppState) {
     match state.view_tab {
         ViewTab::Flows => draw_flows(frame, c[2], state, is_flashing),
         ViewTab::Processes => draw_processes(frame, c[2], state),
+        ViewTab::Publishers => draw_publishers(frame, c[2], state),
     }
     draw_separator(frame, c[3], state);
     draw_totals(frame, c[4], state);
@@ -649,6 +650,142 @@ fn draw_processes(frame: &mut Frame, area: Rect, state: &AppState) {
     }
 }
 
+// ─── Publisher (code-identity) aggregation view ───────────────────────────────
+
+fn draw_publishers(frame: &mut Frame, area: Rect, state: &AppState) {
+    if area.height < 2 || area.width < 30 || state.publisher_snapshots.is_empty() {
+        return;
+    }
+    let t = &state.theme;
+    let w = area.width;
+    let buf = frame.buffer_mut();
+
+    // Header row — column widths must match data rows exactly
+    let pub_name_w = 26usize;
+    let procs_w = 8usize;
+    let header = format!(
+        "{:<pw$}{:>fw$}{:>10}{:>10}{:>10}{:>10}{:>10}{:>10}",
+        " PUBLISHER",
+        "PROCS",
+        "TX 2s",
+        "RX 2s",
+        "TX 10s",
+        "RX 10s",
+        "TOTAL TX",
+        "TOTAL RX",
+        pw = pub_name_w,
+        fw = procs_w,
+    );
+    let header_s = Style::default()
+        .fg(t.scale_label)
+        .add_modifier(Modifier::BOLD);
+    let header_display: String = header.chars().take(w as usize).collect();
+    set_str(buf, area.x, area.y, &header_display, header_s, w);
+
+    let start = state
+        .publisher_scroll
+        .min(state.publisher_snapshots.len().saturating_sub(1));
+    let vis = &state.publisher_snapshots[start..];
+    let rows_available = (area.height - 1) as usize; // -1 for header
+    let vis = &vis[..vis.len().min(rows_available)];
+
+    let bs = state.bar_style;
+
+    for (i, p) in vis.iter().enumerate() {
+        let y = area.y + 1 + i as u16;
+        if y >= area.y + area.height {
+            break;
+        }
+        let pub_idx = start + i;
+        let is_selected = state.publisher_selected == Some(pub_idx);
+
+        let rate = p.sent_2s + p.recv_2s;
+        let bl = bar_length(rate, w);
+
+        // Bar background
+        paint_bar_styled(buf, area.x, y, bl, w, t.bar_color, bs);
+
+        // Publisher name
+        let name_display = format!(" {}", p.name);
+        let name_trunc = format!("{:<w$}", trunc(&name_display, pub_name_w), w = pub_name_w);
+        write_bar_styled(
+            buf,
+            area.x,
+            y,
+            &name_trunc,
+            t.host_src,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
+
+        // Process count
+        let procs_str = format!("{:>fw$}", p.process_count, fw = procs_w);
+        let fx = area.x + pub_name_w as u16;
+        write_bar_styled(
+            buf,
+            fx,
+            y,
+            &procs_str,
+            t.proc_name,
+            area.x,
+            bl,
+            t.bar_color,
+            t.bar_text,
+            bs,
+        );
+
+        // Rate columns (each 9 chars + 1 space = 10 wide)
+        let col_w: u16 = 10;
+        let cols_x = fx + procs_w as u16;
+        let tx_2s = format!("{:>9} ", readable_size(p.sent_2s, state.use_bytes));
+        let rx_2s = format!("{:>9} ", readable_size(p.recv_2s, state.use_bytes));
+        let tx_10s = format!("{:>9} ", readable_size(p.sent_10s, state.use_bytes));
+        let rx_10s = format!("{:>9} ", readable_size(p.recv_10s, state.use_bytes));
+        let tot_tx = format!("{:>9} ", readable_total(p.total_sent, state.use_bytes));
+        let tot_rx = format!("{:>9} ", readable_total(p.total_recv, state.use_bytes));
+
+        let cols: [(&str, Color); 6] = [
+            (tx_2s.as_str(), t.rate_2s),
+            (rx_2s.as_str(), t.rate_2s),
+            (tx_10s.as_str(), t.rate_10s),
+            (rx_10s.as_str(), t.rate_10s),
+            (tot_tx.as_str(), t.cum_label),
+            (tot_rx.as_str(), t.cum_label),
+        ];
+        for (col, (text, color)) in cols.into_iter().enumerate() {
+            write_bar_styled(
+                buf,
+                cols_x + col_w * col as u16,
+                y,
+                text,
+                color,
+                area.x,
+                bl,
+                t.bar_color,
+                t.bar_text,
+                bs,
+            );
+        }
+
+        // Selection highlight — background overlay
+        if is_selected {
+            let buf_w = buf.area().width;
+            let buf_x = buf.area().x;
+            let buf_h = buf.area().height;
+            let buf_y = buf.area().y;
+            for x in area.x..area.x + w {
+                if x < buf_x + buf_w && y < buf_y + buf_h {
+                    let c = &mut buf[(x, y)];
+                    c.set_bg(t.select_bg);
+                }
+            }
+        }
+    }
+}
+
 // ─── Bottom totals with bars ──────────────────────────────────────────────────
 
 fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
@@ -660,8 +797,9 @@ fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
 
     // Tab indicator on the left
     let tab_indicator = match state.view_tab {
-        ViewTab::Flows => " [Flows] Processes ",
-        ViewTab::Processes => " Flows [Processes] ",
+        ViewTab::Flows => " [Flows] Processes Publishers ",
+        ViewTab::Processes => " Flows [Processes] Publishers ",
+        ViewTab::Publishers => " Flows Processes [Publishers] ",
     };
     let tab_s = Style::default()
         .fg(state.theme.host_src)
@@ -679,9 +817,13 @@ fn draw_separator(frame: &mut Frame, area: Rect, state: &AppState) {
     set_str(buf, hint_x, area.y, "Tab", tab_hint_s, 3);
     hint_x += 3;
 
-    // Show process drill-down filter indicator
-    if let Some(ref pf) = state.process_filter {
-        let pf_text = format!(" \u{25B8}{} ", pf); // ▸processname
+    // Show process / publisher drill-down filter indicator
+    if let Some(pf) = state
+        .process_filter
+        .as_deref()
+        .or(state.publisher_filter.as_deref())
+    {
+        let pf_text = format!(" \u{25B8}{} ", pf); // ▸name
         let pf_s = Style::default()
             .fg(state.theme.rate_2s)
             .add_modifier(Modifier::BOLD);
@@ -1986,6 +2128,7 @@ mod tests {
             total_recv: 0,
             process_name: None,
             pid: None,
+            publisher: None,
             history: Vec::new(),
         }];
         app.scroll_offset = 100; // way beyond
@@ -2035,6 +2178,7 @@ mod tests {
             total_recv: 500,
             process_name: None,
             pid: None,
+            publisher: None,
             history: Vec::new(),
         }
     }

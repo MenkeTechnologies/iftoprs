@@ -82,6 +82,15 @@ cargo install iftoprs                   # via crates.io
   │   ├── per-process aggregated bandwidth view (Tab key)
   │   └── drill-down: Enter on process → filtered flows, Esc to clear
   │
+[PROVENANCE_INTEL]
+  ├── Publishers view ── third aggregation axis (Tab key)
+  │   ├── resolves each flow past pid→name to the binary's code identity
+  │   ├── macOS: code-signing Team ID + authority (Security framework)
+  │   ├── Linux: owning package (dpkg/rpm) + executable SHA-256
+  │   ├── rolls TX/RX up by publisher ("unsigned-binary 40 Mb/s up")
+  │   ├── cache keyed by (dev, inode, mtime) — one fingerprint per binary
+  │   └── drill-down: Enter on publisher → filtered flows, Esc to clear
+  │
 [TOOLTIP_SYSTEM]
   ├── Rich contextual tooltips on hover + right-click
   │   ├── right-click flow rows ── TX/RX rates, totals, process, sparkline
@@ -99,7 +108,7 @@ cargo install iftoprs                   # via crates.io
 [JSON_STREAM]
   ├── --json flag ── headless NDJSON output (no TUI)
   │   ├── streams flow snapshots to stdout
-  │   ├── includes rates, totals, process info
+  │   ├── includes rates, totals, process info, publisher/team_id/package
   │   └── pipe to jq, log to file, feed dashboards
   │
 [INTERFACE_DECK]
@@ -306,7 +315,14 @@ sudo iftoprs -p                        # promiscuous mode
 iftoprs --completions zsh              # generate zsh completions
 sudo iftoprs --json                    # stream NDJSON to stdout
 sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
+sudo iftoprs --json | jq '.flows[] | {publisher, team_id, package}'  # code provenance
 ```
+
+Each NDJSON flow carries the usual rates/totals plus process attribution
+(`process_name`, `pid`) and code provenance. Provenance fields are emitted only
+when resolved: `publisher` (rollup label — Team ID, package, or a verdict such
+as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
+`package` (Linux dpkg/rpm owning package).
 
 ---
 
@@ -322,7 +338,7 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `Tab` | Switch view ── Flows / Processes |
+| `Tab` | Switch view ── Flows / Processes / Publishers |
 | `n` | Toggle DNS resolution |
 | `N` | Toggle service name resolution |
 | `t` | Cycle line display ── two-line / one-line / sent / recv |
@@ -360,8 +376,8 @@ sudo iftoprs --json | jq '.flows[0]'  # pipe to jq for processing
 | `Ctrl+U` | Half-page up |
 | `G` `End` | Jump to last |
 | `Home` | Jump to first |
-| `Esc` | Deselect / clear process filter / close overlay |
-| `Enter` | Drill into selected process (Processes tab) |
+| `Esc` | Deselect / clear process or publisher filter / close overlay |
+| `Enter` | Drill into selected process / publisher (Processes / Publishers tab) |
 
 #### `// FILTER_OPS`
 

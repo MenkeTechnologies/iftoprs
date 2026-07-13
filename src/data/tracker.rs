@@ -49,6 +49,8 @@ pub struct FlowSnapshot {
     pub process_name: Option<String>,
     /// `pid` field.
     pub pid: Option<u32>,
+    /// Publisher rollup label — resolved code identity of the owning binary.
+    pub publisher: Option<String>,
     /// Per-second combined (sent+recv) history for sparkline rendering.
     pub history: Vec<u64>,
 }
@@ -127,6 +129,14 @@ impl FlowTracker {
         }
     }
 
+    /// Set the resolved publisher (code-identity) label for a flow.
+    pub fn set_publisher(&self, key: &FlowKey, publisher: String) {
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(history) = inner.flows.get_mut(key) {
+            history.publisher = Some(publisher);
+        }
+    }
+
     /// Rotate history slots (call once per second).
     pub fn maybe_rotate(&self) {
         let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
@@ -183,6 +193,7 @@ impl FlowTracker {
                     total_recv: h.total_recv,
                     process_name: h.process_name.clone(),
                     pid: h.pid,
+                    publisher: h.publisher.clone(),
                     history,
                 }
             })
@@ -307,6 +318,24 @@ mod tests {
         let (flows, _) = t.snapshot();
         assert_eq!(flows[0].pid, Some(1234));
         assert_eq!(flows[0].process_name.as_deref(), Some("curl"));
+    }
+
+    #[test]
+    fn set_publisher_propagates_to_snapshot() {
+        let t = FlowTracker::new();
+        let key = test_key(5000);
+        t.record(key, Direction::Sent, 100);
+        assert!(t.snapshot().0[0].publisher.is_none());
+        t.set_publisher(&key, "EQHXZ8M8AV".to_string());
+        let (flows, _) = t.snapshot();
+        assert_eq!(flows[0].publisher.as_deref(), Some("EQHXZ8M8AV"));
+    }
+
+    #[test]
+    fn set_publisher_nonexistent_key_no_panic() {
+        let t = FlowTracker::new();
+        t.set_publisher(&test_key(9999), "ghost".to_string());
+        assert!(t.snapshot().0.is_empty());
     }
 
     #[test]

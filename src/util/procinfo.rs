@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::data::flow::Protocol;
@@ -12,14 +13,26 @@ static PROC_CACHE: OnceLock<Arc<Mutex<ProcTable>>> = OnceLock::new();
 struct ProcTable {
     /// Maps (local_port, protocol) → (pid, name)
     by_port: HashMap<(u16, u8), (u32, String)>,
+    /// Maps pid → on-disk executable path, for socket-owning processes. Used by
+    /// the provenance layer (Publishers view) to fingerprint the binary.
+    exe_by_pid: HashMap<u32, PathBuf>,
 }
 
 fn get_cache() -> &'static Arc<Mutex<ProcTable>> {
     PROC_CACHE.get_or_init(|| {
         Arc::new(Mutex::new(ProcTable {
             by_port: HashMap::new(),
+            exe_by_pid: HashMap::new(),
         }))
     })
+}
+
+/// Return the on-disk executable path for a socket-owning PID, if the last
+/// table refresh captured it. Feeds `provenance::identity_for`.
+pub fn exe_path_for(pid: u32) -> Option<PathBuf> {
+    let cache = get_cache();
+    let table = cache.lock().unwrap_or_else(|e| e.into_inner());
+    table.exe_by_pid.get(&pid).cloned()
 }
 
 /// Refresh the entire process→socket table. Call this periodically from the
@@ -48,7 +61,7 @@ fn refresh_proc_table_macos() {
     use libproc::libproc::bsd_info::BSDInfo;
     use libproc::libproc::file_info::{ListFDs, ProcFDType, pidfdinfo};
     use libproc::libproc::net_info::{SocketFDInfo, SocketInfoKind};
-    use libproc::libproc::proc_pid::{listpidinfo, name, pidinfo};
+    use libproc::libproc::proc_pid::{listpidinfo, name, pidinfo, pidpath};
     use libproc::processes::{ProcFilter, pids_by_type};
 
     // Enumerate every PID, then every socket fd of each, reading the local
@@ -59,6 +72,7 @@ fn refresh_proc_table_macos() {
     };
 
     let mut new_table: HashMap<(u16, u8), (u32, String)> = HashMap::new();
+    let mut new_exe: HashMap<u32, PathBuf> = HashMap::new();
 
     for pid in pids {
         if pid == 0 {
@@ -112,8 +126,15 @@ fn refresh_proc_table_macos() {
                 continue;
             }
 
-            let nm = proc_name
-                .get_or_insert_with(|| name(pid_i).unwrap_or_else(|_| format!("pid:{}", pid)));
+            // Resolve name and executable path once, the first time this PID is
+            // seen to own a socket.
+            if proc_name.is_none() {
+                proc_name = Some(name(pid_i).unwrap_or_else(|_| format!("pid:{}", pid)));
+                if let Ok(path) = pidpath(pid_i) {
+                    new_exe.insert(pid, PathBuf::from(path));
+                }
+            }
+            let nm = proc_name.as_ref().expect("resolved above");
             new_table.entry((port, proto)).or_insert((pid, nm.clone()));
         }
     }
@@ -121,6 +142,7 @@ fn refresh_proc_table_macos() {
     let cache = get_cache();
     let mut table = cache.lock().unwrap_or_else(|e| e.into_inner());
     table.by_port = new_table;
+    table.exe_by_pid = new_exe;
 }
 
 #[cfg(target_os = "linux")]
@@ -192,9 +214,21 @@ fn refresh_proc_table_linux() {
         }
     }
 
+    // Capture the executable path for every socket-owning PID (for provenance).
+    let mut new_exe: HashMap<u32, PathBuf> = HashMap::new();
+    let mut pids_seen: std::collections::HashSet<u32> = std::collections::HashSet::new();
+    for (pid, _) in new_table.values() {
+        if pids_seen.insert(*pid)
+            && let Ok(target) = fs::read_link(format!("/proc/{}/exe", pid))
+        {
+            new_exe.insert(*pid, target);
+        }
+    }
+
     let cache = get_cache();
     let mut table = cache.lock().unwrap_or_else(|e| e.into_inner());
     table.by_port = new_table;
+    table.exe_by_pid = new_exe;
 }
 
 #[cfg(target_os = "linux")]

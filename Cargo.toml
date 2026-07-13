@@ -31,8 +31,17 @@ clap_complete = "4"
 # macOS process attribution: native libproc syscalls (proc_listpids /
 # proc_pidfdinfo). Compiled into the single binary — no external `lsof` at
 # runtime. Linux uses /proc directly and needs no extra crate.
+#
+# macOS provenance attribution (Publishers view): the Security framework reads
+# the on-disk code signature (Team ID + authority) via SecStaticCode. Apple's
+# own, durable framework — vendored through the `security-framework` crate and
+# its CoreFoundation glue. Linux provenance is std-only (dpkg/rpm + a pure-Rust
+# SHA-256), so it needs no extra crate.
 [target.'cfg(target_os = "macos")'.dependencies]
 libproc = "0.14"
+security-framework = "2.11"
+core-foundation = "0.9"
+core-foundation-sys = "0.8"
 
 [profile.release]
 opt-level = 3

@@ -25,6 +25,9 @@ pub struct FlowHistory {
     pub process_name: Option<String>,
     /// Process ID (if known).
     pub pid: Option<u32>,
+    /// Publisher rollup label — the code identity (Team ID / package / verdict)
+    /// of the owning binary, if resolved. Drives the Publishers view.
+    pub publisher: Option<String>,
 }
 
 impl Default for FlowHistory {
@@ -51,6 +54,7 @@ impl FlowHistory {
             last_seen: now,
             process_name: None,
             pid: None,
+            publisher: None,
         }
     }
 
