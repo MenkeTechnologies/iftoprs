@@ -229,11 +229,11 @@
           <tr><td style="color:var(--accent);">Capture</td><td><code>capture/parser.rs, capture/sniffer.rs</code></td><td class="num">3,315</td><td class="num">12.2%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:12.2%"></div></div></td><td>libpcap loop, exponential-backoff restart, Ethernet/IPv4/IPv6/TCP/UDP/ICMP decode, 5-tuple folding</td></tr>
           <tr><td style="color:var(--accent);">Config</td><td><code>config/cli.rs, config/theme.rs, config/prefs.rs</code></td><td class="num">4,579</td><td class="num">16.9%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:16.9%"></div></div></td><td>clap derive (17 flags + 5 completion shells), 31 themes with display names + swatches, TOML auto-save</td></tr>
           <tr><td style="color:var(--accent);">Data</td><td><code>data/flow.rs, data/tracker.rs, data/history.rs</code></td><td class="num">3,590</td><td class="num">13.2%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:13.2%"></div></div></td><td>5-tuple flow records, peak / cumulative counters, 40-sample sparkline ring buffer, sliding-window rate calculation</td></tr>
-          <tr><td style="color:var(--accent);">Util</td><td><code>util/format.rs, util/resolver.rs, util/procinfo.rs</code></td><td class="num">2,822</td><td class="num">10.4%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:10.4%"></div></div></td><td>byte/bit formatters, async reverse-DNS + port-name cache, background native poller (<code>libproc</code> / <code>/proc</code>) for PID+name attribution</td></tr>
-          <tr><td style="color:var(--accent);">Main / Entry</td><td><code>main.rs, lib.rs</code></td><td class="num">1,148</td><td class="num">4.2%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:4.2%"></div></div></td><td>argv handoff, JSON mode dispatch, capture spawn, TUI bootstrap, signal handling</td></tr>
+          <tr><td style="color:var(--accent);">Util</td><td><code>util/format.rs, util/resolver.rs, util/procinfo.rs</code></td><td class="num">2,839</td><td class="num">10.4%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:10.4%"></div></div></td><td>byte/bit formatters, async reverse-DNS + port-name cache, background native poller (<code>libproc</code> / <code>/proc</code>) for PID+name attribution</td></tr>
+          <tr><td style="color:var(--accent);">Main / Entry</td><td><code>main.rs, lib.rs</code></td><td class="num">1,149</td><td class="num">4.2%</td><td><div class="bar-wrap"><div class="bar-fill cyan" style="width:4.2%"></div></div></td><td>argv handoff, JSON mode dispatch, capture spawn, TUI bootstrap, signal handling</td></tr>
           <tr><td style="color:var(--green);">Integration tests</td><td><code>tests/integration.rs</code></td><td class="num">5,258</td><td class="num">19.4%</td><td><div class="bar-wrap"><div class="bar-fill green" style="width:19.4%"></div></div></td><td>479 integration tests driving the built binary via <code>CARGO_BIN_EXE_iftoprs</code>; covers CLI parse, JSON mode, completions, theme list, BPF filter pass-through</td></tr>
         </tbody>
-        <tfoot><tr class="total-row"><td colspan="2" style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;">TOTAL</td><td class="num">27,131</td><td class="num">100%</td><td></td><td></td></tr></tfoot>
+        <tfoot><tr class="total-row"><td colspan="2" style="font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1px;">TOTAL</td><td class="num">27,149</td><td class="num">100%</td><td></td><td></td></tr></tfoot>
       </table>
 
       <hr class="section-rule">
@@ -415,7 +415,7 @@
 
       <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));">
         <div class="stat-card"><div class="stat-val accent">2,275</div><div class="stat-label">Total #[test] fns</div></div>
-        <div class="stat-card"><div class="stat-val">1,733</div><div class="stat-label">Unit Tests (src/)</div></div>
+        <div class="stat-card"><div class="stat-val">1,730</div><div class="stat-label">Unit Tests (src/)</div></div>
         <div class="stat-card"><div class="stat-val">545</div><div class="stat-label">Integration Tests</div></div>
         <div class="stat-card"><div class="stat-val">6,672</div><div class="stat-label">Integration LOC</div></div>
       </div>
@@ -435,11 +435,11 @@
           <tr><td>src/data/history.rs</td><td class="num">72</td><td>40-sample ring math, sparkline string, peak tracking</td></tr>
           <tr><td>src/data/tracker.rs</td><td class="num">68</td><td>flow insertion / update / expiration, direction inference, alert eval</td></tr>
           <tr><td>src/ui/render.rs</td><td class="num">64</td><td>header layout, hit-box arithmetic, tooltip positioning, popup geometry</td></tr>
-          <tr><td>src/util/procinfo.rs</td><td class="num">27</td><td>native socket-table parse, byte-order/port conversion, cache invalidation, missing-socket handling</td></tr>
+          <tr><td>src/util/procinfo.rs</td><td class="num">24</td><td>native socket-table parse, byte-order/port conversion, cache invalidation, missing-socket handling</td></tr>
           <tr><td>src/main.rs</td><td class="num">14</td><td>argv handoff, JSON-mode short-circuit, prefs save on exit</td></tr>
           <tr><td>src/capture/sniffer.rs</td><td class="num">6</td><td>pcap open, BPF compile, snaplen / promiscuous setup, exponential-backoff restart</td></tr>
         </tbody>
-        <tfoot><tr class="total-row"><td>UNIT SUBTOTAL</td><td class="num">1,733</td><td>across 14 source files</td></tr></tfoot>
+        <tfoot><tr class="total-row"><td>UNIT SUBTOTAL</td><td class="num">1,730</td><td>across 14 source files</td></tr></tfoot>
       </table>
 
       <h3 style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--cyan);letter-spacing:1.5px;margin:1.5rem 0 0.5rem;">// CI MATRIX</h3>
