@@ -199,9 +199,8 @@ mod macos {
             return None;
         }
         // Take ownership of the returned (+1) dictionary reference.
-        let dict = unsafe {
-            CFDictionary::<*const c_void, *const c_void>::wrap_under_create_rule(info)
-        };
+        let dict =
+            unsafe { CFDictionary::<*const c_void, *const c_void>::wrap_under_create_rule(info) };
         let value = unsafe {
             CFDictionaryGetValue(
                 dict.as_concrete_TypeRef(),
@@ -444,4 +443,3 @@ mod tests {
         assert!(id.sha256.is_none());
     }
 }
-

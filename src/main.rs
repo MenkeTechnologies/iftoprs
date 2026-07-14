@@ -718,8 +718,8 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
                         }
                     }
                     ViewTab::Publishers => {
-                        let idx =
-                            app.publisher_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
+                        let idx = app.publisher_scroll
+                            + (row - app.flow_area_y).saturating_sub(1) as usize;
                         if idx < app.publisher_snapshots.len() {
                             app.publisher_selected = Some(idx);
                         }
@@ -748,8 +748,8 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
                         }
                     }
                     ViewTab::Publishers => {
-                        let idx =
-                            app.publisher_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
+                        let idx = app.publisher_scroll
+                            + (row - app.flow_area_y).saturating_sub(1) as usize;
                         if idx < app.publisher_snapshots.len() {
                             app.publisher_selected = Some(idx);
                         }
@@ -949,8 +949,12 @@ fn run_json_mode(args: &Args) -> Result<()> {
                     pid: f.pid,
                     publisher: f.publisher.clone(),
                     // Resolve structured code identity (cached by dev/inode/mtime).
-                    team_id: f.pid.and_then(|pid| util::provenance::identity_for(pid).team_id),
-                    package: f.pid.and_then(|pid| util::provenance::identity_for(pid).package),
+                    team_id: f
+                        .pid
+                        .and_then(|pid| util::provenance::identity_for(pid).team_id),
+                    package: f
+                        .pid
+                        .and_then(|pid| util::provenance::identity_for(pid).package),
                 }
             })
             .collect();
@@ -1055,7 +1059,10 @@ mod tests {
     fn ndjson_flow_emits_provenance_fields_and_skips_none() {
         let line = serde_json::to_string(&sample_json_flow()).unwrap();
         // Resolved provenance fields are present with their values.
-        assert!(line.contains("\"publisher\":\"EQHXZ8M8AV\""), "line: {line}");
+        assert!(
+            line.contains("\"publisher\":\"EQHXZ8M8AV\""),
+            "line: {line}"
+        );
         assert!(line.contains("\"team_id\":\"EQHXZ8M8AV\""), "line: {line}");
         // `package` is None on this (macOS-style) identity → omitted, not null.
         assert!(!line.contains("package"), "line: {line}");

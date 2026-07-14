@@ -1863,7 +1863,12 @@ impl AppState {
         pubs.sort_by(|a, b| {
             let ra = a.sent_2s + a.recv_2s;
             let rb = b.sent_2s + b.recv_2s;
-            rb.partial_cmp(&ra).unwrap_or(std::cmp::Ordering::Equal)
+            // Rate descending, with name as a deterministic tiebreaker so tied
+            // publishers keep a stable order across frames (HashMap iteration
+            // order is otherwise randomized per process).
+            rb.partial_cmp(&ra)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.name.cmp(&b.name))
         });
         self.publisher_snapshots = pubs;
 
@@ -1964,13 +1969,14 @@ mod tests {
         let mut f2 = make_flow(2); // sent_2s = 200
         f2.publisher = Some("apple".into());
         f2.process_name = Some("mDNSResponder".into());
-        let mut f3 = make_flow(3); // sent_2s = 300
+        let mut f3 = make_flow(4); // sent_2s = 400
         f3.publisher = Some("unsigned-binary".into());
         f3.process_name = Some("sketchy".into());
 
         app.update_snapshot(vec![f1, f2, f3], zero_totals());
 
-        // Two publishers; the higher-rate one (unsigned, 300) sorts first.
+        // Two publishers; the higher-rate one (unsigned, 400 > apple's 100+200)
+        // sorts first — deterministically, no tie.
         assert_eq!(app.publisher_snapshots.len(), 2);
         assert_eq!(app.publisher_snapshots[0].name, "unsigned-binary");
         let apple = app
