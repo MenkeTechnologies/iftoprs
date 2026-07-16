@@ -437,7 +437,7 @@ as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
 
 ## [0xFF] LICENSE
 
-MIT License — Jacob Menke. See [LICENSE](LICENSE).
+MIT License — MenkeTechnologies. See [LICENSE](LICENSE).
 
 <p align="center">
   <code>⟦ END OF LINE ⟧</code><br>
