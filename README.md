@@ -397,6 +397,17 @@ as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
 | `Enter` | Select theme |
 | `Esc` | Cancel |
 
+#### `// THEME_EDITOR`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `C` | Open the palette editor on the active theme (6 color slots, live preview) |
+| `j/k` `↓/↑` | Move between color slots |
+| `h/l` `←/→` | Nudge the slot's 256-color index by 1 |
+| `H/L` | Nudge the slot's index by 10 |
+| `s` `S` `Enter` | Name and save as a custom theme (persisted to `~/.iftoprs.conf`) |
+| `Esc` `q` | Cancel and restore the previous palette |
+
 #### `// INTERFACE_OPS`
 
 | `KEY` | `ACTION` |
