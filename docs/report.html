@@ -461,7 +461,7 @@
       <!-- SECTION 9: DEPENDENCIES                 -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">+</span>DEPENDENCIES</h2>
-      <p class="tutorial-subtitle">15 direct crates declared in <code>Cargo.toml</code> (<code>libproc</code> is macOS-only, for native process attribution); 269 total in <code>Cargo.lock</code> once <code>tokio</code> / <code>ratatui</code> / <code>regex</code> pull in their full transitive graph. Single binary out of <code>cargo install iftoprs</code> &mdash; LTO + strip + opt-level 3 in the release profile.</p>
+      <p class="tutorial-subtitle">17 direct crates declared in <code>Cargo.toml</code> (three of them macOS-only &mdash; <code>libproc</code>, <code>security-framework</code> and <code>core-foundation</code>, for native process attribution); 273 total in <code>Cargo.lock</code> once <code>tokio</code> / <code>ratatui</code> / <code>regex</code> pull in their full transitive graph. Single binary out of <code>cargo install iftoprs</code> &mdash; LTO + strip + opt-level 3 in the release profile.</p>
 
       <table class="file-table">
         <thead><tr><th>Crate</th><th class="num">Version</th><th>Role</th><th>Tier</th></tr></thead>
