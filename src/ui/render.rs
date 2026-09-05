@@ -2183,6 +2183,76 @@ mod tests {
         }
     }
 
+    fn make_test_process(name: &str) -> crate::ui::app::ProcessSnapshot {
+        crate::ui::app::ProcessSnapshot {
+            name: name.to_string(),
+            pid: Some(42),
+            flow_count: 1,
+            sent_2s: 10.0,
+            sent_10s: 10.0,
+            sent_40s: 10.0,
+            recv_2s: 5.0,
+            recv_10s: 5.0,
+            recv_40s: 5.0,
+            total_sent: 100,
+            total_recv: 50,
+        }
+    }
+
+    /// `list_row_at` must agree with where each view actually paints its first
+    /// data row: flows start at `flow_area_y`, the process/publisher tables
+    /// draw a column header there first.
+    #[test]
+    fn list_row_at_matches_rendered_first_data_row() {
+        let mut app = make_test_app();
+        app.flows = (1..=5).map(make_test_flow).collect();
+        app.process_snapshots = ["curl", "ssh", "rustc"]
+            .iter()
+            .map(|n| make_test_process(n))
+            .collect();
+
+        let backend = ratatui::backend::TestBackend::new(120, 40);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+        let flow_area_y = app.flow_area_y;
+
+        // Flows: no column header, so the very first row is data.
+        app.view_tab = ViewTab::Flows;
+        assert_eq!(app.list_row_at(flow_area_y), Some(0));
+        assert_eq!(app.list_row_at(flow_area_y + 4), Some(4));
+        assert_eq!(app.list_row_at(flow_area_y + 5), None, "past last flow");
+        assert_eq!(app.list_row_at(flow_area_y - 1), None, "above the list");
+
+        // Processes: the header row selects nothing, data starts one row down.
+        app.view_tab = ViewTab::Processes;
+        assert_eq!(app.list_row_at(flow_area_y), None, "column header row");
+        assert_eq!(app.list_row_at(flow_area_y + 1), Some(0));
+        assert_eq!(app.list_row_at(flow_area_y + 3), Some(2));
+        assert_eq!(app.list_row_at(flow_area_y + 4), None, "past last process");
+    }
+
+    /// A scrolled list must map clicks through the scroll offset, not treat the
+    /// first painted row as index 0.
+    #[test]
+    fn list_row_at_accounts_for_scroll_offset() {
+        let mut app = make_test_app();
+        app.flows = (1..=20).map(make_test_flow).collect();
+        app.flow_area_y = 2;
+        app.view_tab = ViewTab::Flows;
+        app.scroll_offset = 7;
+        assert_eq!(app.list_row_at(2), Some(7));
+        assert_eq!(app.list_row_at(5), Some(10));
+
+        app.view_tab = ViewTab::Processes;
+        app.process_snapshots = (0..20)
+            .map(|i| make_test_process(&format!("p{i}")))
+            .collect();
+        app.process_scroll = 3;
+        assert_eq!(app.list_row_at(2), None, "column header row");
+        assert_eq!(app.list_row_at(3), Some(3));
+        assert_eq!(app.list_row_at(6), Some(6));
+    }
+
     #[test]
     fn draw_with_flows_no_panic() {
         let mut app = make_test_app();

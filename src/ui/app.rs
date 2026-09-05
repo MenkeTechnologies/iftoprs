@@ -1302,6 +1302,45 @@ impl AppState {
         self.pinned.contains(&pin)
     }
 
+    /// Rows the active view draws above its first data row, counted from
+    /// `flow_area_y`. Flows paint straight into the area; the Processes and
+    /// Publishers tables draw a column header first.
+    pub fn view_header_rows(&self) -> u16 {
+        match self.view_tab {
+            ViewTab::Flows => 0,
+            ViewTab::Processes | ViewTab::Publishers => 1,
+        }
+    }
+
+    /// Map a screen row to an index into the active view's list. `None` when
+    /// the row is above the list, on its column header, or past the last row.
+    pub fn list_row_at(&self, row: u16) -> Option<usize> {
+        if row < self.flow_area_y {
+            return None;
+        }
+        let rel = row - self.flow_area_y;
+        let header = self.view_header_rows();
+        if rel < header {
+            return None;
+        }
+        let (scroll, len) = match self.view_tab {
+            ViewTab::Flows => (self.scroll_offset, self.flows.len()),
+            ViewTab::Processes => (self.process_scroll, self.process_snapshots.len()),
+            ViewTab::Publishers => (self.publisher_scroll, self.publisher_snapshots.len()),
+        };
+        let idx = scroll + (rel - header) as usize;
+        (idx < len).then_some(idx)
+    }
+
+    /// Select `idx` in whichever list the active view shows.
+    pub fn select_in_active_view(&mut self, idx: usize) {
+        match self.view_tab {
+            ViewTab::Flows => self.selected = Some(idx),
+            ViewTab::Processes => self.process_selected = Some(idx),
+            ViewTab::Publishers => self.publisher_selected = Some(idx),
+        }
+    }
+
     /// Copy selected flow info to clipboard.
     pub fn copy_selected(&mut self) {
         let idx = match self.selected {
@@ -1316,33 +1355,8 @@ impl AppState {
         let dst = self.format_host(f.key.dst, f.key.dst_port, &f.key.protocol);
         let text = format!("{} <=> {} [{}]", src, dst, f.key.protocol);
 
-        let result = if cfg!(target_os = "macos") {
-            std::process::Command::new("pbcopy")
-                .stdin(std::process::Stdio::piped())
-                .spawn()
-                .and_then(|mut child| {
-                    use std::io::Write;
-                    if let Some(ref mut stdin) = child.stdin {
-                        stdin.write_all(text.as_bytes())?;
-                    }
-                    child.wait()
-                })
-        } else {
-            std::process::Command::new("xclip")
-                .args(["-selection", "clipboard"])
-                .stdin(std::process::Stdio::piped())
-                .spawn()
-                .and_then(|mut child| {
-                    use std::io::Write;
-                    if let Some(ref mut stdin) = child.stdin {
-                        stdin.write_all(text.as_bytes())?;
-                    }
-                    child.wait()
-                })
-        };
-
-        match result {
-            Ok(_) => self.set_status(format!("Copied: {}", text)),
+        match crate::util::clipboard::copy_to_clipboard(&text) {
+            Ok(via) => self.set_status(format!("Copied ({}): {}", via, text)),
             Err(e) => self.set_status(format!("Copy failed: {}", e)),
         }
     }

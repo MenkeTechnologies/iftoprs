@@ -1,3 +1,5 @@
+/// `clipboard` submodule — clipboard helper chain with OSC 52 fallback.
+pub mod clipboard;
 /// `format` submodule.
 pub mod format;
 /// `procinfo` submodule.

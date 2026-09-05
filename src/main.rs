@@ -700,60 +700,18 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
 
     match mouse.kind {
         MouseEventKind::Down(MouseButton::Left) => {
-            let row = mouse.row;
-            if row >= app.flow_area_y {
-                match app.view_tab {
-                    ViewTab::Flows => {
-                        let idx = app.scroll_offset + (row - app.flow_area_y) as usize;
-                        if idx < app.flows.len() {
-                            app.selected = Some(idx);
-                        }
-                    }
-                    ViewTab::Processes => {
-                        // +1 for header row in process view
-                        let idx =
-                            app.process_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
-                        if idx < app.process_snapshots.len() {
-                            app.process_selected = Some(idx);
-                        }
-                    }
-                    ViewTab::Publishers => {
-                        let idx = app.publisher_scroll
-                            + (row - app.flow_area_y).saturating_sub(1) as usize;
-                        if idx < app.publisher_snapshots.len() {
-                            app.publisher_selected = Some(idx);
-                        }
-                    }
-                }
+            if let Some(idx) = app.list_row_at(mouse.row) {
+                app.select_in_active_view(idx);
             }
         }
         MouseEventKind::Down(MouseButton::Right) => {
             let row = mouse.row;
             if app.show_header && row == app.header_bar_y {
                 app.hover.right_click_at(mouse.column, mouse.row);
-            } else if row >= app.flow_area_y {
-                match app.view_tab {
-                    ViewTab::Flows => {
-                        let idx = app.scroll_offset + (row - app.flow_area_y) as usize;
-                        if idx < app.flows.len() {
-                            app.selected = Some(idx);
-                            app.show_tooltip(idx, mouse.column, mouse.row);
-                        }
-                    }
-                    ViewTab::Processes => {
-                        let idx =
-                            app.process_scroll + (row - app.flow_area_y).saturating_sub(1) as usize;
-                        if idx < app.process_snapshots.len() {
-                            app.process_selected = Some(idx);
-                        }
-                    }
-                    ViewTab::Publishers => {
-                        let idx = app.publisher_scroll
-                            + (row - app.flow_area_y).saturating_sub(1) as usize;
-                        if idx < app.publisher_snapshots.len() {
-                            app.publisher_selected = Some(idx);
-                        }
-                    }
+            } else if let Some(idx) = app.list_row_at(row) {
+                app.select_in_active_view(idx);
+                if matches!(app.view_tab, ViewTab::Flows) {
+                    app.show_tooltip(idx, mouse.column, mouse.row);
                 }
             }
         }
@@ -769,15 +727,11 @@ fn handle_mouse(app: &mut AppState, mouse: MouseEvent) {
         },
         MouseEventKind::Down(MouseButton::Middle) => {
             // Middle-click → toggle pin (flows view only)
-            if matches!(app.view_tab, ViewTab::Flows) {
-                let row = mouse.row;
-                if row >= app.flow_area_y {
-                    let idx = app.scroll_offset + (row - app.flow_area_y) as usize;
-                    if idx < app.flows.len() {
-                        app.selected = Some(idx);
-                        app.toggle_pin();
-                    }
-                }
+            if matches!(app.view_tab, ViewTab::Flows)
+                && let Some(idx) = app.list_row_at(mouse.row)
+            {
+                app.selected = Some(idx);
+                app.toggle_pin();
             }
         }
         MouseEventKind::Moved => {

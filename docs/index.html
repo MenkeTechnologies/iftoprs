@@ -411,7 +411,7 @@ iftoprs --completions fish &gt; iftoprs.fish</pre>
         <table class="reflection-table">
           <thead><tr><th>Key</th><th>Action</th></tr></thead>
           <tbody>
-            <tr><td><code>y</code></td><td>Copy selected flow to clipboard.</td></tr>
+            <tr><td><code>y</code></td><td>Copy selected flow to clipboard (<code>pbcopy</code>/<code>wl-copy</code>/<code>xclip</code>/<code>xsel</code>, falling back to the OSC 52 terminal escape over ssh).</td></tr>
             <tr><td><code>F</code></td><td>Pin / unpin selected flow &mdash; ★ floats to top.</td></tr>
             <tr><td><code>e</code></td><td>Export all flows to <code>~/.iftoprs.export.txt</code>.</td></tr>
           </tbody>

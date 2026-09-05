@@ -421,7 +421,7 @@ as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `y` | Copy selected flow to clipboard |
+| `y` | Copy selected flow to clipboard (`pbcopy`/`wl-copy`/`xclip`/`xsel`, falling back to the OSC 52 terminal escape over ssh) |
 | `F` | Pin/unpin selected flow ★ |
 | `e` | Export flows to ~/.iftoprs.export.txt |
 #### `// MOUSE`
