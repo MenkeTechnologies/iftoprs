@@ -47,7 +47,7 @@ single page so you can grep with `/`:
 .RB "\(em " "31 cyberpunk palettes, chooser, --list-colors"
 .br
 .B 11. ARCHITECTURE
-.RB "\(em " "tokio capture thread, mpsc, auto-restart, lsof attribution"
+.RB "\(em " "capture thread, mpsc, auto-restart, native socket-table attribution"
 .br
 .B 12. ENVIRONMENT
 .br
@@ -85,19 +85,20 @@ Per-flow bandwidth tracking with sliding-window averages
 .RB ( "2 s / 10 s / 40 s" )
 plus cumulative totals and peak counters.
 .IP \[bu] 2
-Async capture via
+Threaded capture feeding a
 .B tokio
-+ mpsc channels.  Auto-restart on transient errors with exponential
+.B mpsc
+channel.  Auto-restart on transient errors with exponential
 backoff.
 .IP \[bu] 2
 Protocol detection
 .RB ( "TCP / UDP / ICMP / Other" )
-+ async cached DNS reverse resolution + port-to-service mapping.
++ cached background DNS reverse resolution + port-to-service mapping.
 .IP \[bu] 2
-Process attribution: flow-to-PID-and-command via
-.BR lsof (8)
-polling under
-.BR "Arc<Mutex<>>" .
+Process attribution: flow-to-PID-and-command via the native kernel socket table
+(libproc on macOS,
+.B /proc
+on Linux), polled every 2 s.
 .IP \[bu] 2
 Per-process aggregated bandwidth view
 .RB ( "Tab" )
@@ -135,6 +136,10 @@ TUI mode is the default.  Use
 .B \-\-json
 for headless streaming.
 .SH "2.  CAPTURE OPTIONS"
+.TP
+.BR \-c ", " \-\-config " " \fIFILE\fR
+Path to the preferences file (default:
+.IR ~/.iftoprs.conf ).
 .TP
 .BR \-i ", " \-\-interface " " \fINAME\fR
 Network interface to monitor (e.g.
@@ -225,7 +230,7 @@ TX (2s/10s/40s)|transmit averages over sliding windows
 RX (2s/10s/40s)|receive averages over sliding windows
 Total|cumulative bytes since flow start
 Peak|highest 2 s rate observed
-Process|owning PID + command name (via lsof)
+Process|owning PID + command name
 Sparkline|recent rate trend
 .TE
 .PP
@@ -352,6 +357,7 @@ tab(|);
 l l.
 .B Key|.B Action
 c|Open theme chooser
+C|Open custom theme editor
 j / k|Navigate themes
 Enter|Select theme
 Esc|Cancel
@@ -415,7 +421,7 @@ are independent of the theme palette and cycle with
 .B Capture pipeline:
 .RS 2
 .nf
-libpcap \(-> tokio task \(-> mpsc::Sender \(-> render loop \(-> ratatui
+libpcap \(-> capture thread \(-> mpsc::UnboundedSender \(-> render loop \(-> ratatui
 .fi
 .RE
 .PP
@@ -430,22 +436,22 @@ for the TUI framework.
 crate (libpcap bindings) for packet capture.
 .IP \[bu] 2
 .B tokio
-for the async capture task and DNS resolver.
+for the unbounded
+.B mpsc
+channel only; capture and DNS resolution run on plain threads.
 .IP \[bu] 2
 .B mpsc
-channel decouples capture from render; render loop drains at refresh
-rate.
+channel decouples capture from render.
 .IP \[bu] 2
 .B Auto-restart:
 transient capture errors trigger exponential-backoff restart so a
 flapping interface doesn't kill the session.
 .IP \[bu] 2
 .B Process attribution:
-.BR lsof (8)
-poll under
-.B "Arc<Mutex<>>"
-maps each socket to PID and command.  Stale entries are evicted on
-poll.
+A background thread polls the native kernel socket table (libproc on
+macOS,
+.B /proc
+on Linux) every 2 s to map each socket to PID and command.
 .IP \[bu] 2
 .B Sliding-window averages
 use circular buffers per flow; the
@@ -458,26 +464,20 @@ bar scale (
 .B HOME
 Used to locate
 .B ~/.iftoprs.conf
-and
+(unless
+.B \-\-config
+is given) and
 .BR ~/.iftoprs.export.txt .
-.TP
-.B TERM
-Used to detect terminal capability.  Setting to
-.B dumb
-disables the TUI.
-.TP
-.B NO_COLOR
-When set, color is suppressed even on a TTY.
 .SH "13. FILES"
 .TP
 .I ~/.iftoprs.conf
-TOML preferences file: last-used theme, interface, bar style, sort
-order, refresh rate, display toggles.
+TOML preferences file: theme, interface, bar style, refresh rate,
+display toggles, pinned flows.
 .TP
 .I ~/.iftoprs.export.txt
 Flow export target for the
 .B e
-key.  Appended on each export.
+key.  Overwritten on each export.
 .TP
 .I /usr/local/share/man/man1/iftoprs.1
 Short reference man page.
@@ -594,11 +594,7 @@ sudo iftoprs \-i en0 \-f "tcp port 443"
 .BR iftoprs (1),
 .BR iftop (8),
 .BR tcpdump (1),
-.BR pcap (3),
-.BR lsof (8),
-.BR lsofrsall (1),
-.BR strykeall (1),
-.BR zshrsall (1)
+.BR pcap (3)
 .SH AUTHORS
 .B MenkeTechnologies
 .RI < https://github.com/MenkeTechnologies >

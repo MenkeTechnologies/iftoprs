@@ -21,8 +21,9 @@ TUI with per-flow TX / RX sparklines, sliding-window averages (2 s /
 10 s / 40 s), cumulative + peak counters, and 31 cyberpunk color themes.
 .PP
 Process attribution maps each socket back to its owning PID and command
-via
-.BR lsof (8).
+using the native kernel socket table (libproc on macOS,
+.B /proc
+on Linux).
 A Tab key cycles between
 .B Flows
 view,
@@ -33,7 +34,7 @@ view (per code-identity aggregated bandwidth: macOS code-signing Team ID
 and authority, or Linux owning package and executable SHA-256).  Enter on a
 process or publisher drills down to that group's flows only.
 .PP
-Capture runs in a tokio thread sending packets over an
+Capture runs in a dedicated thread sending packets over an
 .B mpsc
 channel; transient capture errors trigger automatic exponential-backoff
 restart.  When
@@ -50,6 +51,10 @@ or
 on Linux.
 .SH OPTIONS
 .SS Capture
+.TP
+.BR \-c ", " \-\-config " " \fIFILE\fR
+Path to the preferences file (default:
+.BR ~/.iftoprs.conf ).
 .TP
 .BR \-i ", " \-\-interface " " \fINAME\fR
 Network interface to monitor.  When omitted, the first up interface is
@@ -144,6 +149,10 @@ Copy selected flow to clipboard.
 .B F
 Pin / unpin selected flow.
 .TP
+.B e
+Export flows to
+.BR ~/.iftoprs.export.txt .
+.TP
 .B h / ?
 Toggle help HUD.
 .TP
@@ -197,7 +206,9 @@ iftoprs \-\-completions zsh > ~/.zsh/_iftoprs
 .B HOME
 Used to locate
 .B ~/.iftoprs.conf
-(theme, last interface, display preferences) and
+(theme, interface, display preferences; overridden by
+.BR \-\-config )
+and
 .B ~/.iftoprs.export.txt
 (flow export via the
 .B e
@@ -205,8 +216,8 @@ key).
 .SH FILES
 .TP
 .I ~/.iftoprs.conf
-TOML preferences file: last-used theme, interface, bar style, sort
-order, refresh rate.
+TOML preferences file: theme, interface, bar style, refresh rate,
+display toggles, pinned flows.
 .TP
 .I ~/.iftoprs.export.txt
 Flow export target for the
@@ -224,8 +235,7 @@ permission denied.
 .BR iftoprsall (1),
 .BR iftop (8),
 .BR tcpdump (1),
-.BR pcap (3),
-.BR lsof (8)
+.BR pcap (3)
 .SH AUTHORS
 .B MenkeTechnologies
 .RI < https://github.com/MenkeTechnologies >
