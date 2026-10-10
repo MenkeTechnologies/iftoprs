@@ -310,7 +310,7 @@ sudo iftoprs -i en0                    # monitor specific interface
 sudo iftoprs -f "tcp port 443"         # filter HTTPS traffic only
 sudo iftoprs -F 10.0.0.0/8 -B         # filter private net, show bytes
 sudo iftoprs -n -N -b                  # raw IPs, no bars, minimal
-sudo iftoprs -Z                        # show process names per flow
+sudo iftoprs -Z                        # hide process column
 sudo iftoprs -p                        # promiscuous mode
 iftoprs --completions zsh              # generate zsh completions
 sudo iftoprs --json                    # stream NDJSON to stdout
