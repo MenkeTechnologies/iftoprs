@@ -147,7 +147,9 @@ cargo install iftoprs                   # via crates.io
   ├── / ── live filter by hostname/IP
   ├── 0 ── clear filter
   ├── Ctrl+w ── delete word
-  └── Ctrl+k ── kill to end of line
+  ├── Ctrl+k ── kill to end of line
+  ├── Ctrl+a / Ctrl+e ── cursor to start / end
+  └── Ctrl+u ── clear line
   │
 [EXPORT]
   ├── e ── export all flows to ~/.iftoprs.export.txt
@@ -387,6 +389,7 @@ as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
 | `0` | Clear filter |
 | `Enter` | Confirm filter |
 | `Esc` | Cancel filter |
+| `Ctrl+W` `Ctrl+K` `Ctrl+A` `Ctrl+E` `Ctrl+U` | Delete word / kill to end / start / end / clear line |
 
 #### `// THEME_OPS`
 
