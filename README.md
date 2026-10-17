@@ -340,7 +340,7 @@ as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `Tab` | Switch view ── Flows / Processes / Publishers |
+| `Tab` `Shift+Tab` | Switch view ── Flows / Processes / Publishers |
 | `n` | Toggle DNS resolution |
 | `N` | Toggle service name resolution |
 | `t` | Cycle line display ── two-line / one-line / sent / recv |
@@ -365,7 +365,6 @@ as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
 | `<` | Sort by source name |
 | `>` | Sort by destination name |
 | `o` | Freeze current sort order |
-
 | `r` | Reverse sort order |
 
 #### `// NAVIGATION`
@@ -398,7 +397,7 @@ as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
 | `c` | Open theme chooser |
 | `j/k` | Navigate themes |
 | `Enter` | Select theme |
-| `Esc` | Cancel |
+| `Esc` `q` `c` | Cancel |
 
 #### `// THEME_EDITOR`
 
@@ -427,6 +426,7 @@ as `unsigned-binary`), `team_id` (macOS code-signing Team Identifier), and
 | `y` | Copy selected flow to clipboard (`pbcopy`/`wl-copy`/`xclip`/`xsel`, falling back to the OSC 52 terminal escape over ssh) |
 | `F` | Pin/unpin selected flow ★ |
 | `e` | Export flows to ~/.iftoprs.export.txt |
+
 #### `// MOUSE`
 
 | `INPUT` | `ACTION` |
