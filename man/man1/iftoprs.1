@@ -57,8 +57,8 @@ Path to the preferences file (default:
 .BR ~/.iftoprs.conf ).
 .TP
 .BR \-i ", " \-\-interface " " \fINAME\fR
-Network interface to monitor.  When omitted, the first up interface is
-chosen.
+Network interface to monitor.  When omitted, the interface from
+the preferences file is used, else the libpcap default device.
 .TP
 .BR \-f ", " \-\-filter " " \fIEXPR\fR
 BPF filter expression (e.g.
@@ -217,7 +217,7 @@ key).
 .TP
 .I ~/.iftoprs.conf
 TOML preferences file: theme, interface, bar style, refresh rate,
-display toggles, pinned flows.
+display toggles, alert threshold, pinned flows, custom themes.
 .TP
 .I ~/.iftoprs.export.txt
 Flow export target for the

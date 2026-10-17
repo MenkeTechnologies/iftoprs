@@ -123,7 +123,7 @@ on Linux.
 .SH "1.  INVOCATION"
 With no
 .B \-i
-flag, the first up interface is auto-selected.  Use
+flag, the interface from the preferences file is used, else the libpcap default device.  Use
 .B \-l
 to list interfaces:
 .RS
@@ -472,7 +472,7 @@ is given) and
 .TP
 .I ~/.iftoprs.conf
 TOML preferences file: theme, interface, bar style, refresh rate,
-display toggles, pinned flows.
+display toggles, alert threshold, pinned flows, custom themes.
 .TP
 .I ~/.iftoprs.export.txt
 Flow export target for the

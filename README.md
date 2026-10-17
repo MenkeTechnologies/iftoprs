@@ -63,7 +63,7 @@ cargo install iftoprs                   # via crates.io
   │   ├── per-flow bandwidth tracking
   │   ├── sliding window averages: 2s / 10s / 40s
   │   ├── cumulative + peak counters
-  │   ├── async capture via tokio + mpsc channels
+  │   ├── capture thread feeding a tokio mpsc channel
   │   └── auto-restart on transient errors (exponential backoff)
   │
 [TELEMETRY_CORE]
@@ -106,7 +106,7 @@ cargo install iftoprs                   # via crates.io
   │   └── shown in right-click tooltip
   │
 [JSON_STREAM]
-  ├── --json flag ── headless NDJSON output (no TUI)
+  ├── --json flag ── headless NDJSON output (no TUI), rates in bits/s (bytes/s with -B)
   │   ├── streams flow snapshots to stdout
   │   ├── includes rates, totals, process info, publisher/team_id/package
   │   └── pipe to jq, log to file, feed dashboards
@@ -208,6 +208,9 @@ LIBPCAP       == installed (system dependency)
 | `serde_json` 1.0 | JSON streaming output |
 | `toml` 1.1 | Config file format |
 | `dirs` 6.0 | Home directory detection |
+| `libproc` 0.14 | Native socket-to-PID attribution (macOS only) |
+| `security-framework` 2.11 | Code-signing identity for the Publishers view (macOS only) |
+| `core-foundation` 0.9, `core-foundation-sys` 0.8 | CoreFoundation glue for the signing lookup (macOS only) |
 
 ---
 
