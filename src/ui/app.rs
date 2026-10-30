@@ -4077,4 +4077,169 @@ mod tests_extended {
         let app = make_app();
         assert!(!app.sort_reverse);
     }
+
+    // ── Publisher view navigation ──
+
+    /// `n` publishers named `pub00`.. with strictly descending rates, so the
+    /// aggregated order is deterministic (pub00 first).
+    fn app_with_publishers(n: u16) -> AppState {
+        let mut app = make_app();
+        let flows: Vec<_> = (0..n)
+            .map(|i| {
+                let mut f = make_flow(n - i);
+                f.publisher = Some(format!("pub{:02}", i));
+                f.process_name = Some(format!("proc{}", i));
+                f
+            })
+            .collect();
+        app.update_snapshot(flows, zero_totals());
+        assert_eq!(app.publisher_snapshots.len(), n as usize);
+        app
+    }
+
+    #[test]
+    fn publisher_select_next_starts_at_zero_and_clamps_at_end() {
+        let mut app = app_with_publishers(3);
+        app.publisher_select_next();
+        assert_eq!(app.publisher_selected, Some(0));
+        app.publisher_select_next();
+        app.publisher_select_next();
+        app.publisher_select_next();
+        assert_eq!(app.publisher_selected, Some(2));
+        assert_eq!(app.publisher_scroll, 0);
+    }
+
+    #[test]
+    fn publisher_select_next_scrolls_window_past_twenty_rows() {
+        let mut app = app_with_publishers(30);
+        app.publisher_selected = Some(19);
+        app.publisher_select_next();
+        assert_eq!(app.publisher_selected, Some(20));
+        // Selection is kept on the last of the 20 visible rows.
+        assert_eq!(app.publisher_scroll, 1);
+    }
+
+    #[test]
+    fn publisher_select_prev_pulls_scroll_up_to_selection() {
+        let mut app = app_with_publishers(30);
+        app.publisher_scroll = 10;
+        app.publisher_selected = Some(10);
+        app.publisher_select_prev();
+        assert_eq!(app.publisher_selected, Some(9));
+        assert_eq!(app.publisher_scroll, 9);
+        app.publisher_selected = Some(0);
+        app.publisher_scroll = 0;
+        app.publisher_select_prev();
+        assert_eq!(app.publisher_selected, Some(0));
+    }
+
+    #[test]
+    fn publisher_page_down_and_up_move_by_ten_and_clamp() {
+        let mut app = app_with_publishers(25);
+        app.publisher_page_down();
+        assert_eq!(app.publisher_selected, Some(10));
+        app.publisher_page_down();
+        assert_eq!(app.publisher_selected, Some(20));
+        assert_eq!(app.publisher_scroll, 1);
+        app.publisher_page_down();
+        assert_eq!(app.publisher_selected, Some(24));
+        assert_eq!(app.publisher_scroll, 5);
+        app.publisher_page_up();
+        assert_eq!(app.publisher_selected, Some(14));
+        assert_eq!(app.publisher_scroll, 5);
+        app.publisher_page_up();
+        assert_eq!(app.publisher_selected, Some(4));
+        assert_eq!(app.publisher_scroll, 4);
+        app.publisher_page_up();
+        assert_eq!(app.publisher_selected, Some(0));
+        assert_eq!(app.publisher_scroll, 0);
+    }
+
+    #[test]
+    fn publisher_page_down_on_short_list_from_none_clamps() {
+        let mut app = app_with_publishers(4);
+        app.publisher_page_down();
+        assert_eq!(app.publisher_selected, Some(3));
+    }
+
+    #[test]
+    fn publisher_drill_down_without_valid_selection_keeps_view() {
+        let mut app = app_with_publishers(2);
+        app.view_tab = ViewTab::Publishers;
+        app.publisher_drill_down();
+        assert_eq!(app.view_tab, ViewTab::Publishers);
+        assert!(app.publisher_filter.is_none());
+        assert_eq!(
+            app.status_msg.as_ref().map(|m| m.text.as_str()),
+            Some("Select a publisher first (j/k)")
+        );
+
+        // Out-of-range selection is treated as no selection.
+        app.publisher_selected = Some(5);
+        app.publisher_drill_down();
+        assert_eq!(app.view_tab, ViewTab::Publishers);
+        assert!(app.publisher_filter.is_none());
+    }
+
+    #[test]
+    fn publisher_drill_down_replaces_process_filter_and_resets_flow_cursor() {
+        let mut app = app_with_publishers(2);
+        app.view_tab = ViewTab::Publishers;
+        app.process_filter = Some("proc0".into());
+        app.selected = Some(3);
+        app.scroll_offset = 7;
+        app.publisher_selected = Some(1);
+        app.publisher_drill_down();
+        assert_eq!(app.view_tab, ViewTab::Flows);
+        assert_eq!(app.publisher_filter.as_deref(), Some("pub01"));
+        assert!(app.process_filter.is_none());
+        assert_eq!(app.selected, None);
+        assert_eq!(app.scroll_offset, 0);
+    }
+
+    #[test]
+    fn clear_publisher_filter_only_acts_when_set() {
+        let mut app = make_app();
+        app.selected = Some(2);
+        app.clear_publisher_filter();
+        assert_eq!(app.selected, Some(2));
+        assert!(app.status_msg.is_none());
+
+        app.publisher_filter = Some("apple".into());
+        app.scroll_offset = 4;
+        app.clear_publisher_filter();
+        assert!(app.publisher_filter.is_none());
+        assert_eq!(app.selected, None);
+        assert_eq!(app.scroll_offset, 0);
+        assert_eq!(
+            app.status_msg.as_ref().map(|m| m.text.as_str()),
+            Some("Publisher filter cleared")
+        );
+    }
+
+    #[test]
+    fn publisher_selection_clamps_when_list_shrinks() {
+        let mut app = app_with_publishers(5);
+        app.publisher_selected = Some(4);
+        let mut f = make_flow(1);
+        f.publisher = Some("only".into());
+        app.update_snapshot(vec![f], zero_totals());
+        assert_eq!(app.publisher_selected, Some(0));
+    }
+
+    #[test]
+    fn list_row_at_publishers_skips_header_and_honours_scroll() {
+        let mut app = app_with_publishers(5);
+        app.view_tab = ViewTab::Publishers;
+        app.flow_area_y = 3;
+        app.publisher_scroll = 2;
+        assert_eq!(app.list_row_at(2), None); // above list
+        assert_eq!(app.list_row_at(3), None); // column header
+        assert_eq!(app.list_row_at(4), Some(2));
+        assert_eq!(app.list_row_at(6), Some(4));
+        assert_eq!(app.list_row_at(7), None); // past last publisher
+        app.select_in_active_view(3);
+        assert_eq!(app.publisher_selected, Some(3));
+        assert_eq!(app.selected, None);
+    }
 }

@@ -1175,6 +1175,18 @@ fn set_str(buf: &mut Buffer, x: u16, y: u16, s: &str, st: Style, mw: u16) {
     }
 }
 
+/// Smallest modal box the overlay layouts can draw into. Their row/column
+/// arithmetic subtracts up to 16 columns (theme-editor name field) and 6 rows
+/// (help columns) from the box size, so anything smaller would underflow.
+const MODAL_MIN_W: u16 = 16;
+const MODAL_MIN_H: u16 = 6;
+
+/// True when a terminal is too small to hold a modal of `bw` x `bh`; the
+/// overlay is skipped rather than drawn partially.
+fn modal_too_small(bw: u16, bh: u16) -> bool {
+    bw < MODAL_MIN_W || bh < MODAL_MIN_H
+}
+
 /// Draw a filled box with double-line border. Returns (x0, y0, bw, bh).
 fn draw_box(
     buf: &mut Buffer,
@@ -1228,6 +1240,9 @@ fn draw_help(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let bw = 90u16.min(area.width.saturating_sub(4));
     let bh = 31u16.min(area.height.saturating_sub(4));
+    if modal_too_small(bw, bh) {
+        return;
+    }
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
     let bgs = Style::default().fg(Color::White).bg(bg);
@@ -1399,6 +1414,9 @@ fn draw_theme_editor(frame: &mut Frame, area: Rect, state: &AppState) {
     let bw = 56u16.min(area.width.saturating_sub(4));
     let bh: u16 = if te.naming { 16 } else { 15 };
     let bh = bh.min(area.height.saturating_sub(4));
+    if modal_too_small(bw, bh) {
+        return;
+    }
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
     let bgs = Style::default().fg(Color::White).bg(bg);
@@ -1553,6 +1571,9 @@ fn draw_theme_chooser(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let bw = 50u16.min(area.width.saturating_sub(4));
     let bh = (ThemeName::ALL.len() as u16 + 6).min(area.height.saturating_sub(4));
+    if modal_too_small(bw, bh) {
+        return;
+    }
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
     let ts = Style::default()
@@ -1615,6 +1636,9 @@ fn draw_interface_chooser(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let bw = 50u16.min(area.width.saturating_sub(4));
     let bh = (ch.interfaces.len() as u16 + 5).min(area.height.saturating_sub(4));
+    if modal_too_small(bw, bh) {
+        return;
+    }
     let (x0, y0) = draw_box(
         buf,
         area,
@@ -1666,6 +1690,9 @@ fn draw_filter_popup(frame: &mut Frame, area: Rect, state: &AppState) {
     let buf = frame.buffer_mut();
     let bw = 54u16.min(area.width.saturating_sub(4));
     let bh = 9u16;
+    if modal_too_small(bw, bh) {
+        return;
+    }
     let bg = t.help_bg;
     let bs = Style::default().fg(t.help_border);
     let ts = Style::default()
@@ -2820,5 +2847,338 @@ mod tests {
         // bps * 8 == 1e9 bits/s → log10 == 9 == LOG10_MAX_BITS
         let f = rate_to_frac(125_000_000.0);
         assert!((f - 1.0).abs() < 1e-9);
+    }
+
+    // ── Shared buffer helpers for content assertions ──
+
+    fn render(app: &mut crate::ui::app::AppState, w: u16, h: u16) -> Buffer {
+        let backend = ratatui::backend::TestBackend::new(w, h);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|frame| draw(frame, app)).unwrap();
+        terminal.backend().buffer().clone()
+    }
+
+    fn row_text(buf: &Buffer, y: u16) -> String {
+        (0..buf.area().width)
+            .map(|x| buf[(x, y)].symbol())
+            .collect()
+    }
+
+    fn screen_text(buf: &Buffer) -> String {
+        (0..buf.area().height)
+            .map(|y| row_text(buf, y))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn find_row(buf: &Buffer, needle: &str) -> Option<u16> {
+        (0..buf.area().height).find(|&y| row_text(buf, y).contains(needle))
+    }
+
+    // ── Modal overlays on undersized terminals ──
+
+    #[test]
+    fn modal_overlays_on_tiny_terminals_do_not_panic() {
+        // Every modal subtracts fixed margins from its box size; a terminal
+        // shrunk below the modal's footprint used to underflow (help at 30x8,
+        // theme editor / chooser / filter at 5x5).
+        for (w, h) in [
+            (1, 1),
+            (3, 3),
+            (5, 5),
+            (8, 6),
+            (10, 8),
+            (20, 5),
+            (30, 8),
+            (30, 10),
+        ] {
+            for overlay in 0..6 {
+                let mut app = make_test_app();
+                match overlay {
+                    0 => app.theme_edit.active = true,
+                    1 => {
+                        app.theme_edit.active = true;
+                        app.theme_edit.naming = true;
+                    }
+                    2 => app.theme_chooser.active = true,
+                    3 => app.show_help = true,
+                    4 => app.filter_state.active = true,
+                    _ => {
+                        app.interface_chooser.active = true;
+                        app.interface_chooser.interfaces = vec!["en0".into(), "lo0".into()];
+                    }
+                }
+                render(&mut app, w, h);
+            }
+        }
+    }
+
+    #[test]
+    fn modal_too_small_thresholds() {
+        assert!(modal_too_small(MODAL_MIN_W - 1, MODAL_MIN_H));
+        assert!(modal_too_small(MODAL_MIN_W, MODAL_MIN_H - 1));
+        assert!(!modal_too_small(MODAL_MIN_W, MODAL_MIN_H));
+    }
+
+    #[test]
+    fn help_still_drawn_on_small_but_usable_terminal() {
+        let mut app = make_test_app();
+        app.show_help = true;
+        let buf = render(&mut app, 40, 12);
+        assert!(screen_text(&buf).contains('╔'));
+    }
+
+    // ── segment_at_x ──
+
+    fn bar_buffer(text: &str) -> Buffer {
+        let w = text.chars().count() as u16;
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, 1));
+        set_str(&mut buf, 0, 0, text, Style::default(), w);
+        buf
+    }
+
+    #[test]
+    fn segment_at_x_picks_segment_under_cursor() {
+        //            0123456789012345
+        let buf = bar_buffer(" aa │ bbb │ cc ");
+        let end = buf.area().width;
+        assert_eq!(segment_at_x(&buf, 1, 0, 0, end).as_deref(), Some("aa"));
+        // The pipe itself belongs to the segment on its left.
+        assert_eq!(segment_at_x(&buf, 4, 0, 0, end).as_deref(), Some("aa"));
+        assert_eq!(segment_at_x(&buf, 5, 0, 0, end).as_deref(), Some("bbb"));
+        assert_eq!(segment_at_x(&buf, 12, 0, 0, end).as_deref(), Some("cc"));
+    }
+
+    #[test]
+    fn segment_at_x_honours_bar_start_offset() {
+        let buf = bar_buffer("XX aa │ bb");
+        let end = buf.area().width;
+        // Bar begins at column 2: column 3 is inside "aa", column 8 inside "bb".
+        assert_eq!(segment_at_x(&buf, 3, 0, 2, end).as_deref(), Some("aa"));
+        assert_eq!(segment_at_x(&buf, 8, 0, 2, end).as_deref(), Some("bb"));
+        // Cursor left of the bar start saturates to the first segment.
+        assert_eq!(segment_at_x(&buf, 0, 0, 2, end).as_deref(), Some("aa"));
+    }
+
+    #[test]
+    fn segment_at_x_blank_segment_is_none() {
+        let buf = bar_buffer("aa │    │ bb");
+        let end = buf.area().width;
+        assert_eq!(segment_at_x(&buf, 6, 0, 0, end), None);
+    }
+
+    #[test]
+    fn segment_at_x_past_end_falls_back_to_last_segment() {
+        let buf = bar_buffer("aa │ bb");
+        assert_eq!(
+            segment_at_x(&buf, 50, 0, 0, buf.area().width).as_deref(),
+            Some("bb")
+        );
+        let blank = bar_buffer("aa │   ");
+        assert_eq!(segment_at_x(&blank, 50, 0, 0, blank.area().width), None);
+    }
+
+    // ── Publishers view ──
+
+    fn make_test_publisher(name: &str, rate: f64) -> crate::ui::app::PublisherSnapshot {
+        crate::ui::app::PublisherSnapshot {
+            name: name.to_string(),
+            process_count: 3,
+            flow_count: 4,
+            sent_2s: rate,
+            sent_10s: rate,
+            sent_40s: rate,
+            recv_2s: rate,
+            recv_10s: rate,
+            recv_40s: rate,
+            total_sent: 4096,
+            total_recv: 2048,
+        }
+    }
+
+    #[test]
+    fn draw_publishers_header_rows_and_selection() {
+        use crate::ui::app::ViewTab;
+        let mut app = make_test_app();
+        app.view_tab = ViewTab::Publishers;
+        app.publisher_snapshots = vec![
+            make_test_publisher("com.example.alpha", 5000.0),
+            make_test_publisher("unsigned-binary", 10.0),
+        ];
+        app.publisher_selected = Some(1);
+        let buf = render(&mut app, 120, 30);
+
+        let header_y = find_row(&buf, " PUBLISHER").expect("publisher header drawn");
+        let header = row_text(&buf, header_y);
+        for col in [
+            "PROCS", "TX 2s", "RX 2s", "TX 10s", "RX 10s", "TOTAL TX", "TOTAL RX",
+        ] {
+            assert!(header.contains(col), "header missing {col}: {header}");
+        }
+        assert_eq!(header_y, app.flow_area_y);
+
+        let alpha = row_text(&buf, header_y + 1);
+        assert!(alpha.contains(" com.example.alpha"), "{alpha}");
+        assert!(alpha.contains('3'), "process count column: {alpha}");
+        let unsigned_y = header_y + 2;
+        assert!(row_text(&buf, unsigned_y).contains("unsigned-binary"));
+
+        // Only the selected row carries the selection background.
+        let sel_bg = app.theme.select_bg;
+        let x = u16::from(app.show_border);
+        assert_eq!(buf[(x + 40, unsigned_y)].bg, sel_bg);
+        assert_ne!(buf[(x + 40, header_y + 1)].bg, sel_bg);
+    }
+
+    #[test]
+    fn draw_publishers_scroll_past_end_shows_last_row() {
+        use crate::ui::app::ViewTab;
+        let mut app = make_test_app();
+        app.view_tab = ViewTab::Publishers;
+        app.publisher_snapshots = (0..3)
+            .map(|i| make_test_publisher(&format!("pub-{i}"), 100.0))
+            .collect();
+        app.publisher_scroll = 99;
+        let buf = render(&mut app, 120, 30);
+        let text = screen_text(&buf);
+        assert!(text.contains("pub-2"));
+        assert!(!text.contains("pub-0"));
+        assert!(!text.contains("pub-1"));
+    }
+
+    #[test]
+    fn draw_publishers_rows_stop_at_area_height() {
+        use crate::ui::app::ViewTab;
+        let mut app = make_test_app();
+        app.view_tab = ViewTab::Publishers;
+        app.publisher_snapshots = (0..100)
+            .map(|i| make_test_publisher(&format!("pub-{i:03}"), 100.0))
+            .collect();
+        let buf = render(&mut app, 120, 24);
+        let header_y = find_row(&buf, " PUBLISHER").unwrap();
+        let last_drawn = (0..100)
+            .rev()
+            .find(|i| screen_text(&buf).contains(&format!("pub-{i:03}")))
+            .unwrap();
+        // Rows fill the flow area exactly; nothing spills onto the separator
+        // or totals rows below it.
+        let last_y = find_row(&buf, &format!("pub-{last_drawn:03}")).unwrap();
+        assert_eq!(last_y as usize, header_y as usize + 1 + last_drawn);
+        assert!(!row_text(&buf, last_y + 1).contains("pub-"));
+    }
+
+    #[test]
+    fn draw_publishers_skipped_when_too_narrow() {
+        use crate::ui::app::ViewTab;
+        let mut app = make_test_app();
+        app.view_tab = ViewTab::Publishers;
+        app.publisher_snapshots = vec![make_test_publisher("narrow", 1.0)];
+        let buf = render(&mut app, 25, 24);
+        assert!(!screen_text(&buf).contains("PUBLISHER"));
+    }
+
+    // ── Theme editor overlay ──
+
+    #[test]
+    fn theme_editor_marks_selected_slot_and_shows_hints() {
+        let mut app = make_test_app();
+        app.theme_edit.active = true;
+        app.theme_edit.colors = [196, 46, 21, 226, 201, 51];
+        app.theme_edit.slot = 2;
+        let buf = render(&mut app, 80, 24);
+
+        let c3_y = find_row(&buf, "c3").expect("c3 row drawn");
+        let c3 = row_text(&buf, c3_y);
+        assert!(c3.contains("▸ c3"), "selected marker: {c3}");
+        assert!(c3.contains(" 21"), "slot value: {c3}");
+        let primary = row_text(&buf, find_row(&buf, "primary").unwrap());
+        assert!(!primary.contains('▸'));
+        assert!(primary.contains("196"));
+
+        let text = screen_text(&buf);
+        assert!(text.contains("THEME EDITOR"));
+        assert!(text.contains("preview:"));
+        assert!(text.contains("Esc/q:cancel"));
+        assert!(!text.contains("Theme name:"));
+    }
+
+    #[test]
+    fn theme_editor_naming_prompt_shows_name_with_cursor() {
+        let mut app = make_test_app();
+        app.theme_edit.active = true;
+        app.theme_edit.naming = true;
+        app.theme_edit.name = "neon".into();
+        let buf = render(&mut app, 80, 24);
+        let text = screen_text(&buf);
+        assert!(text.contains("Theme name:"));
+        assert!(text.contains("neon_"));
+        assert!(text.contains("Enter:save  Esc:back"));
+        assert!(!text.contains("Esc/q:cancel"));
+    }
+
+    // ── Header hover tooltip ──
+
+    #[test]
+    fn header_hover_tooltip_shows_app_segment_details() {
+        let mut app = make_test_app();
+        app.show_header = true;
+        app.hover_tooltips = true;
+        let buf = render(&mut app, 120, 30);
+        let hy = app.header_bar_y;
+        let row = row_text(&buf, hy);
+        let col = row
+            .chars()
+            .collect::<Vec<_>>()
+            .windows(7)
+            .position(|w| w.iter().collect::<String>() == "IFTOPRS")
+            .expect("app segment in header bar") as u16;
+
+        app.hover.pos = Some((col + 2, hy));
+        app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_millis(1500));
+        let buf = render(&mut app, 120, 30);
+        let text = screen_text(&buf);
+        assert!(text.contains("Real-time bandwidth monitor"), "{text}");
+        // Tooltip sits above the header bar, which stays intact.
+        let desc_y = find_row(&buf, "Real-time bandwidth monitor").unwrap();
+        assert!(desc_y < hy);
+        assert!(row_text(&buf, hy).contains("IFTOPRS"));
+    }
+
+    #[test]
+    fn header_hover_tooltip_hidden_before_delay() {
+        let mut app = make_test_app();
+        app.show_header = true;
+        app.hover_tooltips = true;
+        render(&mut app, 120, 30);
+        app.hover.pos = Some((5, app.header_bar_y));
+        app.hover.since = Some(std::time::Instant::now());
+        let buf = render(&mut app, 120, 30);
+        assert!(!screen_text(&buf).contains("Real-time bandwidth monitor"));
+    }
+
+    // ── Right-click tooltip placement ──
+
+    #[test]
+    fn tooltip_near_right_bottom_edge_flips_to_stay_on_screen() {
+        let mut app = make_test_app();
+        app.tooltip.active = true;
+        app.tooltip.x = 78;
+        app.tooltip.y = 22;
+        app.tooltip.lines = vec![
+            ("Src".into(), "10.0.0.1:443".into()),
+            (String::new(), String::new()),
+            ("Dst".into(), "10.0.0.2:80".into()),
+        ];
+        let buf = render(&mut app, 80, 24);
+        let src_y = find_row(&buf, "10.0.0.1:443").expect("tooltip visible");
+        let dst_y = find_row(&buf, "10.0.0.2:80").expect("tooltip visible");
+        assert!(src_y < 22 && dst_y == src_y + 2);
+        // Blank (label, value) pair renders as a dotted separator.
+        assert!(row_text(&buf, src_y + 1).contains("···"));
+        // Box is placed left of the click, closing border before the click column.
+        let src_row = row_text(&buf, src_y);
+        let val = src_row.find("10.0.0.1:443").unwrap();
+        let close = val + src_row[val..].find('│').unwrap();
+        assert!(src_row[..close].chars().count() < 78, "{src_row}");
     }
 }
